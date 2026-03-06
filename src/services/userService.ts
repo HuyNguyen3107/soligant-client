@@ -1,10 +1,12 @@
 import type { User, CreateUserDto } from "../types/user";
 
-const API_BASE = "/api/users";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const USERS_ENDPOINT = `${API_BASE}/users`;
 
 export const userService = {
   async getAllUsers(): Promise<User[]> {
-    const response = await fetch(API_BASE);
+    const response = await fetch(USERS_ENDPOINT);
     if (!response.ok) {
       throw new Error("Failed to fetch users");
     }
@@ -12,7 +14,7 @@ export const userService = {
   },
 
   async getUserById(id: string): Promise<User> {
-    const response = await fetch(`${API_BASE}/${id}`);
+    const response = await fetch(`${USERS_ENDPOINT}/${id}`);
     if (!response.ok) {
       throw new Error("Failed to fetch user");
     }
@@ -20,7 +22,7 @@ export const userService = {
   },
 
   async createUser(userData: CreateUserDto): Promise<User> {
-    const response = await fetch(API_BASE, {
+    const response = await fetch(USERS_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -38,7 +40,7 @@ export const userService = {
     id: string,
     userData: Partial<CreateUserDto>,
   ): Promise<User> {
-    const response = await fetch(`${API_BASE}/${id}`, {
+    const response = await fetch(`${USERS_ENDPOINT}/${id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -52,7 +54,7 @@ export const userService = {
   },
 
   async deleteUser(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE}/${id}`, {
+    const response = await fetch(`${USERS_ENDPOINT}/${id}`, {
       method: "DELETE",
     });
     if (!response.ok) {

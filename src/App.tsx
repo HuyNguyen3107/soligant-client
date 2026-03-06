@@ -69,7 +69,24 @@ function App() {
       </header>
 
       <main>
-        {error && <div className="error-banner">{error}</div>}
+        {error && (
+          <div className="error-banner">
+            {error}
+            <button
+              onClick={() => setError(null)}
+              style={{
+                marginLeft: "auto",
+                background: "transparent",
+                border: "none",
+                color: "white",
+                cursor: "pointer",
+                fontSize: "1.25rem",
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         <div className="container">
           <div className="form-section">
