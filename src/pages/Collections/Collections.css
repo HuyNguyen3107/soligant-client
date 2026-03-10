@@ -1,0 +1,233 @@
+/* ── Collections Hero ── */
+.col-hero {
+  background: linear-gradient(135deg, #731618 0%, #9a1e21 60%, #5f0d10 100%);
+  padding: 100px 0 60px;
+  text-align: center;
+  color: #fff;
+}
+
+.col-hero__content {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.col-hero__eyebrow {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 12px;
+}
+
+.col-hero__title {
+  font-family: var(--font-primary);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  color: #fff;
+}
+
+.col-hero__desc {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* ── Section wrapper ── */
+.col-section {
+  padding: 60px 0 80px;
+  background: #fafafa;
+  min-height: 300px;
+}
+
+.col-section__container {
+  max-width: 1200px;
+}
+
+/* ── Grid ── */
+.col-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 28px;
+}
+
+/* ── Card ── */
+.col-card {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.col-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(115, 22, 24, 0.15);
+}
+
+.col-card--featured {
+  border: 2px solid #731618;
+}
+
+.col-card__thumb {
+  position: relative;
+  width: 100%;
+  padding-top: 62%;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.col-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.col-card:hover .col-card__img {
+  transform: scale(1.06);
+}
+
+.col-card__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5e1;
+}
+
+.col-card__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #731618;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.col-card__body {
+  padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.col-card__name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+  line-height: 1.35;
+}
+
+.col-card__desc {
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.6;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.col-card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #731618;
+  margin-top: auto;
+  transition: gap 0.15s ease;
+}
+
+.col-card:hover .col-card__link {
+  gap: 8px;
+}
+
+/* ── Loading skeletons ── */
+.col-loading {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 28px;
+}
+
+.col-skeleton {
+  height: 320px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ── Empty / Error states ── */
+.col-empty,
+.col-error {
+  text-align: center;
+  padding: 80px 20px;
+  color: #94a3b8;
+}
+
+.col-empty svg,
+.col-error svg {
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+
+.col-empty h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.col-empty p,
+.col-error p {
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .col-hero {
+    padding: 90px 0 50px;
+  }
+
+  .col-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .col-grid {
+    grid-template-columns: 1fr;
+  }
+}

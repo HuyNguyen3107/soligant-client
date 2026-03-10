@@ -1,0 +1,52 @@
+// Brand Colors
+$primary: #731618;
+$primary-contrast: #ffffff;
+$secondary: #5f0d10;
+$black: #000000;
+$light: #f8f8f8;
+$border: #a24a4c;
+
+// Common Colors
+$success: #4caf50;
+$info: #007bff;
+$warning: #ffc107;
+$danger: #dc3545;
+$gray-100: #f8f9fa;
+$gray-200: #e9ecef;
+$gray-300: #dee2e6;
+$gray-400: #ced4da;
+$gray-500: #adb5bd;
+$gray-600: #6c757d;
+$gray-700: #495057;
+$gray-800: #343a40;
+$gray-900: #212529;
+
+// Font Families
+$font-primary: 'UTM-Avo', Arial, sans-serif;
+$font-secondary: 'Barox', serif;
+$font-mono: 'UTM-Avo', Arial, sans-serif;
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 40px;
+
+// Border Radius
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+
+// Shadows
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+$shadow-md: 0 4px 6px rgba(0, 0, 0, 0.12);
+$shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+$shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+// Transitions
+$transition-fast: 0.15s ease;
+$transition-normal: 0.3s ease;
+$transition-slow: 0.5s ease;

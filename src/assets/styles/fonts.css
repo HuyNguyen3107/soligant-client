@@ -1,0 +1,44 @@
+@font-face {
+  font-family: "Barox";
+  src: url("../fonts/Barox-DemoVersion-Regular.woff2") format("woff2"),
+    url("../fonts/Barox-DemoVersion-Regular.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "UTM-Avo";
+  src: url("../fonts/UTM-Avo.woff2") format("woff2"),
+    url("../fonts/UTM-Avo.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "UTM-Avo";
+  src: url("../fonts/UTM-AvoBold.woff2") format("woff2"),
+    url("../fonts/UTM-AvoBold.woff") format("woff");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "UTM-Avo";
+  src: url("../fonts/UTM-AvoItalic.woff2") format("woff2"),
+    url("../fonts/UTM-AvoItalic.woff") format("woff");
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "UTM-Avo";
+  src: url("../fonts/UTM-AvoBold_Italic.woff2") format("woff2"),
+    url("../fonts/UTM-AvoBold_Italic.woff") format("woff");
+  font-weight: bold;
+  font-style: italic;
+  font-display: swap;
+}

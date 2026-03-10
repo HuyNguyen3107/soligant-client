@@ -1,0 +1,243 @@
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding-top: var(--header-height);
+  overflow: hidden;
+}
+
+.hero__background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+}
+
+.hero__background-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(115, 22, 24, 0.9) 0%,
+    rgba(95, 13, 16, 0.85) 50%,
+    rgba(115, 22, 24, 0.8) 100%
+  );
+}
+
+.hero__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxl);
+}
+
+.hero__text {
+  max-width: 700px;
+  color: var(--color-white);
+}
+
+.hero__title {
+  font-family: var(--font-primary);
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  color: var(--color-white);
+  line-height: 1.1;
+  margin-bottom: var(--spacing-lg);
+}
+
+.hero__title-highlight {
+  display: block;
+  color: #ffd700;
+}
+
+.hero__subtitle {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.8;
+  margin-bottom: var(--spacing-xl);
+  max-width: 550px;
+}
+
+.hero__actions {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.hero__btn {
+  padding: var(--spacing-md) var(--spacing-xxl);
+  font-size: 1rem;
+}
+
+.hero__btn.btn-primary {
+  background-color: var(--color-white);
+  color: var(--color-primary);
+}
+
+.hero__btn.btn-primary:hover {
+  background-color: #ffd700;
+  transform: translateY(-2px);
+}
+
+.hero__btn.btn-outline {
+  border-color: var(--color-white);
+  color: var(--color-white);
+}
+
+.hero__btn.btn-outline:hover {
+  background-color: var(--color-white);
+  color: var(--color-primary);
+}
+
+.hero__features {
+  display: flex;
+  gap: var(--spacing-xl);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-lg);
+}
+
+.hero__feature {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  min-width: 250px;
+  flex: 1;
+  transition: all var(--transition-normal);
+}
+
+.hero__feature:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-3px);
+}
+
+.hero__feature-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  color: var(--color-white);
+}
+
+.hero__feature-text h4 {
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-white);
+  margin-bottom: var(--spacing-xs);
+}
+
+.hero__feature-text p {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+/* Animations */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown 0.8s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+
+.delay-300 {
+  animation-delay: 0.3s;
+  opacity: 0;
+}
+
+.delay-400 {
+  animation-delay: 0.4s;
+  opacity: 0;
+}
+
+.delay-600 {
+  animation-delay: 0.6s;
+  opacity: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero {
+    min-height: auto;
+    padding: calc(var(--header-height) + var(--spacing-xxl)) 0
+      var(--spacing-xxl);
+  }
+
+  .hero__features {
+    flex-direction: column;
+  }
+
+  .hero__feature {
+    min-width: 100%;
+  }
+
+  .hero__actions {
+    flex-direction: column;
+  }
+
+  .hero__btn {
+    width: 100%;
+    text-align: center;
+  }
+}
