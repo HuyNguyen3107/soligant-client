@@ -1,4 +1,7 @@
 import "./FeaturedProducts.css";
+import product1 from "../../../assets/images/product-1.jpg";
+import product2 from "../../../assets/images/product-2.jpg";
+import product3 from "../../../assets/images/product-3.jpg";
 
 interface Product {
   id: number;
@@ -16,7 +19,7 @@ const products: Product[] = [
     name: "Hộp Quà Tặng Cao Cấp",
     price: 850000,
     originalPrice: 980000,
-    image: "/src/assets/images/product-1.jpg",
+    image: product1,
     category: "Bộ quà tặng",
     badge: "Bestseller",
   },
@@ -24,7 +27,7 @@ const products: Product[] = [
     id: 2,
     name: "Giỏ Quà Sinh Nhật",
     price: 650000,
-    image: "/src/assets/images/product-2.jpg",
+    image: product2,
     category: "Quà sinh nhật",
   },
   {
@@ -32,7 +35,7 @@ const products: Product[] = [
     name: "Set Quà Doanh Nghiệp",
     price: 1200000,
     originalPrice: 1450000,
-    image: "/src/assets/images/product-3.jpg",
+    image: product3,
     category: "Quà doanh nghiệp",
     badge: "Sale",
   },
