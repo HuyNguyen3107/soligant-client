@@ -1,5 +1,6 @@
 import { FiGift, FiEdit3, FiTruck, FiMessageCircle } from "react-icons/fi";
 import "./About.css";
+import aboutImage from "../../../assets/images/product-2.jpg";
 
 interface Service {
   icon: React.ReactNode;
@@ -64,7 +65,7 @@ const About = () => {
         <div className="about__image-section">
           <div className="about__image-wrapper">
             <img
-              src="/src/assets/images/product-2.jpg"
+              src={aboutImage}
               alt="Soligant Store"
               className="about__image"
             />

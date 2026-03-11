@@ -1,12 +1,13 @@
 import { FiGift, FiTruck, FiHeart } from "react-icons/fi";
 import "./Hero.css";
+import heroBackground from "../../../assets/images/product-1.jpg";
 
 const Hero = () => {
   return (
     <section className="hero">
       <div className="hero__background">
         <img
-          src="/src/assets/images/product-1.jpg"
+          src={heroBackground}
           alt="Background"
           className="hero__background-image"
         />

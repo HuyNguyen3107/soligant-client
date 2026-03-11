@@ -5,6 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowLeft } from "react-icons/fi";
 import { SEO } from "../../components/common";
 import "./Login.css";
+import loginBannerImage from "../../assets/images/product-3.jpg";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -154,7 +155,7 @@ const Login = () => {
 
       <div className="login__banner">
         <img
-          src="/src/assets/images/product-3.jpg"
+          src={loginBannerImage}
           alt="Soligant Gifts"
           className="login__banner-image"
         />
