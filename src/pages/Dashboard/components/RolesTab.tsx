@@ -15,7 +15,7 @@ import {
 } from "react-icons/fi";
 import type { SysPerm, CustomRole, RoleForm } from "../types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 const EMPTY_ROLE_FORM: RoleForm = {
   name: "",
