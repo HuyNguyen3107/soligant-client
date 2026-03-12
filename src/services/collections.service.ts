@@ -33,6 +33,10 @@ export interface CollectionProduct {
   image: string;
   size: "20x20" | "18x18" | "15x15";
   legoQuantity: number;
+  allowVariableLegoCount: boolean;
+  legoCountMin: number;
+  legoCountMax: number;
+  additionalLegoPrice: number;
   price: number;
   updatedAt: string;
 }

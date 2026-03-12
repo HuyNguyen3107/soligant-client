@@ -45,23 +45,11 @@
   position: relative;
   z-index: 1;
   color: #fff;
-  padding-top: 100px;
+  padding-top: 124px;
 }
 
-.cd-breadcrumb {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: rgba(255, 255, 255, 0.85);
-  text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 500;
+.cd-hero__breadcrumb {
   margin-bottom: 20px;
-  transition: color 0.15s;
-}
-
-.cd-breadcrumb:hover {
-  color: #fff;
 }
 
 .cd-hero__meta {

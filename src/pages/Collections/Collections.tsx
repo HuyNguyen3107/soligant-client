@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { FiGrid, FiArrowRight } from "react-icons/fi";
-import { SEO } from "../../components/common";
+import { PageBreadcrumb, SEO } from "../../components/common";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
 import { getPublicCollections } from "../../services/collections.service";
@@ -33,6 +33,14 @@ const Collections = () => {
       {/* Hero banner */}
       <section className="col-hero">
         <div className="col-hero__content container">
+          <PageBreadcrumb
+            tone="dark"
+            className="col-hero__breadcrumb"
+            items={[
+              { label: "Trang chủ", to: "/" },
+              { label: "Bộ sưu tập" },
+            ]}
+          />
           <p className="col-hero__eyebrow">Danh mục sản phẩm</p>
           <h1 className="col-hero__title">Bộ Sưu Tập</h1>
           <p className="col-hero__desc">

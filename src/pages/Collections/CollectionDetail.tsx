@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiGrid, FiStar, FiTag } from "react-icons/fi";
-import { SEO } from "../../components/common";
+import { PageBreadcrumb, SEO } from "../../components/common";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
 import { getPublicCollectionProducts } from "../../services/collections.service";
@@ -110,10 +110,15 @@ const CollectionDetail = () => {
           )}
           <div className="cd-hero__overlay" />
           <div className="cd-hero__content container">
-            <Link to="/bo-suu-tap" className="cd-breadcrumb">
-              <FiArrowLeft size={16} />
-              <span>Bộ sưu tập</span>
-            </Link>
+            <PageBreadcrumb
+              tone="dark"
+              className="cd-hero__breadcrumb"
+              items={[
+                { label: "Trang chủ", to: "/" },
+                { label: "Bộ sưu tập", to: "/bo-suu-tap" },
+                { label: collection.name },
+              ]}
+            />
             <div className="cd-hero__meta">
               {collection.isFeatured && (
                 <span className="cd-badge">

@@ -155,6 +155,10 @@ export interface LegoFrameVariant {
   image: string;
   size: LegoFrameSize;
   legoQuantity: number;
+  allowVariableLegoCount: boolean;
+  legoCountMin: number;
+  legoCountMax: number;
+  additionalLegoPrice: number;
   price: number;
   isActive: boolean;
   updatedAt: string;
@@ -168,6 +172,10 @@ export interface LegoFrameVariantForm {
   image: string;
   size: LegoFrameSize;
   legoQuantity: string;
+  allowVariableLegoCount: boolean;
+  legoCountMin: string;
+  legoCountMax: string;
+  additionalLegoPrice: string;
   price: string;
   isActive: boolean;
 }

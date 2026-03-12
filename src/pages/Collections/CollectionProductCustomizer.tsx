@@ -9,7 +9,7 @@ import {
   FiShoppingCart,
   FiTag,
 } from "react-icons/fi";
-import { SEO } from "../../components/common";
+import { PageBreadcrumb, SEO } from "../../components/common";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
 import { getPublicCollectionProducts } from "../../services/collections.service";
@@ -56,6 +56,14 @@ const formatAddonPrice = (price: number) => {
   return `${price.toLocaleString("vi-VN")} đ`;
 };
 
+const normalizePrice = (value: number) => {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+
+  return Math.floor(value);
+};
+
 const countSelectedGroups = (
   slotSelections: Record<string, string>,
   customGroups: PublicLegoCustomizationGroup[],
@@ -67,16 +75,18 @@ const countSelectedGroups = (
 
 interface CollectionProductCustomizerContentProps {
   slug: string;
+  collectionName: string;
   product: CollectionProduct;
   customGroups: PublicLegoCustomizationGroup[];
 }
 
 const CollectionProductCustomizerContent = ({
   slug,
+  collectionName,
   product,
   customGroups,
 }: CollectionProductCustomizerContentProps) => {
-  const legoSlotCount = useMemo(() => {
+  const baseLegoCount = useMemo(() => {
     const rawQuantity = Number(product.legoQuantity ?? 1);
 
     if (!Number.isFinite(rawQuantity) || rawQuantity <= 0) {
@@ -86,12 +96,66 @@ const CollectionProductCustomizerContent = ({
     return Math.floor(rawQuantity);
   }, [product.legoQuantity]);
 
+  const additionalLegoMin = useMemo(() => {
+    if (!product.allowVariableLegoCount) {
+      return 0;
+    }
+    const min = Number(product.legoCountMin ?? 0);
+    return Number.isFinite(min) && min >= 0 ? Math.floor(min) : 0;
+  }, [product.allowVariableLegoCount, product.legoCountMin]);
+
+  const additionalLegoMax = useMemo(() => {
+    if (!product.allowVariableLegoCount) {
+      return 0;
+    }
+    const max = Number(product.legoCountMax ?? 0);
+    if (!Number.isFinite(max) || max < 0) {
+      return additionalLegoMin;
+    }
+    return Math.max(Math.floor(max), additionalLegoMin);
+  }, [additionalLegoMin, product.allowVariableLegoCount, product.legoCountMax]);
+
+  const additionalLegoUnitPrice = useMemo(() => {
+    if (!product.allowVariableLegoCount) {
+      return 0;
+    }
+
+    const value = Number(product.additionalLegoPrice ?? 0);
+    return Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
+  }, [product.additionalLegoPrice, product.allowVariableLegoCount]);
+
   const customGroupCount = customGroups.length;
   const [activeLegoIndex, setActiveLegoIndex] = useState<number>(1);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
-  const [legoSelections, setLegoSelections] = useState<LegoSelections>(() =>
-    createEmptySelections(legoSlotCount),
+  const [selectedAdditionalLegoCount, setSelectedAdditionalLegoCount] = useState<number>(
+    additionalLegoMin,
   );
+  const totalLegoCount = baseLegoCount + selectedAdditionalLegoCount;
+  const [legoSelections, setLegoSelections] = useState<LegoSelections>(() =>
+    createEmptySelections(baseLegoCount + additionalLegoMin),
+  );
+
+  useEffect(() => {
+    setSelectedAdditionalLegoCount(additionalLegoMin);
+  }, [additionalLegoMin, product.id]);
+
+  useEffect(() => {
+    setLegoSelections((prev) => {
+      const newSelections: LegoSelections = {};
+
+      for (let slotIndex = 1; slotIndex <= totalLegoCount; slotIndex += 1) {
+        newSelections[String(slotIndex)] = prev[String(slotIndex)] ?? {};
+      }
+
+      return newSelections;
+    });
+  }, [totalLegoCount]);
+
+  useEffect(() => {
+    if (activeLegoIndex > totalLegoCount) {
+      setActiveLegoIndex(totalLegoCount);
+    }
+  }, [activeLegoIndex, totalLegoCount]);
 
   const activeGroupId = useMemo(() => {
     if (customGroups.length === 0) {
@@ -104,8 +168,8 @@ const CollectionProductCustomizerContent = ({
   }, [customGroups, selectedGroupId]);
 
   const legoSlots = useMemo(
-    () => Array.from({ length: legoSlotCount }, (_, index) => index + 1),
-    [legoSlotCount],
+    () => Array.from({ length: totalLegoCount }, (_, index) => index + 1),
+    [totalLegoCount],
   );
 
   const activeGroup = useMemo(
@@ -117,13 +181,18 @@ const CollectionProductCustomizerContent = ({
   const activeOptionId = activeGroup ? activeSelections[activeGroup.id] : undefined;
   const activeOption = activeGroup ? findOptionById(activeGroup, activeOptionId) : undefined;
 
+  const baseVariantPrice = useMemo(
+    () => normalizePrice(Number(product.price ?? 0)),
+    [product.price],
+  );
+
   const selectedAddonPrice = useMemo(() => {
     let total = 0;
 
     Object.values(legoSelections).forEach((slotSelections) => {
       customGroups.forEach((group) => {
         const selectedOption = findOptionById(group, slotSelections[group.id]);
-        total += selectedOption?.price ?? 0;
+        total += normalizePrice(Number(selectedOption?.price ?? 0));
       });
     });
 
@@ -138,10 +207,25 @@ const CollectionProductCustomizerContent = ({
     [customGroups, legoSelections],
   );
 
-  const totalPrice = useMemo(
-    () => product.price + selectedAddonPrice,
-    [product.price, selectedAddonPrice],
-  );
+  const pricingSummary = useMemo(() => {
+    const extraLegoPrice = normalizePrice(
+      selectedAdditionalLegoCount * additionalLegoUnitPrice,
+    );
+    const customizationPrice = normalizePrice(selectedAddonPrice);
+    const total = baseVariantPrice + extraLegoPrice + customizationPrice;
+
+    return {
+      baseVariantPrice,
+      extraLegoPrice,
+      customizationPrice,
+      total,
+    };
+  }, [
+    additionalLegoUnitPrice,
+    baseVariantPrice,
+    selectedAdditionalLegoCount,
+    selectedAddonPrice,
+  ]);
 
   const handleSelectOption = (groupId: string, optionId: string) => {
     setLegoSelections((prev) => ({
@@ -179,13 +263,21 @@ const CollectionProductCustomizerContent = ({
 
   return (
     <div className="cpc-page">
+      <div className="container">
+        <PageBreadcrumb
+          className="cpc-page__breadcrumb"
+          items={[
+            { label: "Trang chủ", to: "/" },
+            { label: "Bộ sưu tập", to: "/bo-suu-tap" },
+            { label: collectionName, to: `/bo-suu-tap/${slug}` },
+            { label: product.name },
+            { label: "Tùy chỉnh" },
+          ]}
+        />
+      </div>
+
       <div className="container cpc-layout">
         <aside className="cpc-sidebar">
-          <Link to={`/bo-suu-tap/${slug}`} className="cpc-breadcrumb">
-            <FiArrowLeft size={15} />
-            <span>Quay về biến thể trong bộ sưu tập</span>
-          </Link>
-
           <div className="cpc-product-card">
             <div className="cpc-product-card__thumb">
               {productImage ? (
@@ -207,30 +299,79 @@ const CollectionProductCustomizerContent = ({
               </p>
               <ul className="cpc-product-card__meta">
                 <li>Kích thước: {product.size}</li>
-                <li>Số Lego cần tùy chỉnh: {legoSlotCount.toLocaleString("vi-VN")}</li>
+                <li>Số Lego cố định: {baseLegoCount.toLocaleString("vi-VN")}</li>
+                {product.allowVariableLegoCount ? (
+                  <li>
+                    Có thể chọn thêm: {additionalLegoMin.toLocaleString("vi-VN")} - {additionalLegoMax.toLocaleString("vi-VN")} Lego
+                  </li>
+                ) : null}
+                {product.allowVariableLegoCount ? (
+                  <li>Giá mỗi Lego thêm: {formatAddonPrice(additionalLegoUnitPrice)}</li>
+                ) : null}
               </ul>
             </div>
           </div>
 
           <div className="cpc-summary">
             <h2 className="cpc-summary__title">Thông tin tùy chỉnh và giá</h2>
-            <p className="cpc-summary__desc">
-              Khung tranh này có <strong>{legoSlotCount}</strong> Lego cần tùy chỉnh.
-              Chọn từng Lego bên phải để gán lựa chọn từ các nhóm tùy chỉnh đã cấu hình.
-            </p>
+            {product.allowVariableLegoCount ? (
+              <p className="cpc-summary__desc">
+                Biến thể này có sẵn <strong>{baseLegoCount}</strong> Lego cố định.
+                Bạn có thể chọn thêm từ <strong>{additionalLegoMin}</strong> đến <strong>{additionalLegoMax}</strong> Lego,
+                tức tổng số Lego cần tùy chỉnh sẽ từ <strong>{baseLegoCount + additionalLegoMin}</strong> đến <strong>{baseLegoCount + additionalLegoMax}</strong>.
+                Mỗi Lego thêm được tính <strong>{formatAddonPrice(additionalLegoUnitPrice)}</strong>.
+              </p>
+            ) : (
+              <p className="cpc-summary__desc">
+                Khung tranh này có <strong>{baseLegoCount}</strong> Lego cố định cần tùy chỉnh.
+                Gán lựa chọn từ các nhóm tùy chỉnh đã cấu hình.
+              </p>
+            )}
+
+            {product.allowVariableLegoCount && (
+              <div className="cpc-summary__lego-count-selector">
+                <label className="cpc-summary__lego-count-label">
+                  Chọn thêm số Lego: <strong>{selectedAdditionalLegoCount}</strong>
+                </label>
+                <input
+                  className="cpc-summary__lego-count-slider"
+                  type="range"
+                  min={additionalLegoMin}
+                  max={additionalLegoMax}
+                  value={selectedAdditionalLegoCount}
+                  onChange={(e) => setSelectedAdditionalLegoCount(Number(e.target.value))}
+                />
+                <div className="cpc-summary__lego-count-range">
+                  <span>{additionalLegoMin}</span>
+                  <span>{additionalLegoMax}</span>
+                </div>
+                <p className="cpc-summary__desc">
+                  Tổng số Lego đang tùy chỉnh: <strong>{totalLegoCount}</strong>
+                </p>
+                <p className="cpc-summary__desc">
+                  Chi phí Lego thêm: <strong>{formatAddonPrice(pricingSummary.extraLegoPrice)}</strong>
+                </p>
+              </div>
+            )}
 
             <div className="cpc-summary__pricing">
               <div className="cpc-summary__pricing-row">
                 <span>Giá biến thể</span>
-                <strong>{product.price.toLocaleString("vi-VN")} đ</strong>
+                <strong>{pricingSummary.baseVariantPrice.toLocaleString("vi-VN")} đ</strong>
               </div>
+              {product.allowVariableLegoCount && (
+                <div className="cpc-summary__pricing-row">
+                  <span>Giá Lego thêm</span>
+                  <strong>{formatAddonPrice(pricingSummary.extraLegoPrice)}</strong>
+                </div>
+              )}
               <div className="cpc-summary__pricing-row">
                 <span>Giá tùy chỉnh</span>
-                <strong>{formatAddonPrice(selectedAddonPrice)}</strong>
+                <strong>{formatAddonPrice(pricingSummary.customizationPrice)}</strong>
               </div>
               <div className="cpc-summary__total">
                 <span>Tạm tính</span>
-                <strong>{totalPrice.toLocaleString("vi-VN")} đ</strong>
+                <strong>{pricingSummary.total.toLocaleString("vi-VN")} đ</strong>
               </div>
             </div>
 
@@ -296,8 +437,8 @@ const CollectionProductCustomizerContent = ({
             <p className="cpc-editor__eyebrow">Trang tùy chỉnh biến thể</p>
             <h2 className="cpc-editor__title">Chọn từng Lego rồi tùy chỉnh chi tiết cho Lego đó</h2>
             <p className="cpc-editor__desc">
-              Số Lego sẽ được tạo dựa trên dữ liệu của biến thể. Bấm vào từng Lego để
-              mở danh sách sản phẩm tùy chỉnh ở bên dưới.
+              Số Lego sẽ được tạo từ phần cố định của biến thể và phần Lego chọn thêm,
+              nếu biến thể đó cho phép. Bấm vào từng Lego để mở danh sách tùy chỉnh bên dưới.
             </p>
           </header>
 
@@ -306,7 +447,7 @@ const CollectionProductCustomizerContent = ({
               <div>
                 <h3>Danh sách Lego cần tùy chỉnh</h3>
                 <p>
-                  Đang có <strong>{legoSlotCount}</strong> Lego. Đã bắt đầu tùy chỉnh cho
+                  Tổng cộng đang có <strong>{totalLegoCount}</strong> Lego cần tùy chỉnh. Đã bắt đầu tùy chỉnh cho
                   <strong> {customizedLegoCount}</strong> Lego.
                 </p>
               </div>
@@ -437,7 +578,7 @@ const CollectionProductCustomizerContent = ({
                             </div>
 
                             <span className="cpc-option-card__state">
-                              {isSelected ? "Đã chọn cho Lego này" : "Bấm để áp dụng"}
+                              {isSelected ? "Đã chọn" : "Bấm để áp dụng"}
                             </span>
                           </button>
                         );
@@ -562,6 +703,7 @@ const CollectionProductCustomizer = () => {
       <CollectionProductCustomizerContent
         key={product.id}
         slug={slug}
+        collectionName={payload.collection.name}
         product={product}
         customGroups={customGroups}
       />

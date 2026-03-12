@@ -1,7 +1,7 @@
 /* ── Collections Hero ── */
 .col-hero {
   background: linear-gradient(135deg, #731618 0%, #9a1e21 60%, #5f0d10 100%);
-  padding: 100px 0 60px;
+  padding: 124px 0 60px;
   text-align: center;
   color: #fff;
 }
@@ -9,6 +9,10 @@
 .col-hero__content {
   max-width: 640px;
   margin: 0 auto;
+}
+
+.col-hero__breadcrumb {
+  margin-bottom: 14px;
 }
 
 .col-hero__eyebrow {
@@ -182,6 +186,7 @@
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }

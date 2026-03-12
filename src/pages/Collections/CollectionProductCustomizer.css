@@ -1,10 +1,14 @@
 .cpc-page {
     min-height: 72vh;
-    padding: 34px 0 70px;
+    padding: calc(var(--header-height) + 26px) 0 70px;
     background:
         radial-gradient(circle at 10% 8%, rgba(115, 22, 24, 0.08), transparent 35%),
         radial-gradient(circle at 95% 92%, rgba(95, 13, 16, 0.08), transparent 30%),
         #f8f8f9;
+}
+
+.cpc-page__breadcrumb {
+    margin-bottom: 18px;
 }
 
 .cpc-layout {
@@ -16,23 +20,10 @@
 
 .cpc-sidebar {
     position: sticky;
-    top: 95px;
+    top: calc(var(--header-height) + 18px);
     display: flex;
     flex-direction: column;
     gap: 16px;
-}
-
-.cpc-breadcrumb {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 0.86rem;
-    color: #5f0d10;
-    font-weight: 700;
-}
-
-.cpc-breadcrumb:hover {
-    color: #731618;
 }
 
 .cpc-product-card,
@@ -780,4 +771,75 @@
     .cpc-skeleton--right {
         height: 300px;
     }
+}
+
+/* ── Range slider for lego count selection ── */
+.cpc-summary__lego-count-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0;
+    padding: 16px;
+    background: #f3f4f8;
+    border-radius: 8px;
+}
+
+.cpc-summary__lego-count-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2d3643;
+}
+
+.cpc-summary__lego-count-slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right,
+            #d1d5db 0%,
+            #d1d5db 100%);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.cpc-summary__lego-count-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #731618;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(115, 22, 24, 0.3);
+    transition: all 0.2s ease;
+}
+
+.cpc-summary__lego-count-slider::-webkit-slider-thumb:hover {
+    background: #5f0d10;
+    box-shadow: 0 4px 10px rgba(95, 13, 16, 0.4);
+}
+
+.cpc-summary__lego-count-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #731618;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(115, 22, 24, 0.3);
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.cpc-summary__lego-count-slider::-moz-range-thumb:hover {
+    background: #5f0d10;
+    box-shadow: 0 4px 10px rgba(95, 13, 16, 0.4);
+}
+
+.cpc-summary__lego-count-range {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 500;
 }

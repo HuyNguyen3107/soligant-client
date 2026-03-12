@@ -54,6 +54,10 @@ const EMPTY_FORM: LegoFrameVariantForm = {
   image: "",
   size: "20x20",
   legoQuantity: "",
+  allowVariableLegoCount: false,
+  legoCountMin: "",
+  legoCountMax: "",
+  additionalLegoPrice: "",
   price: "",
   isActive: true,
 };
@@ -209,6 +213,10 @@ const LegoFramesTab = () => {
         image: variant.image,
         size: variant.size,
         legoQuantity: variant.legoQuantity,
+        allowVariableLegoCount: variant.allowVariableLegoCount,
+        legoCountMin: variant.legoCountMin,
+        legoCountMax: variant.legoCountMax,
+        additionalLegoPrice: variant.additionalLegoPrice,
         price: variant.price,
         isActive: !variant.isActive,
       });
@@ -304,6 +312,10 @@ const LegoFramesTab = () => {
       image: "",
       size: LEGO_SIZES[0],
       legoQuantity: "",
+      allowVariableLegoCount: false,
+      legoCountMin: "",
+      legoCountMax: "",
+      additionalLegoPrice: "",
       price: "",
       isActive: true,
     });
@@ -326,6 +338,10 @@ const LegoFramesTab = () => {
       image: variant.image,
       size: variant.size,
       legoQuantity: String(variant.legoQuantity),
+      allowVariableLegoCount: variant.allowVariableLegoCount,
+      legoCountMin: String(variant.legoCountMin),
+      legoCountMax: String(variant.legoCountMax),
+      additionalLegoPrice: String(variant.additionalLegoPrice),
       price: String(variant.price),
       isActive: variant.isActive,
     });
@@ -394,6 +410,9 @@ const LegoFramesTab = () => {
     const name = form.name.trim();
     const description = form.description.trim();
     const legoQuantity = Number(form.legoQuantity);
+    const legoCountMin = Number(form.legoCountMin);
+    const legoCountMax = Number(form.legoCountMax);
+    const additionalLegoPrice = Number(form.additionalLegoPrice);
     const price = Number(form.price);
 
     if (!form.collectionId) {
@@ -424,6 +443,28 @@ const LegoFramesTab = () => {
     if (!Number.isInteger(legoQuantity) || legoQuantity <= 0) {
       toast.error("Số lượng Lego phải là số nguyên lớn hơn 0.");
       return;
+    }
+
+    if (form.allowVariableLegoCount) {
+      if (!Number.isInteger(legoCountMin) || legoCountMin < 0) {
+        toast.error("Số Lego chọn thêm tối thiểu phải là số nguyên từ 0 trở lên.");
+        return;
+      }
+
+      if (!Number.isInteger(legoCountMax) || legoCountMax < 0) {
+        toast.error("Số Lego chọn thêm tối đa phải là số nguyên từ 0 trở lên.");
+        return;
+      }
+
+      if (legoCountMin > legoCountMax) {
+        toast.error("Số Lego chọn thêm tối thiểu không được vượt quá tối đa.");
+        return;
+      }
+
+      if (!Number.isInteger(additionalLegoPrice) || additionalLegoPrice < 0) {
+        toast.error("Giá cho mỗi Lego thêm phải là số nguyên từ 0 trở lên.");
+        return;
+      }
     }
 
     if (!Number.isFinite(price) || price <= 0) {
@@ -482,6 +523,10 @@ const LegoFramesTab = () => {
           image,
           size: form.size,
           legoQuantity,
+          allowVariableLegoCount: form.allowVariableLegoCount,
+          legoCountMin: form.allowVariableLegoCount ? legoCountMin : 0,
+          legoCountMax: form.allowVariableLegoCount ? legoCountMax : 0,
+          additionalLegoPrice: form.allowVariableLegoCount ? additionalLegoPrice : 0,
           price: Math.round(price),
           isActive: form.isActive,
         },
@@ -935,6 +980,104 @@ const LegoFramesTab = () => {
                   />
                 </div>
               </div>
+
+              <div className="lf-form-row">
+                <div className="lf-mode-switch">
+                  <div className="lf-mode-switch__copy">
+                    <span className="lf-mode-switch__eyebrow">Chế độ số lượng Lego</span>
+                    <div className="lf-mode-switch__title-row">
+                      <strong className="lf-mode-switch__title">
+                        {form.allowVariableLegoCount
+                          ? "Cho phép người dùng chọn số lượng Lego"
+                          : "Số lượng Lego cố định"}
+                      </strong>
+                      <span
+                        className={`lf-mode-switch__badge${form.allowVariableLegoCount ? " is-on" : ""}`}
+                      >
+                        {form.allowVariableLegoCount ? "Linh hoạt" : "Cố định"}
+                      </span>
+                    </div>
+                    <p className="form-hint">
+                      {form.allowVariableLegoCount
+                        ? "Người dùng sẽ có sẵn số Lego cố định của biến thể và được chọn thêm trong khoảng bạn thiết lập bên dưới."
+                        : "Người dùng sẽ tùy chỉnh đúng số Lego cố định của biến thể này."}
+                    </p>
+                  </div>
+
+                  <label className="form-toggle lf-mode-switch__toggle">
+                    <input
+                      type="checkbox"
+                      aria-label="Cho phép người dùng chọn số lượng Lego"
+                      checked={form.allowVariableLegoCount}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          allowVariableLegoCount: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="form-toggle__track" />
+                  </label>
+                </div>
+              </div>
+
+              {form.allowVariableLegoCount && (
+                <>
+                <div className="lf-form-row">
+                  <div className="form-group">
+                    <label className="form-label">
+                      Số Lego chọn thêm tối thiểu <span className="form-required">*</span>
+                    </label>
+                    <input
+                      className="form-input"
+                      type="number"
+                      min={0}
+                      step={1}
+                      name="legoCountMin"
+                      value={form.legoCountMin}
+                      onChange={onFormChange}
+                      placeholder="VD: 1"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      Số Lego chọn thêm tối đa <span className="form-required">*</span>
+                    </label>
+                    <input
+                      className="form-input"
+                      type="number"
+                      min={0}
+                      step={1}
+                      name="legoCountMax"
+                      value={form.legoCountMax}
+                      onChange={onFormChange}
+                      placeholder="VD: 2"
+                    />
+                  </div>
+                </div>
+                <div className="lf-form-row">
+                  <div className="form-group">
+                    <label className="form-label">
+                      Giá cho mỗi Lego thêm (VND) <span className="form-required">*</span>
+                    </label>
+                    <input
+                      className="form-input"
+                      type="number"
+                      min={0}
+                      step={1000}
+                      name="additionalLegoPrice"
+                      value={form.additionalLegoPrice}
+                      onChange={onFormChange}
+                      placeholder="VD: 15000"
+                    />
+                    <p className="form-hint">
+                      Để trống hoặc nhập 0 nếu Lego thêm không tính phí riêng.
+                    </p>
+                  </div>
+                </div>
+                </>
+              )}
 
               <div className="lf-form-row">
                 <div className="form-group">
