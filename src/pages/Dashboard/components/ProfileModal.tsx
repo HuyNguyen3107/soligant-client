@@ -189,6 +189,10 @@ const ProfileModal = ({ user, onClose, onSaved, dark }: ProfileModalProps) => {
       toast.error("Vui lòng nhập mật khẩu hiện tại.");
       return;
     }
+    if (/\s/.test(pwForm.newPw)) {
+      toast.error("Mật khẩu mới không được chứa khoảng trắng.");
+      return;
+    }
     if (pwForm.newPw.length < 6) {
       toast.error("Mật khẩu mới phải có ít nhất 6 ký tự.");
       return;

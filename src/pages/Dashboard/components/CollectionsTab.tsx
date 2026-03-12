@@ -19,6 +19,8 @@ import {
   FiLink,
 } from "react-icons/fi";
 import type { CollectionRow, CollectionFormState } from "../types";
+import { hasPermission } from "../../../lib/permissions";
+import { useAuthStore } from "../../../store/auth.store";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 // Origin thuần (không có /api) để dùng cho static file URLs
@@ -71,6 +73,11 @@ const CollectionsTab = () => {
   const [thumbMode, setThumbMode] = useState<"url" | "upload">("url");
   const [uploading, setUploading] = useState(false);
   const [localPreview, setLocalPreview] = useState<string | null>(null); // object URL xem trước ngay
+  const currentUser = useAuthStore((state) => state.user);
+  const clearSession = useAuthStore((state) => state.clearSession);
+  const canCreateCollection = hasPermission(currentUser, "collections.create");
+  const canEditCollection = hasPermission(currentUser, "collections.edit");
+  const canDeleteCollection = hasPermission(currentUser, "collections.delete");
 
   const thumbInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +89,13 @@ const CollectionsTab = () => {
     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
   });
 
+  const handleAuthFailure = (res: Response) => {
+    if (res.status !== 401 && res.status !== 403) return false;
+    clearSession();
+    window.location.replace("/login");
+    return true;
+  };
+
   // ── Tải danh sách ──────────────────────────────────────────────────────────
   const loadCollections = async () => {
     setLoading(true);
@@ -89,6 +103,7 @@ const CollectionsTab = () => {
       const res = await fetch(`${API_URL}/collections`, {
         headers: authHeaders(),
       });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       setCollections(await res.json());
     } catch {
@@ -116,6 +131,11 @@ const CollectionsTab = () => {
 
   // ── Handlers modal ─────────────────────────────────────────────────────────
   const openCreate = () => {
+    if (!canCreateCollection) {
+      toast.error("Bạn không có quyền tạo bộ sưu tập.");
+      return;
+    }
+
     setForm(EMPTY_FORM);
     setThumbMode("url");
     setLocalPreview(null);
@@ -125,6 +145,11 @@ const CollectionsTab = () => {
   };
 
   const openEdit = (c: CollectionRow) => {
+    if (!canEditCollection) {
+      toast.error("Bạn không có quyền chỉnh sửa bộ sưu tập.");
+      return;
+    }
+
     setEditId(c._id);
     setForm({
       name: c.name,
@@ -149,7 +174,11 @@ const CollectionsTab = () => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       },
-    }).catch(() => {}); // im lặng nếu lỗi
+    })
+      .then((res) => {
+        handleAuthFailure(res);
+      })
+      .catch(() => {}); // im lặng nếu lỗi
   };
 
   const closeModal = () => {
@@ -187,6 +216,7 @@ const CollectionsTab = () => {
         },
         body: fd,
       });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         throw new Error(
@@ -217,6 +247,17 @@ const CollectionsTab = () => {
   // ── Lưu form ───────────────────────────────────────────────────────────────
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (modal === "create" && !canCreateCollection) {
+      toast.error("Bạn không có quyền tạo bộ sưu tập.");
+      return;
+    }
+
+    if (modal === "edit" && !canEditCollection) {
+      toast.error("Bạn không có quyền chỉnh sửa bộ sưu tập.");
+      return;
+    }
+
     if (!form.name.trim()) {
       toast.error("Tên bộ sưu tập không được để trống.");
       return;
@@ -243,6 +284,7 @@ const CollectionsTab = () => {
         headers: authHeaders(),
         body: JSON.stringify(body),
       });
+      if (handleAuthFailure(res)) return;
 
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -272,12 +314,18 @@ const CollectionsTab = () => {
 
   // ── Toggle trạng thái inline ───────────────────────────────────────────────
   const toggleActive = async (c: CollectionRow) => {
+    if (!canEditCollection) {
+      toast.error("Bạn không có quyền chỉnh sửa bộ sưu tập.");
+      return;
+    }
+
     try {
       const res = await fetch(`${API_URL}/collections/${c._id}`, {
         method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify({ isActive: !c.isActive }),
       });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       setCollections((prev) =>
         prev.map((x) =>
@@ -293,12 +341,18 @@ const CollectionsTab = () => {
   };
 
   const toggleFeatured = async (c: CollectionRow) => {
+    if (!canEditCollection) {
+      toast.error("Bạn không có quyền chỉnh sửa bộ sưu tập.");
+      return;
+    }
+
     try {
       const res = await fetch(`${API_URL}/collections/${c._id}`, {
         method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify({ isFeatured: !c.isFeatured }),
       });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       setCollections((prev) =>
         prev.map((x) =>
@@ -314,12 +368,19 @@ const CollectionsTab = () => {
   // ── Xóa ───────────────────────────────────────────────────────────────────
   const handleDelete = async () => {
     if (!confirmId) return;
+
+    if (!canDeleteCollection) {
+      toast.error("Bạn không có quyền xóa bộ sưu tập.");
+      return;
+    }
+
     setDeleting(true);
     try {
       const res = await fetch(`${API_URL}/collections/${confirmId}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       toast.success("Đã xóa bộ sưu tập.");
       setConfirmId(null);
@@ -347,10 +408,12 @@ const CollectionsTab = () => {
             Quản lý các bộ sưu tập sản phẩm của Soligant
           </p>
         </div>
-        <button className="btn-primary" onClick={openCreate}>
-          <FiPlus />
-          Thêm bộ sưu tập
-        </button>
+        {canCreateCollection && (
+          <button className="btn-primary" onClick={openCreate}>
+            <FiPlus />
+            Thêm bộ sưu tập
+          </button>
+        )}
       </div>
 
       {/* ── Stats mini ── */}
@@ -494,34 +557,41 @@ const CollectionsTab = () => {
 
               {/* Actions */}
               <div className="coll-card__actions">
-                <button
-                  className={`coll-icon-btn${c.isFeatured ? " coll-icon-btn--star" : ""}`}
-                  title={c.isFeatured ? "Bỏ nổi bật" : "Đánh dấu nổi bật"}
-                  onClick={() => toggleFeatured(c)}
-                >
-                  <FiStar size={15} />
-                </button>
-                <button
-                  className={`coll-icon-btn${c.isActive ? " coll-icon-btn--visible" : ""}`}
-                  title={c.isActive ? "Ẩn" : "Hiện"}
-                  onClick={() => toggleActive(c)}
-                >
-                  {c.isActive ? <FiEye size={15} /> : <FiEyeOff size={15} />}
-                </button>
-                <button
-                  className="coll-icon-btn coll-icon-btn--edit"
-                  title="Chỉnh sửa"
-                  onClick={() => openEdit(c)}
-                >
-                  <FiEdit2 size={15} />
-                </button>
-                <button
-                  className="coll-icon-btn coll-icon-btn--del"
-                  title="Xóa"
-                  onClick={() => setConfirmId(c._id)}
-                >
-                  <FiTrash2 size={15} />
-                </button>
+                {canEditCollection && (
+                  <>
+                    <button
+                      className={`coll-icon-btn${c.isFeatured ? " coll-icon-btn--star" : ""}`}
+                      title={c.isFeatured ? "Bỏ nổi bật" : "Đánh dấu nổi bật"}
+                      onClick={() => toggleFeatured(c)}
+                    >
+                      <FiStar size={15} />
+                    </button>
+                    <button
+                      className={`coll-icon-btn${c.isActive ? " coll-icon-btn--visible" : ""}`}
+                      title={c.isActive ? "Ẩn" : "Hiện"}
+                      onClick={() => toggleActive(c)}
+                    >
+                      {c.isActive ? <FiEye size={15} /> : <FiEyeOff size={15} />}
+                    </button>
+                    <button
+                      className="coll-icon-btn coll-icon-btn--edit"
+                      title="Chỉnh sửa"
+                      onClick={() => openEdit(c)}
+                    >
+                      <FiEdit2 size={15} />
+                    </button>
+                  </>
+                )}
+
+                {canDeleteCollection && (
+                  <button
+                    className="coll-icon-btn coll-icon-btn--del"
+                    title="Xóa"
+                    onClick={() => setConfirmId(c._id)}
+                  >
+                    <FiTrash2 size={15} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -570,6 +640,7 @@ const CollectionsTab = () => {
                       className={`status-badge${c.isActive ? " status-badge--active" : " status-badge--inactive"}`}
                       onClick={() => toggleActive(c)}
                       title="Nhấn để thay đổi"
+                      disabled={!canEditCollection}
                     >
                       {c.isActive ? "Hiển thị" : "Đã ẩn"}
                     </button>
@@ -579,26 +650,31 @@ const CollectionsTab = () => {
                       className={`coll-icon-btn${c.isFeatured ? " coll-icon-btn--star" : ""}`}
                       onClick={() => toggleFeatured(c)}
                       title={c.isFeatured ? "Bỏ nổi bật" : "Đánh dấu nổi bật"}
+                      disabled={!canEditCollection}
                     >
                       <FiStar size={15} />
                     </button>
                   </td>
                   <td>
                     <div className="tab-actions">
-                      <button
-                        className="btn-icon btn-edit"
-                        onClick={() => openEdit(c)}
-                        title="Chỉnh sửa"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        className="btn-icon btn-del"
-                        onClick={() => setConfirmId(c._id)}
-                        title="Xóa"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
+                      {canEditCollection && (
+                        <button
+                          className="btn-icon btn-edit"
+                          onClick={() => openEdit(c)}
+                          title="Chỉnh sửa"
+                        >
+                          <FiEdit2 size={14} />
+                        </button>
+                      )}
+                      {canDeleteCollection && (
+                        <button
+                          className="btn-icon btn-del"
+                          onClick={() => setConfirmId(c._id)}
+                          title="Xóa"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -1,56 +1,26 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { FiGrid, FiArrowRight } from "react-icons/fi";
 import { SEO } from "../../components/common";
+import { getErrorMessage } from "../../lib/error";
+import { getStaticAssetUrl } from "../../lib/http";
+import { getPublicCollections } from "../../services/collections.service";
 import "./Collections.css";
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-const SERVER_ORIGIN = (() => {
-  try {
-    return new URL(API_URL).origin;
-  } catch {
-    return API_URL;
-  }
-})();
-
-interface Collection {
-  _id: string;
-  name: string;
-  slug: string;
-  description: string;
-  thumbnail: string;
-  isActive: boolean;
-  isFeatured: boolean;
-}
-
 const Collections = () => {
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: collections = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["public-collections"],
+    queryFn: getPublicCollections,
+  });
 
-  useEffect(() => {
-    const fetchCollections = async () => {
-      try {
-        const res = await fetch(`${API_URL}/public/collections`);
-        if (!res.ok) throw new Error("Không thể tải bộ sưu tập.");
-        const data: Collection[] = await res.json();
-        setCollections(data);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Có lỗi xảy ra khi tải dữ liệu.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCollections();
-  }, []);
-
-  const getThumbnailUrl = (thumbnail: string) => {
-    if (!thumbnail) return null;
-    if (thumbnail.startsWith("http")) return thumbnail;
-    return `${SERVER_ORIGIN}/${thumbnail.replace(/^\/+/, "")}`;
-  };
+  const errorMessage = isError
+    ? getErrorMessage(error, "Không thể tải bộ sưu tập.")
+    : null;
 
   return (
     <>
@@ -75,7 +45,7 @@ const Collections = () => {
       {/* Collections grid */}
       <section className="col-section">
         <div className="container col-section__container">
-          {loading && (
+          {isLoading && (
             <div className="col-loading">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="col-skeleton" />
@@ -83,14 +53,14 @@ const Collections = () => {
             </div>
           )}
 
-          {error && (
+          {errorMessage && (
             <div className="col-error">
               <FiGrid size={40} />
-              <p>{error}</p>
+              <p>{errorMessage}</p>
             </div>
           )}
 
-          {!loading && !error && collections.length === 0 && (
+          {!isLoading && !errorMessage && collections.length === 0 && (
             <div className="col-empty">
               <FiGrid size={48} />
               <h3>Chưa có bộ sưu tập nào</h3>
@@ -98,10 +68,10 @@ const Collections = () => {
             </div>
           )}
 
-          {!loading && !error && collections.length > 0 && (
+          {!isLoading && !errorMessage && collections.length > 0 && (
             <div className="col-grid">
               {collections.map((col) => {
-                const thumbUrl = getThumbnailUrl(col.thumbnail);
+                const thumbUrl = getStaticAssetUrl(col.thumbnail);
                 return (
                   <Link
                     key={col._id}

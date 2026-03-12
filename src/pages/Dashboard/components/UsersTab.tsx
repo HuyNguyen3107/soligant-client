@@ -12,6 +12,8 @@ import {
   FiLock,
 } from "react-icons/fi";
 import type { RoleOption, UserRow, UserFormState } from "../types";
+import { hasPermission } from "../../../lib/permissions";
+import { useAuthStore } from "../../../store/auth.store";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 const SERVER_ORIGIN = (() => {
@@ -42,16 +44,35 @@ const UsersTab = () => {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
+  const currentUser = useAuthStore((state) => state.user);
+  const clearSession = useAuthStore((state) => state.clearSession);
+  const canViewUsers = hasPermission(currentUser, "users.view");
+  const canCreateUser = hasPermission(currentUser, "users.create");
+  const canEditUser = hasPermission(currentUser, "users.edit");
+  const canDeleteUser = hasPermission(currentUser, "users.delete");
+  const canViewRoles = hasPermission(currentUser, "roles.view");
 
   const authHeaders = () => ({
     "Content-Type": "application/json",
     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
   });
 
+  const handleAuthFailure = (res: Response) => {
+    if (res.status !== 401 && res.status !== 403) return false;
+    clearSession();
+    window.location.replace("/login");
+    return true;
+  };
+
   const loadUsers = async () => {
+    if (!canViewUsers) {
+      setLoadingUsers(false);
+      return;
+    }
     setLoadingUsers(true);
     try {
       const res = await fetch(`${API_URL}/users`, { headers: authHeaders() });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       setUsers(await res.json());
     } catch {
@@ -62,8 +83,14 @@ const UsersTab = () => {
   };
 
   const loadRoles = async () => {
+    if (!canViewRoles) {
+      setAvailableRoles([]);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_URL}/roles`, { headers: authHeaders() });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       setAvailableRoles(await res.json());
     } catch {
@@ -74,13 +101,25 @@ const UsersTab = () => {
   useEffect(() => {
     loadUsers();
     loadRoles();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canViewUsers, canViewRoles]);
 
   const openCreate = () => {
+    if (!canCreateUser) {
+      toast.error("Bạn không có quyền tạo người dùng.");
+      return;
+    }
+
     setForm(EMPTY_FORM);
     setModal("create");
   };
+
   const openEdit = (u: UserRow) => {
+    if (!canEditUser) {
+      toast.error("Bạn không có quyền chỉnh sửa người dùng.");
+      return;
+    }
+
     setEditId(u._id);
     setForm({
       name: u.name,
@@ -102,20 +141,39 @@ const UsersTab = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (modal === "create" && !canCreateUser) {
+      toast.error("Bạn không có quyền tạo người dùng.");
+      return;
+    }
+
+    if (modal === "edit" && !canEditUser) {
+      toast.error("Bạn không có quyền chỉnh sửa người dùng.");
+      return;
+    }
+
     if (!form.name.trim()) {
       toast.error("Họ tên không được để trống.");
       return;
     }
+
     if (modal === "create") {
       if (!form.email.trim()) {
         toast.error("Email không được để trống.");
         return;
       }
+
       if (form.password.length < 6) {
         toast.error("Mật khẩu phải có ít nhất 6 ký tự.");
         return;
       }
+
+      if (/\s/.test(form.password)) {
+        toast.error("Mật khẩu không được chứa khoảng trắng.");
+        return;
+      }
     }
+
     setSaving(true);
     try {
       if (modal === "create") {
@@ -132,6 +190,7 @@ const UsersTab = () => {
           headers: authHeaders(),
           body: JSON.stringify(body),
         });
+        if (handleAuthFailure(res)) return;
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
           throw new Error(
@@ -149,6 +208,7 @@ const UsersTab = () => {
           headers: authHeaders(),
           body: JSON.stringify(body),
         });
+        if (handleAuthFailure(res)) return;
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
           throw new Error(
@@ -167,12 +227,18 @@ const UsersTab = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!canDeleteUser) {
+      toast.error("Bạn không có quyền xóa người dùng.");
+      return;
+    }
+
     setDeleting(true);
     try {
       const res = await fetch(`${API_URL}/users/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         throw new Error(
@@ -221,9 +287,11 @@ const UsersTab = () => {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <button className="ut-add-btn" onClick={openCreate}>
-          <FiPlus size={15} /> Thêm người dùng
-        </button>
+        {canCreateUser && (
+          <button className="ut-add-btn" onClick={openCreate}>
+            <FiPlus size={15} /> Thêm người dùng
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -293,14 +361,17 @@ const UsersTab = () => {
                         </span>
                       ) : (
                         <>
-                          <button
-                            className="ut-btn ut-btn--edit"
-                            onClick={() => openEdit(u)}
-                            title="Chỉnh sửa"
-                          >
-                            <FiEdit2 size={14} />
-                          </button>
-                          {u.role !== "admin" && (
+                          {canEditUser && (
+                            <button
+                              className="ut-btn ut-btn--edit"
+                              onClick={() => openEdit(u)}
+                              title="Chỉnh sửa"
+                            >
+                              <FiEdit2 size={14} />
+                            </button>
+                          )}
+
+                          {canDeleteUser && u.role !== "admin" && (
                             <button
                               className="ut-btn ut-btn--del"
                               onClick={() => setConfirmId(u._id)}
@@ -308,6 +379,15 @@ const UsersTab = () => {
                             >
                               <FiTrash2 size={14} />
                             </button>
+                          )}
+
+                          {!canEditUser && !canDeleteUser && (
+                            <span
+                              className="rt-system-lock"
+                              title="Bạn chỉ có quyền xem"
+                            >
+                              <FiLock size={14} />
+                            </span>
                           )}
                         </>
                       )}

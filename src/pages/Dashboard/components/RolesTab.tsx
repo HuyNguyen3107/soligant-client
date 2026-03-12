@@ -14,6 +14,8 @@ import {
   FiTag,
 } from "react-icons/fi";
 import type { SysPerm, CustomRole, RoleForm } from "../types";
+import { hasPermission } from "../../../lib/permissions";
+import { useAuthStore } from "../../../store/auth.store";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
@@ -39,17 +41,31 @@ const RolesTab = () => {
   /* ── permissions state ───────────────────────────────────────────────────── */
   const [sysPerms, setSysPerms] = useState<SysPerm[]>([]);
   const [loadingPerms, setLoadingPerms] = useState(true);
+  const currentUser = useAuthStore((state) => state.user);
+  const clearSession = useAuthStore((state) => state.clearSession);
+  const canCreateRole = hasPermission(currentUser, "roles.create");
+  const canEditRole = hasPermission(currentUser, "roles.edit");
+  const canDeleteRole = hasPermission(currentUser, "roles.delete");
+  const canViewPermissions = hasPermission(currentUser, "permissions.view");
 
   const authHeaders = () => ({
     "Content-Type": "application/json",
     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
   });
 
+  const handleAuthFailure = (res: Response) => {
+    if (res.status !== 401 && res.status !== 403) return false;
+    clearSession();
+    window.location.replace("/login");
+    return true;
+  };
+
   /* ── loaders ─────────────────────────────────────────────────────────────── */
   const loadRoles = async () => {
     setLoadingRoles(true);
     try {
       const res = await fetch(`${API_URL}/roles`, { headers: authHeaders() });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       setRoles(await res.json());
     } catch {
@@ -60,11 +76,18 @@ const RolesTab = () => {
   };
 
   const loadPerms = async () => {
+    if (!canViewPermissions) {
+      setSysPerms([]);
+      setLoadingPerms(false);
+      return;
+    }
+
     setLoadingPerms(true);
     try {
       const res = await fetch(`${API_URL}/permissions`, {
         headers: authHeaders(),
       });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       setSysPerms(await res.json());
     } catch {
@@ -77,7 +100,13 @@ const RolesTab = () => {
   useEffect(() => {
     loadRoles();
     loadPerms();
-  }, []);
+  }, [canViewPermissions]);
+
+  useEffect(() => {
+    if (subTab === "permissions" && !canViewPermissions) {
+      setSubTab("roles");
+    }
+  }, [canViewPermissions, subTab]);
 
   /* ── permission helpers ──────────────────────────────────────────────────── */
   const groupedPerms = sysPerms.reduce<Record<string, SysPerm[]>>((acc, p) => {
@@ -106,12 +135,32 @@ const RolesTab = () => {
 
   /* ── modal handlers ──────────────────────────────────────────────────────── */
   const openCreate = () => {
+    if (!canCreateRole) {
+      toast.error("Bạn không có quyền tạo vai trò.");
+      return;
+    }
+
+    if (!canViewPermissions) {
+      toast.error("Bạn không có quyền xem danh sách quyền hệ thống.");
+      return;
+    }
+
     setForm(EMPTY_ROLE_FORM);
     setEditId(null);
     setModal("create");
   };
 
   const openEdit = (r: CustomRole) => {
+    if (!canEditRole) {
+      toast.error("Bạn không có quyền chỉnh sửa vai trò.");
+      return;
+    }
+
+    if (!canViewPermissions) {
+      toast.error("Bạn không có quyền xem danh sách quyền hệ thống.");
+      return;
+    }
+
     setEditId(r._id);
     setForm({
       name: r.name,
@@ -128,6 +177,22 @@ const RolesTab = () => {
   /* ── save ────────────────────────────────────────────────────────────────── */
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (modal === "create" && !canCreateRole) {
+      toast.error("Bạn không có quyền tạo vai trò.");
+      return;
+    }
+
+    if (modal === "edit" && !canEditRole) {
+      toast.error("Bạn không có quyền chỉnh sửa vai trò.");
+      return;
+    }
+
+    if (!canViewPermissions) {
+      toast.error("Bạn không có quyền xem danh sách quyền hệ thống.");
+      return;
+    }
+
     if (!form.name.trim()) {
       toast.error("Tên vai trò không được để trống.");
       return;
@@ -146,6 +211,7 @@ const RolesTab = () => {
         headers: authHeaders(),
         body: JSON.stringify(payload),
       });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         throw new Error(
@@ -169,12 +235,18 @@ const RolesTab = () => {
 
   /* ── delete ──────────────────────────────────────────────────────────────── */
   const handleDelete = async (id: string) => {
+    if (!canDeleteRole) {
+      toast.error("Bạn không có quyền xóa vai trò.");
+      return;
+    }
+
     setDeleting(true);
     try {
       const res = await fetch(`${API_URL}/roles/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
+      if (handleAuthFailure(res)) return;
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         throw new Error(
@@ -211,12 +283,14 @@ const RolesTab = () => {
         >
           <FiShield size={14} /> Vai trò
         </button>
-        <button
-          className={`rt-subtab ${subTab === "permissions" ? "rt-subtab--active" : ""}`}
-          onClick={() => setSubTab("permissions")}
-        >
-          <FiList size={14} /> Quyền hệ thống
-        </button>
+        {canViewPermissions && (
+          <button
+            className={`rt-subtab ${subTab === "permissions" ? "rt-subtab--active" : ""}`}
+            onClick={() => setSubTab("permissions")}
+          >
+            <FiList size={14} /> Quyền hệ thống
+          </button>
+        )}
       </div>
 
       {/* ── ROLES subtab ─────────────────────────────────────────────────────── */}
@@ -233,9 +307,11 @@ const RolesTab = () => {
                 onChange={(e) => setRoleSearch(e.target.value)}
               />
             </div>
-            <button className="ut-add-btn" onClick={openCreate}>
-              <FiPlus size={15} /> Tạo vai trò
-            </button>
+            {canCreateRole && (
+              <button className="ut-add-btn" onClick={openCreate}>
+                <FiPlus size={15} /> Tạo vai trò
+              </button>
+            )}
           </div>
 
           {/* Table */}
@@ -306,20 +382,24 @@ const RolesTab = () => {
                             </span>
                           ) : (
                             <>
-                              <button
-                                className="ut-act-btn ut-act-btn--edit"
-                                title="Chỉnh sửa"
-                                onClick={() => openEdit(r)}
-                              >
-                                <FiEdit2 size={14} />
-                              </button>
-                              <button
-                                className="ut-act-btn ut-act-btn--del"
-                                title="Xóa"
-                                onClick={() => setConfirmId(r._id)}
-                              >
-                                <FiTrash2 size={14} />
-                              </button>
+                              {canEditRole && (
+                                <button
+                                  className="ut-act-btn ut-act-btn--edit"
+                                  title="Chỉnh sửa"
+                                  onClick={() => openEdit(r)}
+                                >
+                                  <FiEdit2 size={14} />
+                                </button>
+                              )}
+                              {canDeleteRole && (
+                                <button
+                                  className="ut-act-btn ut-act-btn--del"
+                                  title="Xóa"
+                                  onClick={() => setConfirmId(r._id)}
+                                >
+                                  <FiTrash2 size={14} />
+                                </button>
+                              )}
                             </>
                           )}
                         </div>

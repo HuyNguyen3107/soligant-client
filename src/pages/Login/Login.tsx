@@ -1,65 +1,46 @@
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowLeft } from "react-icons/fi";
 import { SEO } from "../../components/common";
+import { getErrorMessage } from "../../lib/error";
+import { login } from "../../services/auth.service";
+import { useAuthStore } from "../../store/auth.store";
 import "./Login.css";
 import loginBannerImage from "../../assets/images/product-3.jpg";
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-
-interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-    avatar?: string;
-  };
-}
-
 const Login = () => {
   const navigate = useNavigate();
+  const setSession = useAuthStore((state) => state.setSession);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+  const loginMutation = useMutation({
+    mutationFn: login,
+    onSuccess: (data) => {
+      setSession({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        user: data.user,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Đăng nhập thất bại.");
-      }
-
-      const data: LoginResponse = await response.json();
-
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
       navigate("/dashboard");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Email hoặc mật khẩu không đúng.",
-      );
-    } finally {
-      setLoading(false);
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Email hoặc mật khẩu không đúng."));
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (/\s/.test(password)) {
+      toast.error("Mật khẩu không được chứa khoảng trắng.");
+      return;
     }
+
+    loginMutation.mutate({ email, password });
   };
 
   return (
@@ -79,7 +60,7 @@ const Login = () => {
           <Link to="/" className="login__logo">
             <span className="login__logo-text">Soligant</span>
           </Link>
-          <h1 className="login__title">Đăng Nhập</h1>
+          <h1 className="login__title">Đăng nhập</h1>
           <p className="login__subtitle">
             Chào mừng bạn quay trở lại! Vui lòng đăng nhập để tiếp tục.
           </p>
@@ -139,15 +120,15 @@ const Login = () => {
           <button
             type="submit"
             className="btn btn-primary login__submit"
-            disabled={loading}
+            disabled={loginMutation.isPending}
           >
-            {loading ? (
+            {loginMutation.isPending ? (
               <>
                 <span className="login__spinner"></span>
                 Đang xử lý...
               </>
             ) : (
-              "Đăng Nhập"
+              "Đăng nhập"
             )}
           </button>
         </form>

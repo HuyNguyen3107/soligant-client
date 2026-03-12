@@ -36,6 +36,7 @@ export type SidebarItem = {
   icon: React.ElementType;
   badge?: number;
   path?: string;
+  permission?: string;
 };
 
 export type SidebarSection = {
@@ -130,6 +131,45 @@ export interface CollectionFormState {
   thumbnail: string;
   isActive: boolean;
   isFeatured: boolean;
+}
+
+// ─── LEGO FRAME TAB TYPES ────────────────────────────────────────────────────
+export type LegoFrameSize = "20x20" | "18x18" | "15x15";
+
+export interface ProductCategory {
+  id: string;
+  name: string;
+  updatedAt: string;
+}
+
+export type LegoFrameCategory = ProductCategory;
+
+export interface LegoFrameVariant {
+  id: string;
+  collectionId: string;
+  collectionName?: string;
+  categoryId: string;
+  categoryName?: string;
+  name: string;
+  description: string;
+  image: string;
+  size: LegoFrameSize;
+  legoQuantity: number;
+  price: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface LegoFrameVariantForm {
+  collectionId: string;
+  categoryId: string;
+  name: string;
+  description: string;
+  image: string;
+  size: LegoFrameSize;
+  legoQuantity: string;
+  price: string;
+  isActive: boolean;
 }
 
 // ─── CHART TYPES ──────────────────────────────────────────────────────────────

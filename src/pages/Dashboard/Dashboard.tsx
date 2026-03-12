@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { isAxiosError } from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import {
@@ -18,9 +19,14 @@ import {
   UsersTab,
   RolesTab,
   CollectionsTab,
+  LegoFramesTab,
+  LegoCategoriesTab,
 } from "./components";
 import { sidebarSections, TAB_META } from "./config";
-import type { UserInfo } from "./types";
+import { useAuthStore } from "../../store/auth.store";
+import { hasPermission } from "../../lib/permissions";
+import { http } from "../../lib/http";
+import type { AuthUser } from "../../store/auth.store";
 import "./Dashboard.css";
 
 // ─── TAB MAP ──────────────────────────────────────────────────────────────────
@@ -29,13 +35,19 @@ const tabMap: Record<string, React.ReactNode> = {
   users: <UsersTab />,
   roles: <RolesTab />,
   collections: <CollectionsTab />,
+  "lego-frames": <LegoFramesTab />,
+  "lego-categories": <LegoCategoriesTab />,
 };
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const clearSession = useAuthStore((state) => state.clearSession);
+  const setUser = useAuthStore((state) => state.setUser);
+  const isHydrated = useAuthStore((state) => state.isHydrated);
   const [loading, setLoading] = useState(true);
   const initialTab = (() => {
     const seg = pathname.split("/")[2] ?? "";
@@ -48,6 +60,71 @@ const Dashboard = () => {
     () => localStorage.getItem("db-theme") === "dark",
   );
   const [profileOpen, setProfileOpen] = useState(false);
+  // Whether the initial /auth/me refresh has completed
+  const [meLoaded, setMeLoaded] = useState(false);
+  const meFetched = useRef(false);
+
+  const visibleSidebarSections = useMemo(
+    () =>
+      sidebarSections
+        .map((section) => ({
+          ...section,
+          items: section.items.filter((item) => {
+            // Always show "Trang chủ" (home) and "Dashboard" regardless of permissions
+            if (item.id === "home" || item.id === "dashboard") {
+              return true;
+            }
+            // For other items, check permissions
+            return !item.permission || hasPermission(user, item.permission);
+          }),
+        }))
+        .filter((section) => section.items.length > 0),
+    [user],
+  );
+
+  const availableTabs = useMemo(
+    () =>
+      visibleSidebarSections
+        .flatMap((section) => section.items)
+        .filter((item) => item.path == null)
+        .map((item) => item.id),
+    [visibleSidebarSections],
+  );
+
+  // True when user has no meaningful permissions (not superAdmin, not legacy admin fallback)
+  const noPermissions = useMemo(() => {
+    if (!user) return false;
+    if (user.isSuperAdmin) return false;
+    // Legacy admin fallback: role=admin, no customRoleName assigned
+    if (user.role === "admin" && !user.customRoleName) return false;
+    return (user.permissions ?? []).length === 0;
+  }, [user]);
+
+  // ── Refresh user permissions from server once on mount ─────────────────────
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (!accessToken || !user) {
+      setMeLoaded(true);
+      return;
+    }
+    if (meFetched.current) return;
+    meFetched.current = true;
+
+    http
+      .get<AuthUser>("/auth/me")
+      .then((res) => setUser(res.data))
+      .catch((error: unknown) => {
+        const status = isAxiosError(error) ? error.response?.status : undefined;
+
+        // Fallback: force logout if server rejects current session.
+        if (status === 401 || status === 403 || status === 404) {
+          clearSession();
+          navigate("/login", { replace: true });
+        }
+      })
+      .finally(() => setMeLoaded(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated]);
 
   const toggleDark = () => {
     setDarkMode((prev) => {
@@ -57,36 +134,41 @@ const Dashboard = () => {
     });
   };
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    const userData = localStorage.getItem("user");
-    if (!token || !userData) {
+    if (!isHydrated || !meLoaded) return;
+
+    if (!accessToken || !user) {
       navigate("/login");
       return;
     }
-    try {
-      setUser(JSON.parse(userData));
-    } catch {
-      navigate("/login");
-    } finally {
-      setLoading(false);
+
+    if (availableTabs.length > 0 && !availableTabs.includes(activeTab)) {
+      setActiveTab(availableTabs[0]);
+      return;
     }
-  }, [navigate]);
+
+    setLoading(false);
+  }, [accessToken, activeTab, availableTabs, isHydrated, meLoaded, navigate, user]);
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+    clearSession();
     navigate("/login");
   };
 
   const activeLabel =
-    sidebarSections.flatMap((s) => s.items).find((i) => i.id === activeTab)
-      ?.label ?? "Dashboard";
+    visibleSidebarSections
+      .flatMap((section) => section.items)
+      .find((item) => item.id === activeTab)?.label ?? "Dashboard";
 
   useEffect(() => {
+    if (!availableTabs.includes(activeTab)) {
+      return;
+    }
+
     const meta = TAB_META[activeTab] ?? TAB_META.dashboard;
-    navigate(meta.path, { replace: true });
-  }, [activeTab, navigate]);
+    if (pathname !== meta.path) {
+      navigate(meta.path, { replace: true });
+    }
+  }, [activeTab, availableTabs, navigate, pathname]);
 
   if (loading) {
     return (
@@ -153,7 +235,7 @@ const Dashboard = () => {
         </div>
 
         <nav className="db-sidebar__nav">
-          {sidebarSections.map((section) => (
+          {visibleSidebarSections.map((section) => (
             <div key={section.group} className="db-sidebar__section">
               {!collapsed && (
                 <p className="db-sidebar__group-label">{section.group}</p>
@@ -163,7 +245,7 @@ const Dashboard = () => {
                   const Icon = item.icon;
                   const isActive =
                     item.path != null
-                      ? location.pathname === item.path
+                      ? pathname === item.path
                       : activeTab === item.id;
                   return (
                     <li key={item.id}>
@@ -219,7 +301,8 @@ const Dashboard = () => {
               <div className="db-sidebar__user-info">
                 <span className="db-sidebar__user-name">{user?.name}</span>
                 <span className="db-sidebar__user-role">
-                  {user?.role === "admin" ? "Admin" : "User"}
+                  {user?.customRoleName ??
+                    (user?.role === "admin" ? "Admin" : "User")}
                 </span>
               </div>
             )}
@@ -282,7 +365,21 @@ const Dashboard = () => {
           <div className="db-content__heading">
             <h1 className="db-content__title">{activeLabel}</h1>
           </div>
-          {tabMap[activeTab]}
+          {noPermissions ? (
+            <div className="ut-empty" style={{ textAlign: "center", padding: "60px 20px" }}>
+              <h2 style={{ fontSize: "28px", marginBottom: "16px", color: "#333" }}>
+                Xin chào, {user?.name || "người dùng"}!
+              </h2>
+              <p style={{ fontSize: "16px", color: "#666", marginBottom: "24px" }}>
+                Bạn chưa được cấp quyền truy cập vào các chức năng Dashboard.
+              </p>
+              <p style={{ fontSize: "14px", color: "#999" }}>
+                Vui lòng liên hệ với quản trị viên để được cấp quyền truy cập.
+              </p>
+            </div>
+          ) : availableTabs.includes(activeTab) ? (
+            tabMap[activeTab]
+          ) : null}
         </main>
       </div>
       <ToastContainer

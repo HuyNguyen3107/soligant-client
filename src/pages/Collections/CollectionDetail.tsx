@@ -1,66 +1,64 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiGrid, FiStar } from "react-icons/fi";
+import { FiArrowLeft, FiGrid, FiStar, FiTag } from "react-icons/fi";
 import { SEO } from "../../components/common";
+import { getErrorMessage } from "../../lib/error";
+import { getStaticAssetUrl } from "../../lib/http";
+import { getPublicCollectionProducts } from "../../services/collections.service";
 import "./CollectionDetail.css";
-
-const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-const SERVER_ORIGIN = (() => {
-  try {
-    return new URL(API_URL).origin;
-  } catch {
-    return API_URL;
-  }
-})();
-
-interface Collection {
-  _id: string;
-  name: string;
-  slug: string;
-  description: string;
-  thumbnail: string;
-  isActive: boolean;
-  isFeatured: boolean;
-  createdAt?: string;
-}
-
-const getThumbnailUrl = (thumbnail: string) => {
-  if (!thumbnail) return null;
-  if (thumbnail.startsWith("http")) return thumbnail;
-  return `${SERVER_ORIGIN}/${thumbnail.replace(/^\/+/, "")}`;
-};
 
 const CollectionDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [collection, setCollection] = useState<Collection | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
+  const selectedCategory =
+    selectedCategoryId === "all" ? undefined : selectedCategoryId;
+
+  const {
+    data: payload,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["public-collection-products", slug, selectedCategory],
+    queryFn: () =>
+      getPublicCollectionProducts(slug as string, selectedCategory),
+    enabled: Boolean(slug),
+    retry: false,
+  });
+
+  const collection = payload?.collection;
+  const categories = useMemo(() => payload?.categories ?? [], [payload?.categories]);
+  const products = useMemo(() => payload?.products ?? [], [payload?.products]);
+
+  const totalProductsInCollection = useMemo(
+    () => categories.reduce((sum, category) => sum + category.productCount, 0),
+    [categories],
+  );
+
+  const activeCategoryName = useMemo(
+    () => categories.find((item) => item.id === selectedCategoryId)?.name,
+    [categories, selectedCategoryId],
+  );
 
   useEffect(() => {
-    if (!slug) return;
-    const fetchCollection = async () => {
-      try {
-        const res = await fetch(`${API_URL}/public/collections/${slug}`);
-        if (res.status === 404) {
-          navigate("/bo-suu-tap", { replace: true });
-          return;
-        }
-        if (!res.ok) throw new Error("Không thể tải bộ sưu tập.");
-        const data: Collection = await res.json();
-        setCollection(data);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Có lỗi xảy ra khi tải dữ liệu.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCollection();
-  }, [slug, navigate]);
+    if (!slug) {
+      navigate("/bo-suu-tap", { replace: true });
+      return;
+    }
 
-  if (loading) {
+    if (isAxiosError(error) && error.response?.status === 404) {
+      navigate("/bo-suu-tap", { replace: true });
+    }
+  }, [slug, error, navigate]);
+
+  const errorMessage = isError
+    ? getErrorMessage(error, "Có lỗi xảy ra khi tải dữ liệu.")
+    : null;
+
+  if (isLoading || !slug) {
     return (
       <div className="cd-page">
         <div className="cd-loading container">
@@ -73,13 +71,13 @@ const CollectionDetail = () => {
     );
   }
 
-  if (error || !collection) {
+  if (errorMessage || !collection) {
     return (
       <div className="cd-page">
         <div className="cd-error container">
           <FiGrid size={48} />
           <h2>Không tìm thấy bộ sưu tập</h2>
-          <p>{error ?? "Bộ sưu tập này không tồn tại hoặc đã bị ẩn."}</p>
+          <p>{errorMessage ?? "Bộ sưu tập này không tồn tại hoặc đã bị ẩn."}</p>
           <Link to="/bo-suu-tap" className="cd-btn-back">
             <FiArrowLeft size={16} /> Về danh sách bộ sưu tập
           </Link>
@@ -88,7 +86,7 @@ const CollectionDetail = () => {
     );
   }
 
-  const thumbUrl = getThumbnailUrl(collection.thumbnail);
+  const thumbUrl = getStaticAssetUrl(collection.thumbnail);
 
   return (
     <>
@@ -162,13 +160,92 @@ const CollectionDetail = () => {
             </div>
           </div>
 
-          {/* Products placeholder */}
+          {/* Products */}
           <div className="cd-products">
             <h2 className="cd-products__title">Sản phẩm trong bộ sưu tập</h2>
-            <div className="cd-products__empty">
-              <FiGrid size={40} />
-              <p>Sản phẩm đang được cập nhật. Hãy quay lại sau nhé!</p>
+
+            <div className="cd-products__toolbar">
+              <p className="cd-products__count">
+                Hiển thị <strong>{products.length}</strong>
+                {activeCategoryName
+                  ? ` sản phẩm thuộc danh mục ${activeCategoryName}`
+                  : " sản phẩm"}
+              </p>
+
+              <div className="cd-products__filters">
+                <button
+                  className={`cd-products__filter${selectedCategoryId === "all" ? " is-active" : ""}`}
+                  onClick={() => setSelectedCategoryId("all")}
+                >
+                  Tất cả ({totalProductsInCollection || products.length})
+                </button>
+
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    className={`cd-products__filter${selectedCategoryId === category.id ? " is-active" : ""}`}
+                    onClick={() => setSelectedCategoryId(category.id)}
+                  >
+                    {category.name} ({category.productCount})
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {products.length === 0 ? (
+              <div className="cd-products__empty">
+                <FiGrid size={40} />
+                <p>
+                  {activeCategoryName
+                    ? "Danh mục này chưa có sản phẩm trong bộ sưu tập."
+                    : "Bộ sưu tập này chưa có sản phẩm hiển thị."}
+                </p>
+              </div>
+            ) : (
+              <div className="cd-products__grid">
+                {products.map((product) => {
+                  const productImage = getStaticAssetUrl(product.image);
+
+                  return (
+                    <article key={product.id} className="cd-product-card">
+                      <div className="cd-product-card__thumb">
+                        {productImage ? (
+                          <img src={productImage} alt={product.name} />
+                        ) : (
+                          <div className="cd-product-card__placeholder">
+                            <FiGrid size={28} />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="cd-product-card__body">
+                        <span className="cd-product-card__category">
+                          <FiTag size={12} />
+                          {product.categoryName || "Chưa phân loại"}
+                        </span>
+
+                        <h3 className="cd-product-card__name">{product.name}</h3>
+
+                        <p className="cd-product-card__desc">
+                          {product.description || "Sản phẩm chưa có mô tả."}
+                        </p>
+
+                        <ul className="cd-product-card__meta">
+                          <li>Kích thước: {product.size}</li>
+                          <li>
+                            Số lượng Lego: {product.legoQuantity.toLocaleString("vi-VN")}
+                          </li>
+                        </ul>
+
+                        <p className="cd-product-card__price">
+                          {product.price.toLocaleString("vi-VN")} đ
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
       </div>

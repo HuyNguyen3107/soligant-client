@@ -7,6 +7,7 @@ import {
   FiLayout,
   FiChevronDown,
 } from "react-icons/fi";
+import { hasAnyPermission } from "../../../lib/permissions";
 import "./Header.css";
 
 interface NavLink {
@@ -20,8 +21,19 @@ interface StoredUser {
   name: string;
   email: string;
   role: string;
+  permissions?: string[];
+  isSuperAdmin?: boolean;
   avatar?: string;
 }
+
+const DASHBOARD_PERMISSIONS = [
+  "dashboard.view",
+  "users.view",
+  "roles.view",
+  "collections.view",
+  "lego-frames.view",
+  "product-categories.view",
+];
 
 const navLinks: NavLink[] = [
   { label: "Trang chủ", href: "/", isRoute: true },
@@ -75,6 +87,8 @@ const Header = () => {
     setDropdownOpen(false);
     navigate("/");
   };
+
+  const canAccessDashboard = hasAnyPermission(user, DASHBOARD_PERMISSIONS);
 
   return (
     <header className="header">
@@ -133,7 +147,7 @@ const Header = () => {
                     <span className="header__dropdown-email">{user.email}</span>
                   </div>
                   <div className="header__dropdown-divider" />
-                  {user.role === "admin" && (
+                  {canAccessDashboard && (
                     <Link
                       to="/dashboard"
                       className="header__dropdown-item"

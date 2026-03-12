@@ -29,4 +29,19 @@ export const TAB_META: Record<string, TabMeta> = {
     keywords: "bộ sưu tập, collection, sản phẩm, Soligant, quản lý",
     path: "/dashboard/collections",
   },
+  "lego-frames": {
+    title: "Quản lý khung tranh Lego",
+    description:
+      "Quản lý sản phẩm khung tranh Lego tại Soligant, bao gồm các biến thể kích thước 20x20, 18x18 và 15x15.",
+    keywords:
+      "khung tranh lego, biến thể sản phẩm, kích thước 20x20, 18x18, 15x15, Soligant",
+    path: "/dashboard/lego-frames",
+  },
+  "lego-categories": {
+    title: "Danh mục sản phẩm",
+    description:
+      "Quản lý danh mục sản phẩm dùng chung trong Soligant, hỗ trợ tạo mới và chỉnh sửa tên danh mục.",
+    keywords: "danh mục sản phẩm, category, quản lý danh mục, Soligant",
+    path: "/dashboard/lego-categories",
+  },
 };
