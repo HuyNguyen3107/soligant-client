@@ -21,6 +21,7 @@ import {
   CollectionsTab,
   LegoFramesTab,
   LegoCategoriesTab,
+  LegoCustomizationsTab,
 } from "./components";
 import { sidebarSections, TAB_META } from "./config";
 import { useAuthStore } from "../../store/auth.store";
@@ -37,6 +38,7 @@ const tabMap: Record<string, React.ReactNode> = {
   collections: <CollectionsTab />,
   "lego-frames": <LegoFramesTab />,
   "lego-categories": <LegoCategoriesTab />,
+  "lego-customizations": <LegoCustomizationsTab />,
 };
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────

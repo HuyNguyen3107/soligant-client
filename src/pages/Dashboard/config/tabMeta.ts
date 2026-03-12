@@ -44,4 +44,11 @@ export const TAB_META: Record<string, TabMeta> = {
     keywords: "danh mục sản phẩm, category, quản lý danh mục, Soligant",
     path: "/dashboard/lego-categories",
   },
+  "lego-customizations": {
+    title: "Tùy chỉnh Lego",
+    description:
+      "Quản lý các nhóm tùy chỉnh Lego và các lựa chọn cụ thể như áo, quần, tóc, phụ kiện để hiển thị ra trang khách hàng qua API public.",
+    keywords: "tùy chỉnh lego, áo, quần, phụ kiện, dashboard, Soligant",
+    path: "/dashboard/lego-customizations",
+  },
 };

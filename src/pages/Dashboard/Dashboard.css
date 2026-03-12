@@ -3442,6 +3442,35 @@
   padding-top: 8px;
 }
 
+.danger-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+}
+
+.danger-box svg {
+  color: #dc2626;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.danger-box strong {
+  display: block;
+  color: #991b1b;
+  font-size: 0.84rem;
+}
+
+.danger-box p {
+  margin: 6px 0 0;
+  color: #7f1d1d;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
 /* ── Confirm dialog ── */
 .confirm-body {
   display: flex;
@@ -4250,6 +4279,19 @@
   color: #94a3b8;
 }
 
+.db-root.dark .danger-box {
+  border-color: #7f1d1d;
+  background: #3a1c1f;
+}
+
+.db-root.dark .danger-box strong {
+  color: #fecaca;
+}
+
+.db-root.dark .danger-box p {
+  color: #fca5a5;
+}
+
 .db-root.dark .form-label {
   color: #cbd5e1;
 }
@@ -4923,6 +4965,268 @@
 
 .db-root.dark .lc-summary {
   color: #94a3b8;
+}
+
+.lcu-root {
+  gap: 16px;
+}
+
+.lcu-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lcu-group-list {
+  display: grid;
+  gap: 14px;
+}
+
+.lcu-group-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.lcu-group-card.is-inactive {
+  opacity: 0.78;
+}
+
+.lcu-group-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lcu-group-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lcu-status-badge {
+  cursor: default;
+}
+
+.lcu-group-card__helper {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 0.83rem;
+  line-height: 1.6;
+}
+
+.lcu-group-card__foot {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: #94a3b8;
+  font-size: 0.76rem;
+}
+
+.lcu-group-card__body {
+  display: grid;
+  gap: 10px;
+}
+
+.lcu-option-empty {
+  border: 1px dashed #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.lcu-option-name {
+  display: grid;
+  gap: 3px;
+}
+
+.lcu-option-name strong {
+  color: #0f172a;
+  font-size: 0.86rem;
+}
+
+.lcu-option-name span {
+  color: #64748b;
+  font-size: 0.77rem;
+  line-height: 1.55;
+}
+
+.lcu-price {
+  font-weight: 700;
+  color: #731618;
+}
+
+.lcu-option-visual {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lcu-option-visual--image {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  justify-content: center;
+}
+
+.lcu-option-visual--image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lcu-option-visual--image span {
+  font-size: 0.72rem;
+  color: #64748b;
+  padding: 6px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.lcu-option-visual--color {
+  gap: 10px;
+}
+
+.lcu-color-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.lcu-color-code {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.lcu-upload-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.lcu-upload-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.lcu-upload-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lcu-upload-preview__empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.lcu-upload-input {
+  display: none;
+}
+
+.lcu-upload-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lcu-color-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lcu-color-input-wrap .form-input {
+  flex: 1;
+}
+
+.db-root.dark .lcu-group-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.db-root.dark .lcu-group-card__helper,
+.db-root.dark .lcu-option-name span,
+.db-root.dark .lcu-option-empty {
+  color: #94a3b8;
+}
+
+.db-root.dark .lcu-option-name strong {
+  color: #f1f5f9;
+}
+
+.db-root.dark .lcu-option-visual--image {
+  border-color: #334155;
+  background: #0f172a;
+}
+
+.db-root.dark .lcu-option-visual--image span {
+  color: #94a3b8;
+}
+
+.db-root.dark .lcu-color-swatch {
+  border-color: #64748b;
+}
+
+.db-root.dark .lcu-color-code {
+  color: #cbd5e1;
+}
+
+.db-root.dark .lcu-upload-preview {
+  border-color: #334155;
+  background: #0f172a;
+}
+
+.db-root.dark .lcu-upload-preview__empty {
+  color: #94a3b8;
+}
+
+.db-root.dark .lcu-group-card__foot {
+  color: #64748b;
+}
+
+.db-root.dark .lcu-option-empty {
+  border-color: #334155;
+}
+
+@media (max-width: 768px) {
+
+  .lcu-header-actions .btn-secondary,
+  .lcu-header-actions .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .lcu-group-card__header {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 640px) {

@@ -5,4 +5,5 @@ export { default as RolesTab } from "./RolesTab";
 export { default as CollectionsTab } from "./CollectionsTab";
 export { default as LegoFramesTab } from "./LegoFramesTab";
 export { default as LegoCategoriesTab } from "./LegoCategoriesTab";
+export { default as LegoCustomizationsTab } from "./LegoCustomizationsTab";
 export * from "./charts";

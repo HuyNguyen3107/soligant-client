@@ -205,43 +205,53 @@ const CollectionDetail = () => {
               <div className="cd-products__grid">
                 {products.map((product) => {
                   const productImage = getStaticAssetUrl(product.image);
+                  const customPath = `/bo-suu-tap/${slug}/san-pham/${product.id}/custom`;
 
                   return (
-                    <article key={product.id} className="cd-product-card">
-                      <div className="cd-product-card__thumb">
-                        {productImage ? (
-                          <img src={productImage} alt={product.name} />
-                        ) : (
-                          <div className="cd-product-card__placeholder">
-                            <FiGrid size={28} />
-                          </div>
-                        )}
-                      </div>
+                    <Link
+                      key={product.id}
+                      to={customPath}
+                      className="cd-product-card-link"
+                      aria-label={`Tuỳ chỉnh biến thể ${product.name}`}
+                    >
+                      <article className="cd-product-card">
+                        <div className="cd-product-card__thumb">
+                          {productImage ? (
+                            <img src={productImage} alt={product.name} />
+                          ) : (
+                            <div className="cd-product-card__placeholder">
+                              <FiGrid size={28} />
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="cd-product-card__body">
-                        <span className="cd-product-card__category">
-                          <FiTag size={12} />
-                          {product.categoryName || "Chưa phân loại"}
-                        </span>
+                        <div className="cd-product-card__body">
+                          <span className="cd-product-card__category">
+                            <FiTag size={12} />
+                            {product.categoryName || "Chưa phân loại"}
+                          </span>
 
-                        <h3 className="cd-product-card__name">{product.name}</h3>
+                          <h3 className="cd-product-card__name">{product.name}</h3>
 
-                        <p className="cd-product-card__desc">
-                          {product.description || "Sản phẩm chưa có mô tả."}
-                        </p>
+                          <p className="cd-product-card__desc">
+                            {product.description || "Sản phẩm chưa có mô tả."}
+                          </p>
 
-                        <ul className="cd-product-card__meta">
-                          <li>Kích thước: {product.size}</li>
-                          <li>
-                            Số lượng Lego: {product.legoQuantity.toLocaleString("vi-VN")}
-                          </li>
-                        </ul>
+                          <ul className="cd-product-card__meta">
+                            <li>Kích thước: {product.size}</li>
+                            <li>
+                              Số lượng Lego: {product.legoQuantity.toLocaleString("vi-VN")}
+                            </li>
+                          </ul>
 
-                        <p className="cd-product-card__price">
-                          {product.price.toLocaleString("vi-VN")} đ
-                        </p>
-                      </div>
-                    </article>
+                          <p className="cd-product-card__price">
+                            {product.price.toLocaleString("vi-VN")} đ
+                          </p>
+
+                          <span className="cd-product-card__cta">Tuỳ chỉnh biến thể</span>
+                        </div>
+                      </article>
+                    </Link>
                   );
                 })}
               </div>

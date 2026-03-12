@@ -172,6 +172,44 @@ export interface LegoFrameVariantForm {
   isActive: boolean;
 }
 
+export interface LegoCustomizationOption {
+  id: string;
+  groupId: string;
+  name: string;
+  description: string;
+  price: number;
+  allowImageUpload: boolean;
+  image: string;
+  colorCode: string;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface LegoCustomizationGroup {
+  id: string;
+  name: string;
+  helper: string;
+  isActive: boolean;
+  optionCount: number;
+  updatedAt: string;
+  options: LegoCustomizationOption[];
+}
+
+export interface LegoCustomizationGroupForm {
+  name: string;
+  helper: string;
+}
+
+export interface LegoCustomizationOptionForm {
+  groupId: string;
+  name: string;
+  description: string;
+  price: string;
+  allowImageUpload: boolean;
+  image: string;
+  colorCode: string;
+}
+
 // ─── CHART TYPES ──────────────────────────────────────────────────────────────
 export interface SparklineProps {
   data: number[];
