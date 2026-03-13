@@ -239,3 +239,110 @@ export interface GoalItem {
   pct: number;
   color: string;
 }
+
+// ─── BACKGROUND THEMES TAB TYPES ──────────────────────────────────────────────
+export interface BackgroundTheme {
+  id: string;
+  name: string;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export type BackgroundThemeFormState = Omit<BackgroundTheme, "id" | "updatedAt">;
+
+// ─── BACKGROUNDS TAB TYPES ────────────────────────────────────────────────────
+export type BackgroundFieldType =
+  | "short_text"
+  | "long_text"
+  | "select"
+  | "image_upload"
+  | "number"
+  | "date";
+
+export interface BackgroundFieldOption {
+  label: string;
+  value: string;
+}
+
+export interface BackgroundField {
+  label: string;
+  fieldType: BackgroundFieldType;
+  placeholder: string;
+  required: boolean;
+  options: BackgroundFieldOption[];
+  sortOrder: number;
+  selectType?: "dropdown" | "radio" | "checkbox";
+}
+
+export interface Background {
+  id: string;
+  name: string;
+  themeId: string;
+  themeName: string;
+  image: string;
+  fields: BackgroundField[];
+  fieldCount: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface BackgroundFieldForm {
+  label: string;
+  fieldType: BackgroundFieldType;
+  placeholder: string;
+  required: boolean;
+  options: BackgroundFieldOption[];
+  selectType?: "dropdown" | "radio" | "checkbox";
+}
+
+export interface BackgroundFormState {
+  name: string;
+  themeId: string;
+  image: string;
+  fields: BackgroundFieldForm[];
+  isActive: boolean;
+}
+// ─── PROMOTIONS TAB TYPES ─────────────────────────────────────────────────────
+export interface PromotionGift {
+  groupId: string;
+  optionId: string;
+  quantity: number;
+  groupName: string;
+  optionName: string;
+}
+
+export interface PromotionRow {
+  id: string;
+  name: string;
+  description: string;
+  conditionType: "lego_quantity" | "set_quantity";
+  conditionMinQuantity: number;
+  rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardGifts: PromotionGift[];
+  rewardDiscountValue: number;
+  startDate: string | null;
+  endDate: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PromotionGiftForm {
+  groupId: string;
+  optionId: string;
+  quantity: string;
+}
+
+export interface PromotionFormState {
+  name: string;
+  description: string;
+  conditionType: "lego_quantity" | "set_quantity";
+  conditionMinQuantity: string;
+  rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardGifts: PromotionGiftForm[];
+  rewardDiscountValue: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+}
+

@@ -6,4 +6,7 @@ export { default as CollectionsTab } from "./CollectionsTab";
 export { default as LegoFramesTab } from "./LegoFramesTab";
 export { default as LegoCategoriesTab } from "./LegoCategoriesTab";
 export { default as LegoCustomizationsTab } from "./LegoCustomizationsTab";
+export { default as PromotionsTab } from "./PromotionsTab";
+export { default as BackgroundThemesTab } from "./BackgroundThemesTab";
+export { default as BackgroundsTab } from "./BackgroundsTab";
 export * from "./charts";

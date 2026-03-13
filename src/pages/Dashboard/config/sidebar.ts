@@ -1,4 +1,4 @@
-import { FiHome, FiGrid, FiUsers, FiKey, FiLayers, FiBox, FiTag, FiSliders } from "react-icons/fi";
+import { FiHome, FiGrid, FiUsers, FiKey, FiLayers, FiBox, FiTag, FiSliders, FiGift, FiImage } from "react-icons/fi";
 import type { SidebarSection } from "../types";
 
 export const sidebarSections: SidebarSection[] = [
@@ -40,6 +40,24 @@ export const sidebarSections: SidebarSection[] = [
         label: "Tùy chỉnh Lego",
         icon: FiSliders,
         permission: "lego-customizations.view",
+      },
+      {
+        id: "promotions",
+        label: "Ưu đãi",
+        icon: FiGift,
+        permission: "promotions.view",
+      },
+      {
+        id: "background-themes",
+        label: "Chủ đề Background",
+        icon: FiImage,
+        permission: "background-themes.view",
+      },
+      {
+        id: "backgrounds",
+        label: "Background",
+        icon: FiLayers,
+        permission: "backgrounds.view",
       },
     ],
   },

@@ -51,4 +51,23 @@ export const TAB_META: Record<string, TabMeta> = {
     keywords: "tùy chỉnh lego, áo, quần, phụ kiện, dashboard, Soligant",
     path: "/dashboard/lego-customizations",
   },
+  promotions: {
+    title: "Quản lý ưu đãi",
+    description:
+      "Quản lý các chương trình ưu đãi cho khách hàng Soligant - Tạo, chỉnh sửa, xóa ưu đãi theo số lượng Lego hoặc Set.",
+    keywords: "ưu đãi, khuyến mãi, giảm giá, tặng quà, promotions, Soligant",
+    path: "/dashboard/promotions",
+  },
+  "background-themes": {
+    title: "Chủ đề Background",
+    description: "Quản lý các danh mục/chủ đề nhóm các bối cảnh tùy chỉnh cho sản phẩm.",
+    keywords: "chủ đề background, background themes, danh mục bối cảnh",
+    path: "/dashboard/background-themes",
+  },
+  backgrounds: {
+    title: "Quản lý Background",
+    description: "Thêm và cấu hình các bối cảnh, ảnh nền và trường thông tin tùy biến (Google Form style).",
+    keywords: "backgrounds, mẫu background, form background, cấu hình bối cảnh",
+    path: "/dashboard/backgrounds",
+  },
 };

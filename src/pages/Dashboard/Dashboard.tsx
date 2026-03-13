@@ -22,6 +22,9 @@ import {
   LegoFramesTab,
   LegoCategoriesTab,
   LegoCustomizationsTab,
+  PromotionsTab,
+  BackgroundThemesTab,
+  BackgroundsTab,
 } from "./components";
 import { sidebarSections, TAB_META } from "./config";
 import { useAuthStore } from "../../store/auth.store";
@@ -39,6 +42,9 @@ const tabMap: Record<string, React.ReactNode> = {
   "lego-frames": <LegoFramesTab />,
   "lego-categories": <LegoCategoriesTab />,
   "lego-customizations": <LegoCustomizationsTab />,
+  promotions: <PromotionsTab />,
+  "background-themes": <BackgroundThemesTab />,
+  backgrounds: <BackgroundsTab />, // Added backgrounds tab
 };
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
