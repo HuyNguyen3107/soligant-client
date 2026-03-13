@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { FiAlertTriangle, FiEdit2, FiImage, FiPlus, FiSave, FiTrash2, FiX } from "react-icons/fi";
+import { FiAlertTriangle, FiEdit2, FiImage, FiPlus, FiTrash2, FiX } from "react-icons/fi";
 import { getErrorMessage } from "../../../lib/error";
 import type { BackgroundTheme, BackgroundThemeFormState } from "../types";
 import {
