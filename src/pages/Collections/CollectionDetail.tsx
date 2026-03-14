@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiGrid, FiStar, FiTag } from "react-icons/fi";
-import { PageBreadcrumb, SEO } from "../../components/common";
+import { PageBreadcrumb, RichTextContent, SEO } from "../../components/common";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
+import { toRichTextPlainText } from "../../lib/rich-text";
 import { getPublicCollectionProducts } from "../../services/collections.service";
 import "./CollectionDetail.css";
 
@@ -93,7 +94,7 @@ const CollectionDetail = () => {
       <SEO
         title={collection.name}
         description={
-          collection.description ||
+          toRichTextPlainText(collection.description) ||
           `Khám phá bộ sưu tập ${collection.name} tại Soligant.`
         }
         keywords={`${collection.name}, bộ sưu tập, quà tặng, Soligant`}
@@ -128,7 +129,7 @@ const CollectionDetail = () => {
             </div>
             <h1 className="cd-hero__title">{collection.name}</h1>
             {collection.description && (
-              <p className="cd-hero__desc">{collection.description}</p>
+              <RichTextContent value={collection.description} className="cd-hero__desc" />
             )}
           </div>
         </section>
@@ -153,7 +154,7 @@ const CollectionDetail = () => {
                 </span>
               )}
               {collection.description ? (
-                <p className="cd-info-card__desc">{collection.description}</p>
+                <RichTextContent value={collection.description} className="cd-info-card__desc" />
               ) : (
                 <p className="cd-info-card__desc cd-info-card__desc--muted">
                   Bộ sưu tập này chưa có mô tả.
@@ -217,7 +218,7 @@ const CollectionDetail = () => {
                       key={product.id}
                       to={customPath}
                       className="cd-product-card-link"
-                      aria-label={`Tuỳ chỉnh biến thể ${product.name}`}
+                      aria-label={`Tùy chỉnh ${product.name}`}
                     >
                       <article className="cd-product-card">
                         <div className="cd-product-card__thumb">
@@ -238,9 +239,14 @@ const CollectionDetail = () => {
 
                           <h3 className="cd-product-card__name">{product.name}</h3>
 
-                          <p className="cd-product-card__desc">
-                            {product.description || "Sản phẩm chưa có mô tả."}
-                          </p>
+                          {product.description ? (
+                            <RichTextContent
+                              value={product.description}
+                              className="cd-product-card__desc"
+                            />
+                          ) : (
+                            <p className="cd-product-card__desc">Sản phẩm chưa có mô tả.</p>
+                          )}
 
                           <ul className="cd-product-card__meta">
                             <li>Kích thước: {product.size}</li>
@@ -253,7 +259,7 @@ const CollectionDetail = () => {
                             {product.price.toLocaleString("vi-VN")} đ
                           </p>
 
-                          <span className="cd-product-card__cta">Tuỳ chỉnh biến thể</span>
+                          <span className="cd-product-card__cta">Tùy chỉnh ngay</span>
                         </div>
                       </article>
                     </Link>

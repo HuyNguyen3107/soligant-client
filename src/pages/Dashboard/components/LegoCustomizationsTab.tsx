@@ -19,6 +19,11 @@ import { getErrorMessage } from "../../../lib/error";
 import { getStaticAssetUrl, http } from "../../../lib/http";
 import { hasPermission } from "../../../lib/permissions";
 import {
+  isRichTextEmpty,
+  normalizeRichTextForStorage,
+  toRichTextPlainText,
+} from "../../../lib/rich-text";
+import {
   createLegoCustomizationGroup,
   createLegoCustomizationOption,
   deleteLegoCustomizationGroup,
@@ -30,6 +35,7 @@ import {
   updateLegoCustomizationOption,
 } from "../../../services/lego-customizations.service";
 import { useAuthStore } from "../../../store/auth.store";
+import { RichTextContent, RichTextEditor } from "../../../components/common";
 import type {
   LegoCustomizationGroup,
   LegoCustomizationGroupForm,
@@ -236,11 +242,11 @@ const LegoCustomizationsTab = () => {
     return groups.filter((group) => {
       const matchGroup =
         group.name.toLowerCase().includes(keyword) ||
-        group.helper.toLowerCase().includes(keyword);
+        toRichTextPlainText(group.helper).toLowerCase().includes(keyword);
       const matchOption = group.options.some(
         (option) =>
           option.name.toLowerCase().includes(keyword) ||
-          option.description.toLowerCase().includes(keyword),
+          toRichTextPlainText(option.description).toLowerCase().includes(keyword),
       );
 
       return matchGroup || matchOption;
@@ -347,7 +353,7 @@ const LegoCustomizationsTab = () => {
   };
 
   const handleGroupFormChange = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    event: ChangeEvent<HTMLInputElement>,
   ) => {
     const { name, value, type, checked } = event.target as HTMLInputElement;
     setGroupForm((prev) => ({
@@ -357,7 +363,7 @@ const LegoCustomizationsTab = () => {
   };
 
   const handleOptionFormChange = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value, type, checked } = event.target as HTMLInputElement;
 
@@ -429,7 +435,7 @@ const LegoCustomizationsTab = () => {
     }
 
     const name = normalizeText(groupForm.name);
-    const helper = normalizeText(groupForm.helper);
+    const helper = normalizeRichTextForStorage(groupForm.helper);
 
     if (!name) {
       toast.error("Tên nhóm không được để trống.");
@@ -470,7 +476,7 @@ const LegoCustomizationsTab = () => {
 
     const groupId = optionForm.groupId;
     const name = normalizeText(optionForm.name);
-    const description = normalizeText(optionForm.description);
+    const description = normalizeRichTextForStorage(optionForm.description);
     const normalizedColorCode = normalizeColorCode(optionForm.colorCode);
     const allowImageUpload = optionForm.allowImageUpload;
     const trimmedPrice = optionForm.price.trim();
@@ -695,9 +701,13 @@ const LegoCustomizationsTab = () => {
                     <span className="lc-name-chip">{group.name}</span>
                   </div>
 
-                  <p className="lcu-group-card__helper">
-                    {group.helper || "Chưa có mô tả hướng dẫn cho nhóm này."}
-                  </p>
+                  {isRichTextEmpty(group.helper) ? (
+                    <p className="lcu-group-card__helper">
+                      Chưa có mô tả hướng dẫn cho nhóm này.
+                    </p>
+                  ) : (
+                    <RichTextContent value={group.helper} className="lcu-group-card__helper" />
+                  )}
 
                   <div className="lcu-group-card__foot">
                     <span>{group.optionCount} lựa chọn</span>
@@ -763,9 +773,14 @@ const LegoCustomizationsTab = () => {
                               <td>
                                 <div className="lcu-option-name">
                                   <strong>{option.name}</strong>
-                                  <span>
-                                    {option.description || "Chưa có mô tả cho lựa chọn này."}
-                                  </span>
+                                  {isRichTextEmpty(option.description) ? (
+                                    <span>Chưa có mô tả cho lựa chọn này.</span>
+                                  ) : (
+                                    <RichTextContent
+                                      value={option.description}
+                                      className="lcu-option-name__desc"
+                                    />
+                                  )}
                                 </div>
                               </td>
                               <td>
@@ -859,13 +874,13 @@ const LegoCustomizationsTab = () => {
 
               <div className="form-group">
                 <label className="form-label">Mô tả hướng dẫn</label>
-                <textarea
-                  className="form-input form-textarea"
-                  name="helper"
-                  rows={4}
+                <RichTextEditor
                   value={groupForm.helper}
-                  onChange={handleGroupFormChange}
+                  onChange={(nextValue) =>
+                    setGroupForm((prev) => ({ ...prev, helper: nextValue }))
+                  }
                   placeholder="Giải thích ngắn cho khách hàng biết nhóm này dùng để chọn gì."
+                  minHeight={130}
                 />
               </div>
 
@@ -935,13 +950,13 @@ const LegoCustomizationsTab = () => {
 
               <div className="form-group">
                 <label className="form-label">Mô tả</label>
-                <textarea
-                  className="form-input form-textarea"
-                  name="description"
-                  rows={4}
+                <RichTextEditor
                   value={optionForm.description}
-                  onChange={handleOptionFormChange}
+                  onChange={(nextValue) =>
+                    setOptionForm((prev) => ({ ...prev, description: nextValue }))
+                  }
                   placeholder="Mô tả ngắn giúp khách hàng phân biệt lựa chọn này."
+                  minHeight={130}
                 />
               </div>
 

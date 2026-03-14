@@ -16,6 +16,10 @@ import {
 import { getErrorMessage } from "../../../lib/error";
 import { getStaticAssetUrl, http } from "../../../lib/http";
 import {
+  normalizeRichTextForStorage,
+  toRichTextPlainText,
+} from "../../../lib/rich-text";
+import {
   createLegoFrameVariant,
   deleteLegoFrameVariant,
   getLegoFrameVariants,
@@ -35,6 +39,7 @@ import {
 } from "./legoFrameStorage";
 import { hasPermission } from "../../../lib/permissions";
 import { useAuthStore } from "../../../store/auth.store";
+import { RichTextContent, RichTextEditor } from "../../../components/common";
 
 interface CollectionOption {
   _id: string;
@@ -264,7 +269,7 @@ const LegoFramesTab = () => {
       const byKeyword =
         !keyword ||
         variant.name.toLowerCase().includes(keyword) ||
-        variant.description.toLowerCase().includes(keyword) ||
+        toRichTextPlainText(variant.description).toLowerCase().includes(keyword) ||
         variant.size.toLowerCase().includes(keyword) ||
         resolveCollectionName(variant).toLowerCase().includes(keyword) ||
         resolveCategoryName(variant).toLowerCase().includes(keyword);
@@ -351,7 +356,7 @@ const LegoFramesTab = () => {
 
   const onFormChange = (
     e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      HTMLInputElement | HTMLSelectElement
     >,
   ) => {
     const { name, value } = e.target;
@@ -408,7 +413,7 @@ const LegoFramesTab = () => {
     }
 
     const name = form.name.trim();
-    const description = form.description.trim();
+    const description = normalizeRichTextForStorage(form.description);
     const legoQuantity = Number(form.legoQuantity);
     const legoCountMin = Number(form.legoCountMin);
     const legoCountMax = Number(form.legoCountMax);
@@ -723,7 +728,7 @@ const LegoFramesTab = () => {
                       <div className="lf-name-cell">
                         <p className="lf-name-cell__title">{variant.name}</p>
                         {variant.description && (
-                          <p className="lf-name-cell__desc">{variant.description}</p>
+                          <RichTextContent value={variant.description} className="lf-name-cell__desc" />
                         )}
                       </div>
                     </td>
@@ -881,12 +886,13 @@ const LegoFramesTab = () => {
 
               <div className="form-group">
                 <label className="form-label">Mô tả</label>
-                <textarea
-                  className="form-input form-textarea"
-                  name="description"
+                <RichTextEditor
                   value={form.description}
-                  onChange={onFormChange}
+                  onChange={(nextValue) =>
+                    setForm((prev) => ({ ...prev, description: nextValue }))
+                  }
                   placeholder="Mô tả ngắn cho biến thể..."
+                  minHeight={130}
                 />
               </div>
 

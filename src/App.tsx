@@ -8,6 +8,7 @@ import {
   Collections,
   CollectionDetail,
   CollectionProductCustomizer,
+  CollectionProductBackgroundPicker,
 } from "./pages";
 import "./styles/global.css";
 
@@ -57,6 +58,18 @@ function App() {
               <Header />
               <main>
                 <CollectionProductCustomizer />
+              </main>
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/bo-suu-tap/:slug/san-pham/:productId/chon-nen"
+          element={
+            <>
+              <Header />
+              <main>
+                <CollectionProductBackgroundPicker />
               </main>
               <Footer />
             </>

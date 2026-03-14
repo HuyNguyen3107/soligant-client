@@ -21,6 +21,11 @@ import {
 import type { CollectionRow, CollectionFormState } from "../types";
 import { hasPermission } from "../../../lib/permissions";
 import { useAuthStore } from "../../../store/auth.store";
+import { RichTextContent, RichTextEditor } from "../../../components/common";
+import {
+  normalizeRichTextForStorage,
+  toRichTextPlainText,
+} from "../../../lib/rich-text";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 // Origin thuần (không có /api) để dùng cho static file URLs
@@ -121,7 +126,9 @@ const CollectionsTab = () => {
   const filtered = collections.filter((c) => {
     const matchSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.description ?? "").toLowerCase().includes(search.toLowerCase());
+      toRichTextPlainText(c.description ?? "")
+        .toLowerCase()
+        .includes(search.toLowerCase());
     const matchStatus =
       filterStatus === "all" ||
       (filterStatus === "active" && c.isActive) ||
@@ -264,10 +271,12 @@ const CollectionsTab = () => {
     }
     setSaving(true);
     try {
+      const description = normalizeRichTextForStorage(form.description);
+
       const body = {
         name: form.name.trim(),
         slug: toSlug(form.name.trim()),
-        description: form.description.trim() || undefined,
+        description: description || undefined,
         thumbnail: form.thumbnail.trim() || undefined,
         isActive: form.isActive,
         isFeatured: form.isFeatured,
@@ -546,7 +555,7 @@ const CollectionsTab = () => {
                 <h3 className="coll-card__name">{c.name}</h3>
                 {c.slug && <span className="coll-card__slug">/{c.slug}</span>}
                 {c.description && (
-                  <p className="coll-card__desc">{c.description}</p>
+                  <RichTextContent value={c.description} className="coll-card__desc" />
                 )}
                 {c.productsCount !== undefined && (
                   <span className="coll-card__count">
@@ -728,14 +737,13 @@ const CollectionsTab = () => {
               {/* Mô tả */}
               <div className="form-group">
                 <label className="form-label">Mô tả</label>
-                <textarea
-                  className="form-input form-textarea"
-                  placeholder="Mô tả ngắn về bộ sưu tập..."
-                  rows={3}
+                <RichTextEditor
                   value={form.description}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, description: e.target.value }))
+                  onChange={(nextValue) =>
+                    setForm((prev) => ({ ...prev, description: nextValue }))
                   }
+                  placeholder="Mô tả ngắn về bộ sưu tập..."
+                  minHeight={130}
                 />
               </div>
 

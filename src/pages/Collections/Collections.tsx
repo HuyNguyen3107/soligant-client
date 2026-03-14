@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { FiGrid, FiArrowRight } from "react-icons/fi";
-import { PageBreadcrumb, SEO } from "../../components/common";
+import { PageBreadcrumb, RichTextContent, SEO } from "../../components/common";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
 import { getPublicCollections } from "../../services/collections.service";
@@ -105,7 +105,7 @@ const Collections = () => {
                     <div className="col-card__body">
                       <h3 className="col-card__name">{col.name}</h3>
                       {col.description && (
-                        <p className="col-card__desc">{col.description}</p>
+                        <RichTextContent value={col.description} className="col-card__desc" />
                       )}
                       <span className="col-card__link">
                         Xem sản phẩm <FiArrowRight size={14} />

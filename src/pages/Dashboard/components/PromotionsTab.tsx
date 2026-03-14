@@ -15,6 +15,7 @@ import {
 import { getErrorMessage } from "../../../lib/error";
 import { hasPermission } from "../../../lib/permissions";
 import { useAuthStore } from "../../../store/auth.store";
+import { RichTextContent, RichTextEditor } from "../../../components/common";
 import {
   createPromotion,
   deletePromotion,
@@ -28,6 +29,10 @@ import type {
   PromotionGiftForm,
   PromotionRow,
 } from "../types";
+import {
+  normalizeRichTextForStorage,
+  toRichTextPlainText,
+} from "../../../lib/rich-text";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const CONDITION_LABELS: Record<string, string> = {
@@ -146,7 +151,7 @@ const PromotionsTab = () => {
     return promotions.filter(
       (p) =>
         p.name.toLowerCase().includes(kw) ||
-        p.description.toLowerCase().includes(kw),
+        toRichTextPlainText(p.description).toLowerCase().includes(kw),
     );
   }, [promotions, search]);
 
@@ -295,7 +300,7 @@ const PromotionsTab = () => {
       id: editingPromotion?.id,
       data: {
         name,
-        description: form.description.trim(),
+        description: normalizeRichTextForStorage(form.description),
         conditionType: form.conditionType,
         conditionMinQuantity,
         rewardType: form.rewardType,
@@ -440,12 +445,12 @@ const PromotionsTab = () => {
                     <div>
                       <strong>{promo.name}</strong>
                       {promo.description && (
-                        <p
-                          className="text-muted"
-                          style={{ fontSize: "12px", margin: "2px 0 0" }}
-                        >
-                          {promo.description}
-                        </p>
+                        <div style={{ fontSize: "12px", margin: "2px 0 0" }}>
+                          <RichTextContent
+                            value={promo.description}
+                            className="text-muted"
+                          />
+                        </div>
                       )}
                     </div>
                   </td>
@@ -550,12 +555,11 @@ const PromotionsTab = () => {
               {/* Description */}
               <div className="form-group">
                 <label className="form-label">Mô tả</label>
-                <textarea
-                  className="form-input"
-                  rows={2}
+                <RichTextEditor
                   value={form.description}
-                  onChange={(e) => updateField("description", e.target.value)}
+                  onChange={(nextValue) => updateField("description", nextValue)}
                   placeholder="Mô tả ngắn về ưu đãi..."
+                  minHeight={120}
                 />
               </div>
 

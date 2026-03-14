@@ -19,7 +19,7 @@ import {
   FiLayers,
 } from "react-icons/fi";
 import { getErrorMessage } from "../../../lib/error";
-import { http } from "../../../lib/http";
+import { getStaticAssetUrl, http } from "../../../lib/http";
 import type {
   BackgroundFieldForm,
   BackgroundFieldOption,
@@ -36,6 +36,12 @@ import {
 import { getBackgroundThemes } from "../../../services/background-themes.service";
 import { hasPermission } from "../../../lib/permissions";
 import { useAuthStore } from "../../../store/auth.store";
+import { RichTextEditor } from "../../../components/common";
+import {
+  isRichTextEmpty,
+  normalizeRichTextForStorage,
+  toRichTextPlainText,
+} from "../../../lib/rich-text";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const FIELD_TYPE_MAP: Record<
@@ -60,6 +66,7 @@ const EMPTY_FIELD: BackgroundFieldForm = {
 
 const INITIAL_FORM: BackgroundFormState = {
   name: "",
+  description: "",
   themeId: "",
   image: "",
   fields: [],
@@ -144,6 +151,7 @@ const BackgroundsTab = () => {
     return backgrounds.filter(
       (b) =>
         b.name.toLowerCase().includes(keyword) ||
+        toRichTextPlainText(b.description).toLowerCase().includes(keyword) ||
         b.themeName?.toLowerCase().includes(keyword),
     );
   }, [backgrounds, search]);
@@ -177,6 +185,7 @@ const BackgroundsTab = () => {
     setEditingItem(bg);
     setForm({
       name: bg.name,
+      description: bg.description,
       themeId: bg.themeId,
       image: bg.image,
       fields: bg.fields.map((f) => ({
@@ -314,6 +323,13 @@ const BackgroundsTab = () => {
       toast.error("Tên background không được để trống.");
       return;
     }
+
+    const description = normalizeRichTextForStorage(form.description);
+    if (isRichTextEmpty(description)) {
+      toast.error("Mô tả background không được để trống.");
+      return;
+    }
+
     if (!form.themeId) {
       toast.error("Vui lòng chọn chủ đề background.");
       return;
@@ -338,6 +354,7 @@ const BackgroundsTab = () => {
       id: editingItem?.id,
       data: {
         name,
+        description,
         themeId: form.themeId,
         image: form.image,
         fields: form.fields.map((f, index) => ({
@@ -440,8 +457,12 @@ const BackgroundsTab = () => {
               {filteredList.map((bg) => (
                 <tr key={bg.id}>
                   <td>
-                    {bg.image ? (
-                      <img src={bg.image} alt={bg.name} className="bgt-thumb" />
+                    {getStaticAssetUrl(bg.image) ? (
+                      <img
+                        src={getStaticAssetUrl(bg.image) ?? undefined}
+                        alt={bg.name}
+                        className="bgt-thumb"
+                      />
                     ) : (
                       <div className="bgt-thumb bgt-thumb--empty"><FiImage size={16} /></div>
                     )}
@@ -519,10 +540,23 @@ const BackgroundsTab = () => {
               </div>
 
               <div className="form-group">
+                <label className="form-label">Mô tả background *</label>
+                <RichTextEditor
+                  value={form.description}
+                  onChange={(nextValue) => updateField("description", nextValue)}
+                  placeholder="Nhập mô tả background cho người dùng..."
+                  minHeight={140}
+                />
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Ảnh nền</label>
                 {form.image ? (
                   <div className="bgt-image-preview">
-                    <img src={form.image} alt="Background" />
+                    <img
+                      src={getStaticAssetUrl(form.image) ?? undefined}
+                      alt="Background"
+                    />
                     <button
                       type="button"
                       className="bgt-image-remove"

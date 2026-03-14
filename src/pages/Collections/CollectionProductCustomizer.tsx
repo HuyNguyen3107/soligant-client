@@ -6,12 +6,12 @@ import {
   FiArrowLeft,
   FiCheck,
   FiGrid,
-  FiShoppingCart,
   FiTag,
 } from "react-icons/fi";
-import { PageBreadcrumb, SEO } from "../../components/common";
+import { PageBreadcrumb, RichTextContent, SEO } from "../../components/common";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
+import { isRichTextEmpty } from "../../lib/rich-text";
 import { getPublicCollectionProducts } from "../../services/collections.service";
 import type { CollectionProduct } from "../../services/collections.service";
 import {
@@ -86,6 +86,8 @@ const CollectionProductCustomizerContent = ({
   product,
   customGroups,
 }: CollectionProductCustomizerContentProps) => {
+  const navigate = useNavigate();
+
   const baseLegoCount = useMemo(() => {
     const rawQuantity = Number(product.legoQuantity ?? 1);
 
@@ -294,9 +296,11 @@ const CollectionProductCustomizerContent = ({
                 {product.categoryName || "Chưa phân loại"}
               </span>
               <h1 className="cpc-product-card__name">{product.name}</h1>
-              <p className="cpc-product-card__desc">
-                {product.description || "Sản phẩm chưa có mô tả."}
-              </p>
+              {isRichTextEmpty(product.description) ? (
+                <p className="cpc-product-card__desc">Sản phẩm chưa có mô tả.</p>
+              ) : (
+                <RichTextContent value={product.description} className="cpc-product-card__desc" />
+              )}
               <ul className="cpc-product-card__meta">
                 <li>Kích thước: {product.size}</li>
                 <li>Số Lego cố định: {baseLegoCount.toLocaleString("vi-VN")}</li>
@@ -316,7 +320,7 @@ const CollectionProductCustomizerContent = ({
             <h2 className="cpc-summary__title">Thông tin tùy chỉnh và giá</h2>
             {product.allowVariableLegoCount ? (
               <p className="cpc-summary__desc">
-                Biến thể này có sẵn <strong>{baseLegoCount}</strong> Lego cố định.
+                Sản phẩm này có sẵn <strong>{baseLegoCount}</strong> Lego cố định.
                 Bạn có thể chọn thêm từ <strong>{additionalLegoMin}</strong> đến <strong>{additionalLegoMax}</strong> Lego,
                 tức tổng số Lego cần tùy chỉnh sẽ từ <strong>{baseLegoCount + additionalLegoMin}</strong> đến <strong>{baseLegoCount + additionalLegoMax}</strong>.
                 Mỗi Lego thêm được tính <strong>{formatAddonPrice(additionalLegoUnitPrice)}</strong>.
@@ -356,7 +360,7 @@ const CollectionProductCustomizerContent = ({
 
             <div className="cpc-summary__pricing">
               <div className="cpc-summary__pricing-row">
-                <span>Giá biến thể</span>
+                <span>Giá sản phẩm</span>
                 <strong>{pricingSummary.baseVariantPrice.toLocaleString("vi-VN")} đ</strong>
               </div>
               {product.allowVariableLegoCount && (
@@ -421,9 +425,12 @@ const CollectionProductCustomizerContent = ({
               })}
             </div>
 
-            <button type="button" className="cpc-summary__cta">
-              <FiShoppingCart size={16} />
-              Thêm vào giỏ
+            <button
+              type="button"
+              className="cpc-summary__cta"
+              onClick={() => navigate(`/bo-suu-tap/${slug}/san-pham/${product.id}/chon-nen`, { state: { legoSelections, pricingSummary } })}
+            >
+              Tiếp theo: Chọn nền
             </button>
 
             <p className="cpc-summary__note">
@@ -434,11 +441,11 @@ const CollectionProductCustomizerContent = ({
 
         <section className="cpc-editor">
           <header className="cpc-editor__header">
-            <p className="cpc-editor__eyebrow">Trang tùy chỉnh biến thể</p>
+            <p className="cpc-editor__eyebrow">Trang tùy chỉnh sản phẩm</p>
             <h2 className="cpc-editor__title">Chọn từng Lego rồi tùy chỉnh chi tiết cho Lego đó</h2>
             <p className="cpc-editor__desc">
-              Số Lego sẽ được tạo từ phần cố định của biến thể và phần Lego chọn thêm,
-              nếu biến thể đó cho phép. Bấm vào từng Lego để mở danh sách tùy chỉnh bên dưới.
+              Số Lego sẽ được tạo từ phần cố định của sản phẩm và phần Lego chọn thêm,
+              nếu sản phẩm đó cho phép. Bấm vào từng Lego để mở danh sách tùy chỉnh bên dưới.
             </p>
           </header>
 
@@ -522,7 +529,11 @@ const CollectionProductCustomizerContent = ({
                     <div>
                       <p className="cpc-group-meta__eyebrow">Nhóm đang chọn</p>
                       <h4>{activeGroup.name}</h4>
-                      <p>{activeGroup.helper}</p>
+                      {isRichTextEmpty(activeGroup.helper) ? (
+                        <p>Nhóm này chưa có mô tả hướng dẫn.</p>
+                      ) : (
+                        <RichTextContent value={activeGroup.helper} />
+                      )}
                     </div>
 
                     <div className="cpc-group-meta__selected">
@@ -570,7 +581,14 @@ const CollectionProductCustomizerContent = ({
                                   </div>
                                 )}
                                 <span className="cpc-option-card__name">{option.name}</span>
-                                <p className="cpc-option-card__desc">{option.description}</p>
+                                {isRichTextEmpty(option.description) ? (
+                                  <p className="cpc-option-card__desc">Chưa có mô tả.</p>
+                                ) : (
+                                  <RichTextContent
+                                    value={option.description}
+                                    className="cpc-option-card__desc"
+                                  />
+                                )}
                               </div>
                               <strong className="cpc-option-card__price">
                                 {formatAddonPrice(option.price)}
@@ -644,7 +662,7 @@ const CollectionProductCustomizer = () => {
   }, [slug, productId, error, navigate]);
 
   const errorMessage = isError
-    ? getErrorMessage(error, "Có lỗi xảy ra khi tải biến thể sản phẩm.")
+    ? getErrorMessage(error, "Có lỗi xảy ra khi tải sản phẩm.")
     : isCustomGroupsError
       ? getErrorMessage(
           customGroupsError,
@@ -683,10 +701,10 @@ const CollectionProductCustomizer = () => {
       <div className="cpc-page">
         <div className="cpc-error container">
           <FiGrid size={44} />
-          <h2>Không tìm thấy biến thể sản phẩm</h2>
-          <p>Biến thể bạn chọn không tồn tại hoặc đã bị ẩn.</p>
+          <h2>Không tìm thấy sản phẩm</h2>
+          <p>Sản phẩm bạn chọn không tồn tại hoặc đã bị ẩn.</p>
           <Link to={`/bo-suu-tap/${slug}`} className="cpc-btn-back">
-            <FiArrowLeft size={16} /> Quay lại danh sách biến thể
+            <FiArrowLeft size={16} /> Quay lại bộ sưu tập
           </Link>
         </div>
       </div>
@@ -697,7 +715,7 @@ const CollectionProductCustomizer = () => {
     <>
       <SEO
         title={`Tùy chỉnh ${product.name}`}
-        description={`Tùy chỉnh biến thể ${product.name} trong bộ sưu tập ${payload.collection.name}.`}
+        description={`Tùy chỉnh ${product.name} trong bộ sưu tập ${payload.collection.name}.`}
         keywords={`${product.name}, tùy chỉnh lego, ${payload.collection.name}, Soligant`}
       />
       <CollectionProductCustomizerContent

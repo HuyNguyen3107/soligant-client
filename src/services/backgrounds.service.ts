@@ -5,6 +5,16 @@ export type BackgroundPayload = BackgroundFormState & {
   fields: (BackgroundFormState["fields"][0] & { sortOrder: number })[];
 };
 
+export type PublicBackground = Pick<
+  Background,
+  "id" | "name" | "description" | "themeId" | "themeName" | "image" | "fields"
+>;
+
+export const getPublicBackgrounds = async (): Promise<PublicBackground[]> => {
+  const { data } = await http.get<PublicBackground[]>("/public/backgrounds");
+  return data;
+};
+
 export const getBackgrounds = async () => {
   const { data } = await http.get<Background[]>("/backgrounds");
   return data;

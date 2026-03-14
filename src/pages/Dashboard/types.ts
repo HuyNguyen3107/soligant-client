@@ -277,6 +277,7 @@ export interface BackgroundField {
 export interface Background {
   id: string;
   name: string;
+  description: string;
   themeId: string;
   themeName: string;
   image: string;
@@ -297,6 +298,7 @@ export interface BackgroundFieldForm {
 
 export interface BackgroundFormState {
   name: string;
+  description: string;
   themeId: string;
   image: string;
   fields: BackgroundFieldForm[];
