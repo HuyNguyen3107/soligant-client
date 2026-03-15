@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isAxiosError } from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import {
@@ -20,9 +21,13 @@ import {
   RolesTab,
   CollectionsTab,
   LegoFramesTab,
+  InventoryTab,
   LegoCategoriesTab,
   LegoCustomizationsTab,
   PromotionsTab,
+  OrdersTab,
+  AddonOptionsTab,
+  CustomerOrderFieldsTab,
   BackgroundThemesTab,
   BackgroundsTab,
 } from "./components";
@@ -30,6 +35,10 @@ import { sidebarSections, TAB_META } from "./config";
 import { useAuthStore } from "../../store/auth.store";
 import { hasPermission } from "../../lib/permissions";
 import { http } from "../../lib/http";
+import {
+  createOrdersSocket,
+  type OrderCreatedSocketPayload,
+} from "../../lib/orders-socket";
 import type { AuthUser } from "../../store/auth.store";
 import "./Dashboard.css";
 
@@ -40,15 +49,41 @@ const tabMap: Record<string, React.ReactNode> = {
   roles: <RolesTab />,
   collections: <CollectionsTab />,
   "lego-frames": <LegoFramesTab />,
+  inventory: <InventoryTab />,
   "lego-categories": <LegoCategoriesTab />,
   "lego-customizations": <LegoCustomizationsTab />,
   promotions: <PromotionsTab />,
+  orders: <OrdersTab />,
+  "addon-options": <AddonOptionsTab />,
+  "customer-order-fields": <CustomerOrderFieldsTab />,
   "background-themes": <BackgroundThemesTab />,
   backgrounds: <BackgroundsTab />, // Added backgrounds tab
 };
 
+interface DashboardOrderNotification {
+  id: string;
+  orderId: string;
+  orderCode: string;
+  itemsCount: number;
+  finalTotal: number;
+  createdAt: string;
+  isRead: boolean;
+}
+
+const formatNotificationMoney = (value: number) =>
+  `${new Intl.NumberFormat("vi-VN").format(Math.max(0, Math.floor(value)))} đ`;
+
+const formatNotificationDateTime = (iso: string) =>
+  new Date(iso).toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Dashboard = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const user = useAuthStore((state) => state.user);
@@ -67,10 +102,15 @@ const Dashboard = () => {
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("db-theme") === "dark",
   );
+  const [orderNotifications, setOrderNotifications] = useState<
+    DashboardOrderNotification[]
+  >([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   // Whether the initial /auth/me refresh has completed
   const [meLoaded, setMeLoaded] = useState(false);
   const meFetched = useRef(false);
+  const notificationPanelRef = useRef<HTMLDivElement>(null);
 
   const visibleSidebarSections = useMemo(
     () =>
@@ -107,6 +147,13 @@ const Dashboard = () => {
     if (user.role === "admin" && !user.customRoleName) return false;
     return (user.permissions ?? []).length === 0;
   }, [user]);
+
+  const canViewOrders = hasPermission(user, "orders.view");
+
+  const unreadNotificationCount = useMemo(
+    () => orderNotifications.filter((notification) => !notification.isRead).length,
+    [orderNotifications],
+  );
 
   // ── Refresh user permissions from server once on mount ─────────────────────
   useEffect(() => {
@@ -177,6 +224,110 @@ const Dashboard = () => {
       navigate(meta.path, { replace: true });
     }
   }, [activeTab, availableTabs, navigate, pathname]);
+
+  useEffect(() => {
+    if (!isNotificationOpen) {
+      return;
+    }
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (
+        notificationPanelRef.current &&
+        !notificationPanelRef.current.contains(event.target as Node)
+      ) {
+        setIsNotificationOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleDocumentClick);
+    return () => document.removeEventListener("mousedown", handleDocumentClick);
+  }, [isNotificationOpen]);
+
+  useEffect(() => {
+    if (!isHydrated || !meLoaded || !accessToken || !user || !canViewOrders) {
+      return;
+    }
+
+    const socket = createOrdersSocket();
+
+    const onOrderCreated = (payload: OrderCreatedSocketPayload) => {
+      setOrderNotifications((prev) => [
+        {
+          id: `${payload.id}-${payload.createdAt}`,
+          orderId: payload.id,
+          orderCode: payload.orderCode,
+          itemsCount: payload.itemsCount,
+          finalTotal: payload.finalTotal,
+          createdAt: payload.createdAt,
+          isRead: false,
+        },
+        ...prev,
+      ].slice(0, 50));
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    };
+
+    socket.on("orders:new", onOrderCreated);
+
+    return () => {
+      socket.off("orders:new", onOrderCreated);
+      socket.disconnect();
+    };
+  }, [
+    accessToken,
+    canViewOrders,
+    isHydrated,
+    meLoaded,
+    queryClient,
+    user,
+  ]);
+
+  useEffect(() => {
+    if (activeTab === "orders") {
+      setOrderNotifications((prev) =>
+        prev.map((notification) =>
+          notification.isRead
+            ? notification
+            : { ...notification, isRead: true },
+        ),
+      );
+    }
+  }, [activeTab]);
+
+  const markAllNotificationsAsRead = () => {
+    setOrderNotifications((prev) =>
+      prev.map((notification) =>
+        notification.isRead
+          ? notification
+          : { ...notification, isRead: true },
+      ),
+    );
+  };
+
+  const toggleNotificationPanel = () => {
+    if (!canViewOrders) {
+      return;
+    }
+
+    setIsNotificationOpen((prev) => {
+      const next = !prev;
+
+      if (next) {
+        markAllNotificationsAsRead();
+      }
+
+      return next;
+    });
+  };
+
+  const openOrdersFromNotification = () => {
+    if (!canViewOrders || !availableTabs.includes("orders")) {
+      return;
+    }
+
+    markAllNotificationsAsRead();
+    setIsNotificationOpen(false);
+    setActiveTab("orders");
+  };
 
   if (loading) {
     return (
@@ -344,13 +495,73 @@ const Dashboard = () => {
             >
               {darkMode ? <FiSun size={17} /> : <FiMoon size={17} />}
             </button>
-            <button
-              className="db-header__icon-btn db-header__icon-btn--notif"
-              title="Thông báo"
-            >
-              <FiBell size={17} />
-              <span className="db-header__notif-dot" />
-            </button>
+            <div className="db-header__notif-wrap" ref={notificationPanelRef}>
+              <button
+                className="db-header__icon-btn db-header__icon-btn--notif"
+                title={canViewOrders ? "Thông báo đơn hàng mới" : "Thông báo"}
+                onClick={toggleNotificationPanel}
+                disabled={!canViewOrders}
+                aria-expanded={isNotificationOpen}
+              >
+                <FiBell size={17} />
+                {canViewOrders && unreadNotificationCount > 0 && (
+                  <span className="db-header__notif-badge">
+                    {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                  </span>
+                )}
+                {canViewOrders && unreadNotificationCount === 0 && (
+                  <span className="db-header__notif-dot" />
+                )}
+              </button>
+
+              {canViewOrders && isNotificationOpen && (
+                <div className="db-header__notif-panel">
+                  <div className="db-header__notif-panel-head">
+                    <strong>Thông báo đơn hàng</strong>
+                    <button
+                      type="button"
+                      onClick={markAllNotificationsAsRead}
+                      disabled={unreadNotificationCount === 0}
+                    >
+                      Đánh dấu đã đọc
+                    </button>
+                  </div>
+
+                  {orderNotifications.length === 0 ? (
+                    <div className="db-header__notif-empty">
+                      Chưa có thông báo đơn hàng mới.
+                    </div>
+                  ) : (
+                    <div className="db-header__notif-list">
+                      {orderNotifications.map((notification) => (
+                        <button
+                          key={notification.id}
+                          type="button"
+                          className={`db-header__notif-item${notification.isRead ? "" : " is-unread"}`}
+                          onClick={openOrdersFromNotification}
+                        >
+                          <div className="db-header__notif-item-row">
+                            <strong>{notification.orderCode}</strong>
+                            <span>{formatNotificationMoney(notification.finalTotal)}</span>
+                          </div>
+                          <p>
+                            {notification.itemsCount} sản phẩm • {formatNotificationDateTime(notification.createdAt)}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className="db-header__notif-open-orders"
+                    onClick={openOrdersFromNotification}
+                  >
+                    Xem trang đơn hàng
+                  </button>
+                </div>
+              )}
+            </div>
             <div
               className="db-header__user-avatar"
               onClick={() => setProfileOpen(true)}

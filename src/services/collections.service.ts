@@ -29,6 +29,7 @@ export interface CollectionProduct {
   categoryId: string;
   categoryName: string;
   name: string;
+  variantSymbol: string;
   description: string;
   image: string;
   size: "20x20" | "18x18" | "15x15";

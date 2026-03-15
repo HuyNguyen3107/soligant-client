@@ -110,6 +110,10 @@ body {
   flex-direction: column;
 }
 
+.app-main {
+  flex: 1;
+}
+
 /* Typography */
 h1,
 h2,

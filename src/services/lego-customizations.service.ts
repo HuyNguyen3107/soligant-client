@@ -14,6 +14,8 @@ export interface LegoCustomizationOptionPayload {
   name: string;
   description: string;
   price: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
   allowImageUpload: boolean;
   image?: string;
   colorCode?: string;
@@ -21,6 +23,7 @@ export interface LegoCustomizationOptionPayload {
 
 export interface PublicLegoCustomizationOption {
   id: string;
+  stockQuantity: number;
   name: string;
   description: string;
   price: number;

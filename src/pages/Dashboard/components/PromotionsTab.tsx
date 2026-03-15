@@ -23,8 +23,10 @@ import {
   updatePromotion,
 } from "../../../services/promotions.service";
 import { getLegoCustomizationGroups } from "../../../services/lego-customizations.service";
+import { getLegoFrameVariants } from "../../../services/lego-frame-variants.service";
 import type {
   LegoCustomizationGroup,
+  LegoFrameVariant,
   PromotionFormState,
   PromotionGiftForm,
   PromotionRow,
@@ -37,13 +39,18 @@ import {
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const CONDITION_LABELS: Record<string, string> = {
   lego_quantity: "Theo số lượng Lego",
-  set_quantity: "Theo số lượng Set",
+  set_quantity: "Theo số lượng sản phẩm",
 };
 
 const REWARD_LABELS: Record<string, string> = {
   gift: "Tặng quà",
   discount_fixed: "Giảm giá cố định",
   discount_percent: "Giảm giá %",
+};
+
+const GIFT_MODE_LABELS: Record<"fixed" | "multiply_by_condition", string> = {
+  fixed: "Số lượng quà cố định",
+  multiply_by_condition: "Nhân theo điều kiện",
 };
 
 const EMPTY_GIFT: PromotionGiftForm = { groupId: "", optionId: "", quantity: "1" };
@@ -53,7 +60,9 @@ const INITIAL_FORM: PromotionFormState = {
   description: "",
   conditionType: "lego_quantity",
   conditionMinQuantity: "3",
+  applicableProductIds: [],
   rewardType: "gift",
+  rewardGiftQuantityMode: "fixed",
   rewardGifts: [{ ...EMPTY_GIFT }],
   rewardDiscountValue: "0",
   startDate: "",
@@ -109,6 +118,44 @@ const PromotionsTab = () => {
     queryFn: getLegoCustomizationGroups,
   });
 
+  const { data: legoFrameVariants = [] } = useQuery({
+    queryKey: ["lego-frame-variants"],
+    queryFn: getLegoFrameVariants,
+  });
+
+  const variantLookup = useMemo(
+    () => new Map(legoFrameVariants.map((variant) => [variant.id, variant])),
+    [legoFrameVariants],
+  );
+
+  const variantsByCollection = useMemo(() => {
+    const groups = new Map<string, { collectionName: string; items: LegoFrameVariant[] }>();
+
+    legoFrameVariants.forEach((variant) => {
+      const key = variant.collectionId || variant.collectionName || "default";
+      const current = groups.get(key);
+
+      if (current) {
+        current.items.push(variant);
+        return;
+      }
+
+      groups.set(key, {
+        collectionName: variant.collectionName || "Chưa có bộ sưu tập",
+        items: [variant],
+      });
+    });
+
+    return Array.from(groups.values()).map((group) => ({
+      ...group,
+      items: [...group.items].sort((left, right) => {
+        const leftLabel = `${left.categoryName} ${left.name}`.trim();
+        const rightLabel = `${right.categoryName} ${right.name}`.trim();
+        return leftLabel.localeCompare(rightLabel, "vi");
+      }),
+    }));
+  }, [legoFrameVariants]);
+
   // ── Mutations ───────────────────────────────────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: async (payload: {
@@ -151,9 +198,17 @@ const PromotionsTab = () => {
     return promotions.filter(
       (p) =>
         p.name.toLowerCase().includes(kw) ||
-        toRichTextPlainText(p.description).toLowerCase().includes(kw),
+        toRichTextPlainText(p.description).toLowerCase().includes(kw) ||
+        (p.applicableProductIds ?? []).some((productId) => {
+          const variant = variantLookup.get(productId);
+          if (!variant) return false;
+
+          return `${variant.collectionName} ${variant.categoryName} ${variant.name}`
+            .toLowerCase()
+            .includes(kw);
+        }),
     );
-  }, [promotions, search]);
+  }, [promotions, search, variantLookup]);
 
   // ── Modal helpers ───────────────────────────────────────────────────────────
   const closeModal = () => {
@@ -183,7 +238,9 @@ const PromotionsTab = () => {
       description: promo.description,
       conditionType: promo.conditionType,
       conditionMinQuantity: String(promo.conditionMinQuantity),
+      applicableProductIds: promo.applicableProductIds ?? [],
       rewardType: promo.rewardType,
+      rewardGiftQuantityMode: promo.rewardGiftQuantityMode ?? "fixed",
       rewardGifts:
         promo.rewardGifts.length > 0
           ? promo.rewardGifts.map((g) => ({
@@ -234,6 +291,19 @@ const PromotionsTab = () => {
       ...prev,
       rewardGifts: prev.rewardGifts.filter((_, i) => i !== index),
     }));
+  };
+
+  const toggleApplicableProduct = (productId: string) => {
+    setForm((prev) => {
+      const exists = prev.applicableProductIds.includes(productId);
+
+      return {
+        ...prev,
+        applicableProductIds: exists
+          ? prev.applicableProductIds.filter((id) => id !== productId)
+          : [...prev.applicableProductIds, productId],
+      };
+    });
   };
 
   // ── Get options for a specific group ────────────────────────────────────────
@@ -303,7 +373,10 @@ const PromotionsTab = () => {
         description: normalizeRichTextForStorage(form.description),
         conditionType: form.conditionType,
         conditionMinQuantity,
+        applicableProductIds: form.applicableProductIds,
         rewardType: form.rewardType,
+        rewardGiftQuantityMode:
+          form.rewardType === "gift" ? form.rewardGiftQuantityMode : undefined,
         rewardGifts:
           form.rewardType === "gift"
             ? form.rewardGifts
@@ -337,9 +410,21 @@ const PromotionsTab = () => {
   // ── Render helpers ──────────────────────────────────────────────────────────
   const renderRewardSummary = (promo: PromotionRow) => {
     if (promo.rewardType === "gift") {
-      return promo.rewardGifts
+      const giftSummary = promo.rewardGifts
         .map((g) => `${g.optionName || "?"} x${g.quantity}`)
         .join(", ");
+      const safeGiftSummary = giftSummary || "Quà tặng theo cấu hình";
+
+      if (promo.rewardGiftQuantityMode === "multiply_by_condition") {
+        const multiplierLabel =
+          promo.conditionType === "lego_quantity"
+            ? "nhân theo số Lego đủ điều kiện"
+            : "nhân theo số set đủ điều kiện";
+
+        return `${safeGiftSummary} (${multiplierLabel})`;
+      }
+
+      return safeGiftSummary;
     }
     if (promo.rewardType === "discount_fixed") {
       return `Giảm ${formatMoney(promo.rewardDiscountValue)}`;
@@ -350,6 +435,28 @@ const PromotionsTab = () => {
   const renderDateRange = (promo: PromotionRow) => {
     if (!promo.startDate && !promo.endDate) return "Không giới hạn";
     return `${formatDate(promo.startDate)} – ${formatDate(promo.endDate)}`;
+  };
+
+  const renderApplicableProducts = (promo: PromotionRow) => {
+    const applicableProductIds = promo.applicableProductIds ?? [];
+
+    if (applicableProductIds.length === 0) {
+      return "Tất cả sản phẩm";
+    }
+
+    const productNames = applicableProductIds
+      .map((productId) => variantLookup.get(productId)?.name)
+      .filter((name): name is string => Boolean(name));
+
+    if (productNames.length === 0) {
+      return `${applicableProductIds.length} sản phẩm đã chọn`;
+    }
+
+    if (productNames.length <= 2) {
+      return productNames.join(", ");
+    }
+
+    return `${productNames.slice(0, 2).join(", ")} +${productNames.length - 2} sản phẩm`;
   };
 
   // ── JSX ─────────────────────────────────────────────────────────────────────
@@ -431,6 +538,7 @@ const PromotionsTab = () => {
               <tr>
                 <th>Tên ưu đãi</th>
                 <th>Điều kiện</th>
+                <th>Áp dụng cho</th>
                 <th>Phần thưởng</th>
                 <th>Thời hạn</th>
                 <th>Trạng thái</th>
@@ -459,6 +567,14 @@ const PromotionsTab = () => {
                       {CONDITION_LABELS[promo.conditionType]} ≥{" "}
                       {promo.conditionMinQuantity}
                     </span>
+                  </td>
+                  <td>
+                    <p
+                      className="text-muted"
+                      style={{ fontSize: "12px", margin: 0, lineHeight: 1.5 }}
+                    >
+                      {renderApplicableProducts(promo)}
+                    </p>
                   </td>
                   <td>
                     <span className="lc-name-chip">
@@ -585,7 +701,7 @@ const PromotionsTab = () => {
                       checked={form.conditionType === "set_quantity"}
                       onChange={() => updateField("conditionType", "set_quantity")}
                     />
-                    <span>Theo số lượng Set (biến thể)</span>
+                    <span>Theo số lượng sản phẩm</span>
                   </label>
                 </div>
               </div>
@@ -605,6 +721,101 @@ const PromotionsTab = () => {
                   }
                   placeholder="VD: 3"
                 />
+              </div>
+
+              <div className="form-group">
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  <label className="form-label" style={{ marginBottom: 0 }}>
+                    Sản phẩm áp dụng
+                  </label>
+                  {form.applicableProductIds.length > 0 && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => updateField("applicableProductIds", [])}
+                      style={{ padding: "6px 10px", fontSize: "12px" }}
+                    >
+                      Mặc định tất cả
+                    </button>
+                  )}
+                </div>
+                <p className="text-muted" style={{ margin: "0 0 10px", fontSize: "12px" }}>
+                  Không chọn sản phẩm nào thì ưu đãi sẽ tự áp dụng cho tất cả sản phẩm.
+                </p>
+
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "12px",
+                    padding: "12px",
+                    background: "#fafbfd",
+                    maxHeight: "260px",
+                    overflowY: "auto",
+                    display: "grid",
+                    gap: "14px",
+                  }}
+                >
+                  {variantsByCollection.length === 0 ? (
+                    <p className="text-muted" style={{ margin: 0, fontSize: "13px" }}>
+                      Chưa có sản phẩm nào để chọn phạm vi áp dụng.
+                    </p>
+                  ) : (
+                    variantsByCollection.map((group) => (
+                      <div key={group.collectionName} style={{ display: "grid", gap: "8px" }}>
+                        <strong style={{ fontSize: "13px", color: "#1f2937" }}>
+                          {group.collectionName}
+                        </strong>
+                        <div style={{ display: "grid", gap: "8px" }}>
+                          {group.items.map((variant) => {
+                            const checked = form.applicableProductIds.includes(variant.id);
+
+                            return (
+                              <label
+                                key={variant.id}
+                                className="promo-radio"
+                                style={{
+                                  justifyContent: "space-between",
+                                  alignItems: "flex-start",
+                                  border: checked ? "1px solid #d7b0b1" : "1px solid #ebeef5",
+                                  borderRadius: "10px",
+                                  padding: "10px 12px",
+                                  background: checked ? "#fff7f7" : "#ffffff",
+                                }}
+                              >
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleApplicableProduct(variant.id)}
+                                  />
+                                  <span>
+                                    <strong style={{ display: "block", fontSize: "13px" }}>
+                                      {variant.name}
+                                    </strong>
+                                    <small style={{ color: "#6b7280" }}>
+                                      {variant.categoryName || "Chưa phân loại"}
+                                    </small>
+                                  </span>
+                                </span>
+                                <small style={{ color: "#6b7280", whiteSpace: "nowrap" }}>
+                                  {formatMoney(variant.price)}
+                                </small>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
 
               {/* Reward Type */}
@@ -649,6 +860,42 @@ const PromotionsTab = () => {
               {/* ── Gift selection ── */}
               {form.rewardType === "gift" && (
                 <div className="form-group">
+                  <label className="form-label">Chế độ số lượng quà *</label>
+                  <div className="promo-radio-group" style={{ marginBottom: "10px" }}>
+                    <label className="promo-radio">
+                      <input
+                        type="radio"
+                        name="rewardGiftQuantityMode"
+                        value="fixed"
+                        checked={form.rewardGiftQuantityMode === "fixed"}
+                        onChange={() => updateField("rewardGiftQuantityMode", "fixed")}
+                      />
+                      <span>{GIFT_MODE_LABELS.fixed}</span>
+                    </label>
+                    <label className="promo-radio">
+                      <input
+                        type="radio"
+                        name="rewardGiftQuantityMode"
+                        value="multiply_by_condition"
+                        checked={form.rewardGiftQuantityMode === "multiply_by_condition"}
+                        onChange={() =>
+                          updateField("rewardGiftQuantityMode", "multiply_by_condition")
+                        }
+                      />
+                      <span>
+                        {form.conditionType === "lego_quantity"
+                          ? "Nhân theo số Lego của sản phẩm đạt điều kiện"
+                          : "Nhân theo số set (sản phẩm) đạt điều kiện"}
+                      </span>
+                    </label>
+                  </div>
+
+                  <p className="text-muted" style={{ margin: "0 0 10px", fontSize: "12px" }}>
+                    {form.rewardGiftQuantityMode === "fixed"
+                      ? "Mỗi quà dùng đúng số lượng đã nhập bên dưới."
+                      : "Số lượng quà thực nhận = số lượng nhập bên dưới x số lượng điều kiện đạt được."}
+                  </p>
+
                   <label className="form-label">Quà tặng *</label>
                   {form.rewardGifts.map((gift, index) => (
                     <div key={index} className="promo-gift-row">

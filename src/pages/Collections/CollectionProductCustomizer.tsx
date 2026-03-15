@@ -9,6 +9,10 @@ import {
   FiTag,
 } from "react-icons/fi";
 import { PageBreadcrumb, RichTextContent, SEO } from "../../components/common";
+import type {
+  CustomizerNavigationState,
+  LegoSelections,
+} from "../../lib/custom-cart";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
 import { isRichTextEmpty } from "../../lib/rich-text";
@@ -19,8 +23,6 @@ import {
   type PublicLegoCustomizationGroup,
 } from "../../services/lego-customizations.service";
 import "./CollectionProductCustomizer.css";
-
-type LegoSelections = Record<string, Record<string, string>>;
 
 const createEmptySelections = (slotCount: number): LegoSelections => {
   const nextSelections: LegoSelections = {};
@@ -230,6 +232,13 @@ const CollectionProductCustomizerContent = ({
   ]);
 
   const handleSelectOption = (groupId: string, optionId: string) => {
+    const group = customGroups.find((candidate) => candidate.id === groupId);
+    const option = group?.options.find((candidate) => candidate.id === optionId);
+
+    if (!option || Number(option.stockQuantity ?? 0) <= 0) {
+      return;
+    }
+
     setLegoSelections((prev) => ({
       ...prev,
       [String(activeLegoIndex)]: {
@@ -428,7 +437,18 @@ const CollectionProductCustomizerContent = ({
             <button
               type="button"
               className="cpc-summary__cta"
-              onClick={() => navigate(`/bo-suu-tap/${slug}/san-pham/${product.id}/chon-nen`, { state: { legoSelections, pricingSummary } })}
+              onClick={() => {
+                const navigationState: CustomizerNavigationState = {
+                  legoSelections,
+                  pricingSummary,
+                  selectedAdditionalLegoCount,
+                  totalLegoCount,
+                };
+
+                navigate(`/bo-suu-tap/${slug}/san-pham/${product.id}/chon-nen`, {
+                  state: navigationState,
+                });
+              }}
             >
               Tiếp theo: Chọn nền
             </button>
@@ -551,6 +571,7 @@ const CollectionProductCustomizerContent = ({
                     <div className="cpc-option-grid">
                       {activeGroup.options.map((option) => {
                         const isSelected = activeOptionId === option.id;
+                        const isOutOfStock = Number(option.stockQuantity ?? 0) <= 0;
                         const optionImage = getStaticAssetUrl(option.image);
                         const colorCode = normalizeColorCode(option.colorCode);
 
@@ -559,6 +580,7 @@ const CollectionProductCustomizerContent = ({
                             key={option.id}
                             type="button"
                             className={`cpc-option-card${isSelected ? " is-active" : ""}`}
+                            disabled={isOutOfStock}
                             onClick={() => handleSelectOption(activeGroup.id, option.id)}
                           >
                             <div className="cpc-option-card__top">
@@ -581,6 +603,9 @@ const CollectionProductCustomizerContent = ({
                                   </div>
                                 )}
                                 <span className="cpc-option-card__name">{option.name}</span>
+                                <p className="cpc-option-card__desc">
+                                  Tồn kho: {Math.max(0, Number(option.stockQuantity ?? 0)).toLocaleString("vi-VN")}
+                                </p>
                                 {isRichTextEmpty(option.description) ? (
                                   <p className="cpc-option-card__desc">Chưa có mô tả.</p>
                                 ) : (
@@ -596,7 +621,11 @@ const CollectionProductCustomizerContent = ({
                             </div>
 
                             <span className="cpc-option-card__state">
-                              {isSelected ? "Đã chọn" : "Bấm để áp dụng"}
+                              {isOutOfStock
+                                ? "Hết hàng"
+                                : isSelected
+                                  ? "Đã chọn"
+                                  : "Bấm để áp dụng"}
                             </span>
                           </button>
                         );

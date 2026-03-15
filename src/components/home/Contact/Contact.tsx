@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { FiMapPin, FiPhone, FiMail } from "react-icons/fi";
 import { FaFacebookF, FaInstagram } from "react-icons/fa";
 import { SiZalo } from "react-icons/si";
+import { RichTextEditor } from "../../common";
 import "./Contact.css";
 
 const Contact = () => {
+  const [message, setMessage] = useState("");
+
   return (
     <section id="contact" className="contact section">
       <div className="container">
@@ -147,14 +151,14 @@ const Contact = () => {
               <label htmlFor="message" className="contact__label">
                 Nội dung *
               </label>
-              <textarea
-                id="message"
-                name="message"
-                className="contact__textarea"
-                placeholder="Nhập nội dung tin nhắn..."
-                rows={5}
-                required
-              ></textarea>
+              <div className="contact__rich-editor">
+                <RichTextEditor
+                  value={message}
+                  onChange={setMessage}
+                  placeholder="Nhập nội dung tin nhắn..."
+                  minHeight={130}
+                />
+              </div>
             </div>
 
             <button type="submit" className="btn btn-primary contact__submit">

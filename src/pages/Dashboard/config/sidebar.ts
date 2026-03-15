@@ -1,4 +1,4 @@
-import { FiHome, FiGrid, FiUsers, FiKey, FiLayers, FiBox, FiTag, FiSliders, FiGift, FiImage } from "react-icons/fi";
+import { FiHome, FiGrid, FiUsers, FiKey, FiLayers, FiBox, FiTag, FiSliders, FiGift, FiImage, FiShoppingBag, FiClipboard, FiFileText, FiArchive } from "react-icons/fi";
 import type { SidebarSection } from "../types";
 
 export const sidebarSections: SidebarSection[] = [
@@ -30,6 +30,12 @@ export const sidebarSections: SidebarSection[] = [
         permission: "lego-frames.view",
       },
       {
+        id: "inventory",
+        label: "Quản lý kho",
+        icon: FiArchive,
+        permission: "inventory.view",
+      },
+      {
         id: "lego-categories",
         label: "Danh mục sản phẩm",
         icon: FiTag,
@@ -46,6 +52,24 @@ export const sidebarSections: SidebarSection[] = [
         label: "Ưu đãi",
         icon: FiGift,
         permission: "promotions.view",
+      },
+      {
+        id: "orders",
+        label: "Đơn hàng",
+        icon: FiClipboard,
+        permission: "orders.view",
+      },
+      {
+        id: "addon-options",
+        label: "Option mua thêm",
+        icon: FiShoppingBag,
+        permission: "addon-options.view",
+      },
+      {
+        id: "customer-order-fields",
+        label: "Thông tin khách hàng",
+        icon: FiFileText,
+        permission: "customer-order-fields.view",
       },
       {
         id: "background-themes",

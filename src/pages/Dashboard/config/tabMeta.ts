@@ -37,6 +37,13 @@ export const TAB_META: Record<string, TabMeta> = {
       "khung tranh lego, biến thể sản phẩm, kích thước 20x20, 18x18, 15x15, Soligant",
     path: "/dashboard/lego-frames",
   },
+  inventory: {
+    title: "Quản lý kho",
+    description:
+      "Theo dõi tồn kho theo từng lựa chọn tùy chỉnh, cập nhật nhập xuất kho và cảnh báo tồn thấp.",
+    keywords: "quản lý kho, tồn kho, inventory, lựa chọn tùy chỉnh, nhập kho, xuất kho, Soligant",
+    path: "/dashboard/inventory",
+  },
   "lego-categories": {
     title: "Danh mục sản phẩm",
     description:
@@ -57,6 +64,28 @@ export const TAB_META: Record<string, TabMeta> = {
       "Quản lý các chương trình ưu đãi cho khách hàng Soligant - Tạo, chỉnh sửa, xóa ưu đãi theo số lượng Lego hoặc Set.",
     keywords: "ưu đãi, khuyến mãi, giảm giá, tặng quà, promotions, Soligant",
     path: "/dashboard/promotions",
+  },
+  orders: {
+    title: "Quản lý đơn hàng",
+    description:
+      "Theo dõi các đơn khách đặt từ website Soligant, cập nhật trạng thái xử lý và quản lý mã đơn hàng.",
+    keywords: "đơn hàng, order management, mã đơn, Soligant",
+    path: "/dashboard/orders",
+  },
+  "addon-options": {
+    title: "Option mua thêm",
+    description:
+      "Quản lý các option mua thêm cho biến thể sản phẩm, bao gồm loại cơ bản và ấn phẩm tùy chỉnh.",
+    keywords: "option mua thêm, upsell, addon options, ấn phẩm tùy chỉnh, Soligant",
+    path: "/dashboard/addon-options",
+  },
+  "customer-order-fields": {
+    title: "Thông tin khách hàng",
+    description:
+      "Cấu hình biểu mẫu thông tin khách hàng để thu thập dữ liệu trước bước chốt đơn.",
+    keywords:
+      "thông tin khách hàng, biểu mẫu đặt hàng, customer form, dashboard, Soligant",
+    path: "/dashboard/customer-order-fields",
   },
   "background-themes": {
     title: "Chủ đề Background",

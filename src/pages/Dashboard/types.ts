@@ -151,6 +151,7 @@ export interface LegoFrameVariant {
   categoryId: string;
   categoryName?: string;
   name: string;
+  variantSymbol: string;
   description: string;
   image: string;
   size: LegoFrameSize;
@@ -160,6 +161,8 @@ export interface LegoFrameVariant {
   legoCountMax: number;
   additionalLegoPrice: number;
   price: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
   isActive: boolean;
   updatedAt: string;
 }
@@ -168,6 +171,7 @@ export interface LegoFrameVariantForm {
   collectionId: string;
   categoryId: string;
   name: string;
+  variantSymbol: string;
   description: string;
   image: string;
   size: LegoFrameSize;
@@ -177,7 +181,25 @@ export interface LegoFrameVariantForm {
   legoCountMax: string;
   additionalLegoPrice: string;
   price: string;
+  stockQuantity: string;
+  lowStockThreshold: string;
   isActive: boolean;
+}
+
+// ─── INVENTORY TAB TYPES ───────────────────────────────────────────────────
+export type InventoryStockStatus = "in_stock" | "low_stock" | "out_of_stock";
+
+export interface InventoryItemRow {
+  id: string;
+  groupId: string;
+  groupName: string;
+  optionName: string;
+  optionVisualType: "image" | "color";
+  stockQuantity: number;
+  lowStockThreshold: number;
+  stockStatus: InventoryStockStatus;
+  isActive: boolean;
+  updatedAt: string;
 }
 
 export interface LegoCustomizationOption {
@@ -186,6 +208,8 @@ export interface LegoCustomizationOption {
   name: string;
   description: string;
   price: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
   allowImageUpload: boolean;
   image: string;
   colorCode: string;
@@ -213,6 +237,8 @@ export interface LegoCustomizationOptionForm {
   name: string;
   description: string;
   price: string;
+  stockQuantity: string;
+  lowStockThreshold: string;
   allowImageUpload: boolean;
   image: string;
   colorCode: string;
@@ -304,6 +330,51 @@ export interface BackgroundFormState {
   fields: BackgroundFieldForm[];
   isActive: boolean;
 }
+
+// ─── CUSTOMER ORDER FIELDS TAB TYPES ────────────────────────────────────────
+export type CustomerOrderFieldType = BackgroundFieldType;
+export type CustomerOrderFieldSelectType = "dropdown" | "radio" | "checkbox";
+
+export interface CustomerOrderFieldOption {
+  label: string;
+  value: string;
+}
+
+export interface CustomerOrderField {
+  label: string;
+  fieldType: CustomerOrderFieldType;
+  placeholder: string;
+  required: boolean;
+  options: CustomerOrderFieldOption[];
+  sortOrder: number;
+  selectType?: CustomerOrderFieldSelectType;
+}
+
+export interface CustomerOrderFieldForm {
+  label: string;
+  fieldType: CustomerOrderFieldType;
+  placeholder: string;
+  required: boolean;
+  options: CustomerOrderFieldOption[];
+  selectType?: CustomerOrderFieldSelectType;
+}
+
+export interface CustomerOrderFieldsConfig {
+  id: string;
+  key: string;
+  title: string;
+  description: string;
+  fields: CustomerOrderField[];
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface CustomerOrderFieldsFormState {
+  title: string;
+  description: string;
+  fields: CustomerOrderFieldForm[];
+  isActive: boolean;
+}
 // ─── PROMOTIONS TAB TYPES ─────────────────────────────────────────────────────
 export interface PromotionGift {
   groupId: string;
@@ -313,13 +384,17 @@ export interface PromotionGift {
   optionName: string;
 }
 
+export type PromotionGiftQuantityMode = "fixed" | "multiply_by_condition";
+
 export interface PromotionRow {
   id: string;
   name: string;
   description: string;
   conditionType: "lego_quantity" | "set_quantity";
   conditionMinQuantity: number;
+  applicableProductIds: string[];
   rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardGiftQuantityMode: PromotionGiftQuantityMode;
   rewardGifts: PromotionGift[];
   rewardDiscountValue: number;
   startDate: string | null;
@@ -340,11 +415,120 @@ export interface PromotionFormState {
   description: string;
   conditionType: "lego_quantity" | "set_quantity";
   conditionMinQuantity: string;
+  applicableProductIds: string[];
   rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardGiftQuantityMode: PromotionGiftQuantityMode;
   rewardGifts: PromotionGiftForm[];
   rewardDiscountValue: string;
   startDate: string;
   endDate: string;
   isActive: boolean;
+}
+
+// ─── ADDON OPTIONS TAB TYPES ─────────────────────────────────────────────────
+export type AddonOptionType = "basic" | "customizable";
+export type AddonOptionFieldType = "image" | "link" | "text";
+
+export interface AddonOptionField {
+  label: string;
+  fieldType: AddonOptionFieldType;
+  placeholder: string;
+  required: boolean;
+  sortOrder: number;
+}
+
+export interface AddonOptionRow {
+  id: string;
+  name: string;
+  description: string;
+  optionType: AddonOptionType;
+  price: number;
+  applicableProductIds: string[];
+  fields: AddonOptionField[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AddonOptionFieldForm {
+  label: string;
+  fieldType: AddonOptionFieldType;
+  placeholder: string;
+  required: boolean;
+}
+
+export interface AddonOptionFormState {
+  name: string;
+  description: string;
+  optionType: AddonOptionType;
+  price: string;
+  applicableProductIds: string[];
+  fields: AddonOptionFieldForm[];
+  isActive: boolean;
+}
+
+// ─── ORDERS TAB TYPES ───────────────────────────────────────────────────────
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "processing"
+  | "completed"
+  | "cancelled";
+
+export interface OrderPricingSummary {
+  subtotal: number;
+  productDiscountTotal: number;
+  orderDiscountTotal: number;
+  shippingName: string;
+  shippingFee: number;
+  finalTotal: number;
+}
+
+export interface OrderCustomerInfoEntry {
+  key: string;
+  label: string;
+  fieldType: CustomerOrderFieldType;
+  placeholder: string;
+  required: boolean;
+  selectType?: CustomerOrderFieldSelectType;
+  options: CustomerOrderFieldOption[];
+  sortOrder: number;
+  value: string | string[];
+}
+
+export interface OrderItemRow {
+  cartItemId: string;
+  collectionSlug: string;
+  collectionName: string;
+  productId: string;
+  productName: string;
+  productImage: string;
+  categoryName: string;
+  productSize: string;
+  variantSymbol: string;
+  backgroundName: string;
+  totalLegoCount: number;
+  selectedAdditionalLegoCount: number;
+  customizationSubtotal: number;
+  additionalOptionsPrice: number;
+  subtotal: number;
+  additionalOptionNames: string[];
+  additionalOptionCount: number;
+  payload: Record<string, unknown>;
+}
+
+export interface OrderRow {
+  id: string;
+  orderCode: string;
+  dateKey: string;
+  variantSymbol: string;
+  status: OrderStatus;
+  itemsCount: number;
+  pricingSummary: OrderPricingSummary;
+  items: OrderItemRow[];
+  customerInfoEntries: OrderCustomerInfoEntry[];
+  note: string;
+  createdAt: string;
+  updatedAt: string;
 }
 

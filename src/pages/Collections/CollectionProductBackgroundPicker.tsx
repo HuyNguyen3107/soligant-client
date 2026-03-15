@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { FiArrowLeft, FiGrid, FiImage, FiTag } from "react-icons/fi";
 import {
   PageBreadcrumb,
@@ -8,6 +8,12 @@ import {
   RichTextEditor,
   SEO,
 } from "../../components/common";
+import {
+  type AdditionalOptionsNavigationState,
+  buildBackgroundFieldKey,
+  type BackgroundFieldValue,
+  type CustomizerNavigationState,
+} from "../../lib/custom-cart";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
 import {
@@ -17,10 +23,13 @@ import { getPublicCollectionProducts } from "../../services/collections.service"
 import { getPublicBackgrounds, type PublicBackground } from "../../services/backgrounds.service";
 import "./CollectionProductBackgroundPicker.css";
 
-type BackgroundFieldValue = string | string[];
-
-const buildFieldKey = (index: number, fieldLabel: string, fieldType: string) =>
-  `${index}-${fieldType}-${fieldLabel}`;
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Không thể đọc file ảnh."));
+    reader.readAsDataURL(file);
+  });
 
 interface BackgroundCardProps {
   background: PublicBackground;
@@ -63,6 +72,8 @@ const BackgroundCard = ({ background, isSelected, onSelect }: BackgroundCardProp
 const CollectionProductBackgroundPicker = () => {
   const { slug, productId } = useParams<{ slug: string; productId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
+  const customizerState = location.state as CustomizerNavigationState | null;
 
   const {
     data: payload,
@@ -112,8 +123,7 @@ const CollectionProductBackgroundPicker = () => {
   const [backgroundFieldValues, setBackgroundFieldValues] = useState<
     Record<string, BackgroundFieldValue>
   >({});
-  const [fieldImagePreviews, setFieldImagePreviews] = useState<Record<string, string>>({});
-  const fieldImagePreviewsRef = useRef<Record<string, string>>({});
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const selectedBackground = backgrounds.find((bg) => bg.id === selectedBackgroundId);
   const selectedBackgroundFields = useMemo(
@@ -128,17 +138,6 @@ const CollectionProductBackgroundPicker = () => {
     : null;
 
   useEffect(() => {
-    fieldImagePreviewsRef.current = fieldImagePreviews;
-  }, [fieldImagePreviews]);
-
-  useEffect(
-    () => () => {
-      Object.values(fieldImagePreviewsRef.current).forEach((url) => URL.revokeObjectURL(url));
-    },
-    [],
-  );
-
-  useEffect(() => {
     if (!selectedBackgroundId && backgrounds.length > 0) {
       setSelectedBackgroundId(backgrounds[0].id);
     }
@@ -147,20 +146,15 @@ const CollectionProductBackgroundPicker = () => {
   useEffect(() => {
     if (!selectedBackground) {
       setBackgroundFieldValues({});
+      setSubmissionError(null);
       return;
     }
-
-    const activeKeys = new Set(
-      selectedBackgroundFields.map((field, index) =>
-        buildFieldKey(index, field.label, field.fieldType),
-      ),
-    );
 
     setBackgroundFieldValues((prev) => {
       const next: Record<string, BackgroundFieldValue> = {};
 
       selectedBackgroundFields.forEach((field, index) => {
-        const key = buildFieldKey(index, field.label, field.fieldType);
+        const key = buildBackgroundFieldKey(index, field.label, field.fieldType);
 
         if (prev[key] !== undefined) {
           next[key] = prev[key];
@@ -175,23 +169,10 @@ const CollectionProductBackgroundPicker = () => {
 
       return next;
     });
-
-    setFieldImagePreviews((prev) => {
-      const next: Record<string, string> = {};
-
-      Object.entries(prev).forEach(([key, url]) => {
-        if (activeKeys.has(key)) {
-          next[key] = url;
-        } else {
-          URL.revokeObjectURL(url);
-        }
-      });
-
-      return next;
-    });
   }, [selectedBackground, selectedBackgroundFields]);
 
   const updateBackgroundFieldValue = (key: string, value: BackgroundFieldValue) => {
+    setSubmissionError(null);
     setBackgroundFieldValues((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -214,25 +195,25 @@ const CollectionProductBackgroundPicker = () => {
     });
   };
 
-  const onFieldImageSelect = (fieldKey: string, file?: File | null) => {
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
+  const onFieldImageSelect = async (fieldKey: string, file?: File | null) => {
+    if (!file) {
+      updateBackgroundFieldValue(fieldKey, "");
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
+    if (!file.type.startsWith("image/")) {
+      setSubmissionError("Chỉ chấp nhận file ảnh cho trường tải ảnh nền.");
+      return;
+    }
 
-    setFieldImagePreviews((prev) => {
-      if (prev[fieldKey]) {
-        URL.revokeObjectURL(prev[fieldKey]);
-      }
-
-      return {
-        ...prev,
-        [fieldKey]: previewUrl,
-      };
-    });
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      updateBackgroundFieldValue(fieldKey, dataUrl);
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error ? error.message : "Không thể đọc file ảnh.",
+      );
+    }
   };
 
   const resolveOptionLabels = (fieldKey: string, field: PublicBackground["fields"][number]) => {
@@ -245,6 +226,90 @@ const CollectionProductBackgroundPicker = () => {
     return field.options
       .filter((option) => selectedSet.has(option.value))
       .map((option) => option.label);
+  };
+
+  const validateSelection = () => {
+    if (!customizerState) {
+      return "Vui lòng quay lại bước tùy chỉnh sản phẩm trước khi thêm vào giỏ hoặc đặt hàng ngay.";
+    }
+
+    if (!selectedBackground) {
+      return "Vui lòng chọn một nền trước khi tiếp tục.";
+    }
+
+    for (const [index, field] of selectedBackgroundFields.entries()) {
+      if (!field.required) {
+        continue;
+      }
+
+      const fieldKey = buildBackgroundFieldKey(index, field.label, field.fieldType);
+      const value = backgroundFieldValues[fieldKey];
+
+      if (field.fieldType === "select" && field.selectType === "checkbox") {
+        if (!Array.isArray(value) || value.length === 0) {
+          return `Vui lòng chọn thông tin cho trường "${field.label}".`;
+        }
+
+        continue;
+      }
+
+      if (field.fieldType === "long_text") {
+        if (typeof value !== "string" || isRichTextEmpty(value)) {
+          return `Vui lòng nhập nội dung cho trường "${field.label}".`;
+        }
+
+        continue;
+      }
+
+      if (field.fieldType === "image_upload") {
+        if (typeof value !== "string" || !value.trim()) {
+          return `Vui lòng tải ảnh cho trường "${field.label}".`;
+        }
+
+        continue;
+      }
+
+      if (typeof value !== "string" || !value.trim()) {
+        return `Vui lòng nhập thông tin cho trường "${field.label}".`;
+      }
+    }
+
+    return null;
+  };
+
+  const handleContinueToAddons = () => {
+    if (!slug || !selectedBackground || !customizerState || !product) {
+      setSubmissionError(
+        "Không đủ dữ liệu tùy chỉnh để tiếp tục. Vui lòng quay lại bước trước và thử lại.",
+      );
+      return;
+    }
+
+    const validationMessage = validateSelection();
+    if (validationMessage) {
+      setSubmissionError(validationMessage);
+      return;
+    }
+
+    const navigationState: AdditionalOptionsNavigationState = {
+      legoSelections: customizerState.legoSelections,
+      totalLegoCount: customizerState.totalLegoCount,
+      selectedAdditionalLegoCount: customizerState.selectedAdditionalLegoCount,
+      pricingSummary: customizerState.pricingSummary,
+      selectedBackground,
+      backgroundFieldValues: Object.fromEntries(
+        Object.entries(backgroundFieldValues).map(([fieldKey, value]) => [
+          fieldKey,
+          Array.isArray(value) ? [...value] : value,
+        ]),
+      ),
+    };
+
+    setSubmissionError(null);
+
+    navigate(`/bo-suu-tap/${slug}/san-pham/${product.id}/mua-them`, {
+      state: navigationState,
+    });
   };
 
   const errorMessage = isProductError
@@ -367,12 +432,31 @@ const CollectionProductBackgroundPicker = () => {
                 <p className="cbp-summary__empty">Chưa chọn nền nào.</p>
               )}
 
+              {customizerState && (
+                <div className="cbp-summary__pricing">
+                  <div className="cbp-summary__pricing-row">
+                    <span>Tổng Lego tùy chỉnh</span>
+                    <strong>{customizerState.totalLegoCount}</strong>
+                  </div>
+                  <div className="cbp-summary__pricing-row">
+                    <span>Lego thêm</span>
+                    <strong>{customizerState.selectedAdditionalLegoCount}</strong>
+                  </div>
+                  <div className="cbp-summary__pricing-row">
+                    <span>Tạm tính hiện tại</span>
+                    <strong>
+                      {customizerState.pricingSummary.total.toLocaleString("vi-VN")} đ
+                    </strong>
+                  </div>
+                </div>
+              )}
+
               {selectedBackground && selectedBackgroundFields.length > 0 && (
                 <div className="cbp-summary__fields">
                   <p className="cbp-summary__fields-title">Thông tin đã nhập</p>
 
                   {selectedBackgroundFields.map((field, index) => {
-                    const fieldKey = buildFieldKey(index, field.label, field.fieldType);
+                    const fieldKey = buildBackgroundFieldKey(index, field.label, field.fieldType);
                     const value = backgroundFieldValues[fieldKey];
 
                     return (
@@ -380,9 +464,9 @@ const CollectionProductBackgroundPicker = () => {
                         <p className="cbp-summary__field-label">{field.label}</p>
 
                         {field.fieldType === "image_upload" ? (
-                          fieldImagePreviews[fieldKey] ? (
+                          typeof value === "string" && value.trim() ? (
                             <img
-                              src={fieldImagePreviews[fieldKey]}
+                              src={value}
                               alt={field.label}
                               className="cbp-summary__field-image"
                             />
@@ -413,6 +497,27 @@ const CollectionProductBackgroundPicker = () => {
                   })}
                 </div>
               )}
+
+              {!customizerState && (
+                <div className="cbp-summary__error">
+                  Vui lòng quay lại bước tùy chỉnh để hoàn tất thêm giỏ hàng hoặc đặt hàng ngay.
+                </div>
+              )}
+
+              {submissionError && (
+                <div className="cbp-summary__error">{submissionError}</div>
+              )}
+
+              <div className="cbp-summary__actions">
+                <button
+                  type="button"
+                  className="cbp-summary__cta"
+                  onClick={handleContinueToAddons}
+                  disabled={!customizerState}
+                >
+                  Tiếp theo: Chọn option mua thêm
+                </button>
+              </div>
 
               <Link
                 to={`/bo-suu-tap/${slug}/san-pham/${productId}/custom`}
@@ -465,7 +570,7 @@ const CollectionProductBackgroundPicker = () => {
 
                     <div className="cbp-form-fields">
                       {selectedBackgroundFields.map((field, index) => {
-                        const fieldKey = buildFieldKey(index, field.label, field.fieldType);
+                        const fieldKey = buildBackgroundFieldKey(index, field.label, field.fieldType);
                         const selectedValue = backgroundFieldValues[fieldKey];
                         const selectType = field.selectType || "dropdown";
 
@@ -533,9 +638,9 @@ const CollectionProductBackgroundPicker = () => {
                                   }
                                 />
 
-                                {fieldImagePreviews[fieldKey] && (
+                                {typeof selectedValue === "string" && selectedValue.trim() && (
                                   <img
-                                    src={fieldImagePreviews[fieldKey]}
+                                    src={selectedValue}
                                     alt={field.label}
                                     className="cbp-upload-preview"
                                   />

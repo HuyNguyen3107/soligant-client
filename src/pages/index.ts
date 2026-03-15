@@ -1,4 +1,6 @@
 export { default as Home } from "./Home";
+export { default as About } from "./About";
+export { default as Contact } from "./Contact";
 export { default as Login } from "./Login";
 export { default as Dashboard } from "./Dashboard";
 export {
@@ -6,4 +8,9 @@ export {
   CollectionDetail,
   CollectionProductCustomizer,
   CollectionProductBackgroundPicker,
+  CollectionProductAddons,
+  CollectionCustomerInfo,
+  CollectionOrderReview,
+  CollectionOrderPlaced,
+  CollectionOrderLookup,
 } from "./Collections";

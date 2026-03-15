@@ -545,6 +545,19 @@
     box-shadow: 0 14px 26px rgba(115, 22, 24, 0.08);
 }
 
+.cpc-option-card:disabled {
+    cursor: not-allowed;
+    opacity: 0.66;
+    transform: none;
+    box-shadow: none;
+}
+
+.cpc-option-card:disabled:hover {
+    border-color: #e6eaf1;
+    transform: none;
+    box-shadow: none;
+}
+
 .cpc-option-card__top {
     display: flex;
     justify-content: space-between;

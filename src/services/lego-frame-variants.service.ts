@@ -5,6 +5,7 @@ export interface LegoFrameVariantPayload {
   collectionId: string;
   categoryId: string;
   name: string;
+  variantSymbol: string;
   description: string;
   image: string;
   size: "20x20" | "18x18" | "15x15";
@@ -14,6 +15,8 @@ export interface LegoFrameVariantPayload {
   legoCountMax: number;
   additionalLegoPrice: number;
   price: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
   isActive: boolean;
 }
 

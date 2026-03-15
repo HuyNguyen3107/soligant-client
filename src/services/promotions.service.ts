@@ -12,7 +12,9 @@ export interface PromotionPayload {
   description: string;
   conditionType: "lego_quantity" | "set_quantity";
   conditionMinQuantity: number;
+  applicableProductIds?: string[];
   rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardGiftQuantityMode?: "fixed" | "multiply_by_condition";
   rewardGifts?: PromotionGiftPayload[];
   rewardDiscountValue?: number;
   startDate?: string | null;
@@ -22,6 +24,11 @@ export interface PromotionPayload {
 
 export const getPromotions = async () => {
   const { data } = await http.get<PromotionRow[]>("/promotions");
+  return data;
+};
+
+export const getPublicPromotions = async () => {
+  const { data } = await http.get<PromotionRow[]>("/public/promotions");
   return data;
 };
 

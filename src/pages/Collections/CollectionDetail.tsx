@@ -10,7 +10,7 @@ import { toRichTextPlainText } from "../../lib/rich-text";
 import { getPublicCollectionProducts } from "../../services/collections.service";
 import "./CollectionDetail.css";
 
-const CollectionDetail = () => {
+export const CollectionDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");

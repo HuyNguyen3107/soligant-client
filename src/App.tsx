@@ -1,14 +1,22 @@
 import { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import type { ReactNode } from "react";
+import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
 import { Header, Footer } from "./components/layout";
 import {
   Home,
+  About,
+  Contact,
   Login,
   Dashboard,
   Collections,
   CollectionDetail,
   CollectionProductCustomizer,
   CollectionProductBackgroundPicker,
+  CollectionProductAddons,
+  CollectionCustomerInfo,
+  CollectionOrderReview,
+  CollectionOrderPlaced,
+  CollectionOrderLookup,
 } from "./pages";
 import "./styles/global.css";
 
@@ -22,6 +30,16 @@ const ScrollToTop = () => {
   return null;
 };
 
+const StorefrontLayout = ({ children }: { children: ReactNode }) => {
+  return (
+    <>
+      <Header />
+      <main className="app-main">{children}</main>
+      <Footer />
+    </>
+  );
+};
+
 function App() {
   return (
     <Router>
@@ -29,63 +47,51 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={
-            <>
-              <Header />
-              <main>
-                <Home />
-              </main>
-              <Footer />
-            </>
-          }
+          element={<StorefrontLayout><Home /></StorefrontLayout>}
+        />
+        <Route
+          path="/ve-chung-toi"
+          element={<StorefrontLayout><About /></StorefrontLayout>}
+        />
+        <Route
+          path="/lien-he"
+          element={<StorefrontLayout><Contact /></StorefrontLayout>}
         />
         <Route
           path="/bo-suu-tap"
-          element={
-            <>
-              <Header />
-              <main>
-                <Collections />
-              </main>
-              <Footer />
-            </>
-          }
+          element={<StorefrontLayout><Collections /></StorefrontLayout>}
         />
         <Route
           path="/bo-suu-tap/:slug/san-pham/:productId/custom"
-          element={
-            <>
-              <Header />
-              <main>
-                <CollectionProductCustomizer />
-              </main>
-              <Footer />
-            </>
-          }
+          element={<StorefrontLayout><CollectionProductCustomizer /></StorefrontLayout>}
         />
         <Route
           path="/bo-suu-tap/:slug/san-pham/:productId/chon-nen"
-          element={
-            <>
-              <Header />
-              <main>
-                <CollectionProductBackgroundPicker />
-              </main>
-              <Footer />
-            </>
-          }
+          element={<StorefrontLayout><CollectionProductBackgroundPicker /></StorefrontLayout>}
+        />
+        <Route
+          path="/bo-suu-tap/:slug/san-pham/:productId/mua-them"
+          element={<StorefrontLayout><CollectionProductAddons /></StorefrontLayout>}
+        />
+        <Route
+          path="/thong-tin-khach-hang"
+          element={<StorefrontLayout><CollectionCustomerInfo /></StorefrontLayout>}
+        />
+        <Route
+          path="/thong-tin-don-hang"
+          element={<StorefrontLayout><CollectionOrderReview /></StorefrontLayout>}
+        />
+        <Route
+          path="/don-hang/:orderCode"
+          element={<StorefrontLayout><CollectionOrderPlaced /></StorefrontLayout>}
+        />
+        <Route
+          path="/tra-cuu-don-hang"
+          element={<StorefrontLayout><CollectionOrderLookup /></StorefrontLayout>}
         />
         <Route
           path="/bo-suu-tap/:slug"
-          element={
-            <>
-              <Header />
-              <main>
-                <CollectionDetail />
-              </main>
-              <Footer />
-            </>
-          }
+          element={<StorefrontLayout><CollectionDetail /></StorefrontLayout>}
         />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard/*" element={<Dashboard />} />

@@ -59,6 +59,8 @@ const EMPTY_OPTION_FORM: LegoCustomizationOptionForm = {
   name: "",
   description: "",
   price: "",
+  stockQuantity: "0",
+  lowStockThreshold: "5",
   allowImageUpload: false,
   image: "",
   colorCode: DEFAULT_COLOR_CODE,
@@ -342,6 +344,8 @@ const LegoCustomizationsTab = () => {
       name: option.name,
       description: option.description,
       price: option.price > 0 ? String(option.price) : "",
+      stockQuantity: String(option.stockQuantity),
+      lowStockThreshold: String(option.lowStockThreshold),
       allowImageUpload: option.allowImageUpload,
       image: option.allowImageUpload ? option.image : "",
       colorCode: option.allowImageUpload
@@ -481,6 +485,12 @@ const LegoCustomizationsTab = () => {
     const allowImageUpload = optionForm.allowImageUpload;
     const trimmedPrice = optionForm.price.trim();
     const price = trimmedPrice === "" ? 0 : Number(trimmedPrice);
+    const trimmedStockQuantity = optionForm.stockQuantity.trim();
+    const stockQuantity =
+      trimmedStockQuantity === "" ? 0 : Number(trimmedStockQuantity);
+    const trimmedLowStockThreshold = optionForm.lowStockThreshold.trim();
+    const lowStockThreshold =
+      trimmedLowStockThreshold === "" ? 5 : Number(trimmedLowStockThreshold);
 
     if (!groupId) {
       toast.error("Vui lòng chọn nhóm tùy chỉnh.");
@@ -499,6 +509,16 @@ const LegoCustomizationsTab = () => {
 
     if (!Number.isInteger(price) || price < 0) {
       toast.error("Giá phải là số nguyên từ 0 trở lên.");
+      return;
+    }
+
+    if (!Number.isInteger(stockQuantity) || stockQuantity < 0) {
+      toast.error("Số lượng tồn kho phải là số nguyên từ 0 trở lên.");
+      return;
+    }
+
+    if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
+      toast.error("Ngưỡng cảnh báo tồn thấp phải là số nguyên từ 0 trở lên.");
       return;
     }
 
@@ -558,6 +578,8 @@ const LegoCustomizationsTab = () => {
           name,
           description,
           price,
+          stockQuantity,
+          lowStockThreshold,
           allowImageUpload,
           image: allowImageUpload ? image : "",
           colorCode: allowImageUpload ? "" : normalizedColorCode,
@@ -760,6 +782,7 @@ const LegoCustomizationsTab = () => {
                           <th>Lựa chọn</th>
                           <th>Hiển thị</th>
                           <th>Giá</th>
+                          <th>Tồn kho</th>
                           <th>Cập nhật</th>
                           <th></th>
                         </tr>
@@ -807,6 +830,14 @@ const LegoCustomizationsTab = () => {
                                 )}
                               </td>
                               <td className="lcu-price">{formatCurrency(option.price)}</td>
+                              <td>
+                                <div style={{ display: "grid", gap: "2px" }}>
+                                  <strong>{option.stockQuantity}</strong>
+                                  <span className="text-muted" style={{ fontSize: "12px" }}>
+                                    Ngưỡng thấp: {option.lowStockThreshold}
+                                  </span>
+                                </div>
+                              </td>
                               <td className="text-muted">{formatDateTime(option.updatedAt)}</td>
                               <td>
                                 <div className="tab-actions">
@@ -973,6 +1004,34 @@ const LegoCustomizationsTab = () => {
                   placeholder="Để trống sẽ là miễn phí"
                 />
                 <p className="form-hint">Để trống hoặc nhập 0 nếu bạn muốn lựa chọn này miễn phí.</p>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Số lượng tồn kho</label>
+                <input
+                  className="form-input"
+                  name="stockQuantity"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={optionForm.stockQuantity}
+                  onChange={handleOptionFormChange}
+                  placeholder="VD: 25"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Ngưỡng cảnh báo tồn thấp</label>
+                <input
+                  className="form-input"
+                  name="lowStockThreshold"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={optionForm.lowStockThreshold}
+                  onChange={handleOptionFormChange}
+                  placeholder="VD: 5"
+                />
               </div>
 
               <label className="form-toggle">
