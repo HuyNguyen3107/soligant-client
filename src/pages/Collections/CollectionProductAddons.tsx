@@ -11,6 +11,7 @@ import {
   FiType,
 } from "react-icons/fi";
 import {
+  ImageWithFallback,
   PageBreadcrumb,
   RichTextContent,
   RichTextEditor,
@@ -371,13 +372,15 @@ const CollectionProductAddons = () => {
           <aside className="cao-sidebar">
             <div className="cao-product-card">
               <div className="cao-product-card__thumb">
-                {productImage ? (
-                  <img src={productImage} alt={product.name} />
-                ) : (
+                <ImageWithFallback
+                  src={productImage}
+                  alt={product.name}
+                  fallback={
                   <div className="cao-product-card__placeholder">
                     <FiShoppingBag size={28} />
                   </div>
-                )}
+                  }
+                />
               </div>
               <div className="cao-product-card__body">
                 <span className="cao-product-card__category">
@@ -543,10 +546,24 @@ const CollectionProductAddons = () => {
                                     />
 
                                     {value.trim() && (
-                                      <img
+                                      <ImageWithFallback
                                         src={value}
                                         alt={field.label}
                                         className="cao-upload-preview"
+                                        fallback={
+                                          <div
+                                            className="cao-upload-preview"
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              color: "#94a3b8",
+                                              background: "#f8fafc",
+                                            }}
+                                          >
+                                            <FiImage size={24} />
+                                          </div>
+                                        }
                                       />
                                     )}
                                   </div>

@@ -3,7 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiGrid, FiStar, FiTag } from "react-icons/fi";
-import { PageBreadcrumb, RichTextContent, SEO } from "../../components/common";
+import {
+  ImageWithFallback,
+  PageBreadcrumb,
+  RichTextContent,
+  SEO,
+} from "../../components/common";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
 import { toRichTextPlainText } from "../../lib/rich-text";
@@ -139,10 +144,15 @@ export const CollectionDetail = () => {
           <div className="cd-info-card">
             {thumbUrl && (
               <div className="cd-info-card__img-wrap">
-                <img
+                <ImageWithFallback
                   src={thumbUrl}
                   alt={collection.name}
                   className="cd-info-card__img"
+                  fallback={
+                    <div className="cd-info-card__placeholder">
+                      <FiGrid size={28} />
+                    </div>
+                  }
                 />
               </div>
             )}
@@ -222,13 +232,16 @@ export const CollectionDetail = () => {
                     >
                       <article className="cd-product-card">
                         <div className="cd-product-card__thumb">
-                          {productImage ? (
-                            <img src={productImage} alt={product.name} />
-                          ) : (
-                            <div className="cd-product-card__placeholder">
-                              <FiGrid size={28} />
-                            </div>
-                          )}
+                          <ImageWithFallback
+                            src={productImage}
+                            alt={product.name}
+                            className="cd-product-card__image"
+                            fallback={
+                              <div className="cd-product-card__placeholder">
+                                <FiGrid size={28} />
+                              </div>
+                            }
+                          />
                         </div>
 
                         <div className="cd-product-card__body">

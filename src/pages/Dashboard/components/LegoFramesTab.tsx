@@ -13,6 +13,7 @@ import {
   FiUpload,
   FiX,
 } from "react-icons/fi";
+import { ImageWithFallback } from "../../../components/common";
 import { getErrorMessage } from "../../../lib/error";
 import { getStaticAssetUrl, http } from "../../../lib/http";
 import {
@@ -769,11 +770,11 @@ const LegoFramesTab = () => {
                   >
                     <td>
                       <div className="lf-thumb">
-                        {variantImageUrl ? (
-                          <img src={variantImageUrl} alt={variant.name} />
-                        ) : (
-                          <span>Không có ảnh</span>
-                        )}
+                        <ImageWithFallback
+                          src={variantImageUrl}
+                          alt={variant.name}
+                          fallback={<span>Không có ảnh</span>}
+                        />
                       </div>
                     </td>
                     <td>
@@ -988,14 +989,16 @@ const LegoFramesTab = () => {
                 </label>
                 <div className="lf-image-field">
                   <div className="lf-image-preview">
-                    {modalPreviewSrc ? (
-                      <img src={modalPreviewSrc} alt={form.name || "Ảnh biến thể"} />
-                    ) : (
+                    <ImageWithFallback
+                      src={modalPreviewSrc}
+                      alt={form.name || "Ảnh biến thể"}
+                      fallback={
                       <div className="lf-image-preview__empty">
                         <FiImage size={18} />
                         <span>Chưa có ảnh</span>
                       </div>
-                    )}
+                      }
+                    />
                   </div>
 
                   <div className="lf-image-actions">

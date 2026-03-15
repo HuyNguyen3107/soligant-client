@@ -15,6 +15,7 @@ import {
   FiUpload,
   FiX,
 } from "react-icons/fi";
+import { ImageWithFallback } from "../../../components/common";
 import { getErrorMessage } from "../../../lib/error";
 import { getStaticAssetUrl, http } from "../../../lib/http";
 import { hasPermission } from "../../../lib/permissions";
@@ -809,11 +810,11 @@ const LegoCustomizationsTab = () => {
                               <td>
                                 {option.allowImageUpload ? (
                                   <div className="lcu-option-visual lcu-option-visual--image">
-                                    {optionImageUrl ? (
-                                      <img src={optionImageUrl} alt={option.name} />
-                                    ) : (
-                                      <span>Chưa có ảnh</span>
-                                    )}
+                                    <ImageWithFallback
+                                      src={optionImageUrl}
+                                      alt={option.name}
+                                      fallback={<span>Chưa có ảnh</span>}
+                                    />
                                   </div>
                                 ) : (
                                   <div className="lcu-option-visual lcu-option-visual--color">
@@ -1052,14 +1053,16 @@ const LegoCustomizationsTab = () => {
                   <label className="form-label">Ảnh lựa chọn</label>
                   <div className="lcu-upload-wrap">
                     <div className="lcu-upload-preview">
-                      {optionModalPreviewSrc ? (
-                        <img src={optionModalPreviewSrc} alt={optionForm.name || "Ảnh lựa chọn"} />
-                      ) : (
+                      <ImageWithFallback
+                        src={optionModalPreviewSrc}
+                        alt={optionForm.name || "Ảnh lựa chọn"}
+                        fallback={
                         <div className="lcu-upload-preview__empty">
                           <FiImage size={18} />
                           <span>Chưa có ảnh</span>
                         </div>
-                      )}
+                        }
+                      />
                     </div>
 
                     <div className="lcu-upload-actions">

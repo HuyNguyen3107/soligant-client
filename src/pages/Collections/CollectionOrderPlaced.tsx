@@ -2,7 +2,12 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { FiCheckCircle, FiCopy, FiSearch, FiShoppingBag } from "react-icons/fi";
-import { PageBreadcrumb, RichTextContent, SEO } from "../../components/common";
+import {
+  ImageWithFallback,
+  PageBreadcrumb,
+  RichTextContent,
+  SEO,
+} from "../../components/common";
 import {
   formatCustomerOrderFieldValue,
   isCustomerOrderFieldValueEmpty,
@@ -237,7 +242,11 @@ const CollectionOrderPlaced = () => {
                           <span>{entry.label}</span>
                           {entry.fieldType === "image_upload" ? (
                             typeof entry.value === "string" && entry.value.trim() ? (
-                              <img src={entry.value} alt={entry.label} />
+                              <ImageWithFallback
+                                src={entry.value}
+                                alt={entry.label}
+                                fallback={<strong>Ảnh không còn khả dụng</strong>}
+                              />
                             ) : (
                               <strong>Chưa tải ảnh</strong>
                             )

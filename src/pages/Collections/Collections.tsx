@@ -1,7 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { FiGrid, FiArrowRight } from "react-icons/fi";
-import { PageBreadcrumb, RichTextContent, SEO } from "../../components/common";
+import {
+  ImageWithFallback,
+  PageBreadcrumb,
+  RichTextContent,
+  SEO,
+} from "../../components/common";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
 import { getPublicCollections } from "../../services/collections.service";
@@ -87,17 +92,16 @@ const Collections = () => {
                     className={`col-card${col.isFeatured ? " col-card--featured" : ""}`}
                   >
                     <div className="col-card__thumb">
-                      {thumbUrl ? (
-                        <img
-                          src={thumbUrl}
-                          alt={col.name}
-                          className="col-card__img"
-                        />
-                      ) : (
+                      <ImageWithFallback
+                        src={thumbUrl}
+                        alt={col.name}
+                        className="col-card__img"
+                        fallback={
                         <div className="col-card__placeholder">
                           <FiGrid size={36} />
                         </div>
-                      )}
+                        }
+                      />
                       {col.isFeatured && (
                         <span className="col-card__badge">Nổi bật</span>
                       )}

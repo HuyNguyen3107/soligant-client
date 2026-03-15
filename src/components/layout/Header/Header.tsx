@@ -10,6 +10,7 @@ import {
   FiTrash2,
   FiX,
 } from "react-icons/fi";
+import { ImageWithFallback } from "../../../components/common";
 import { getStaticAssetUrl } from "../../../lib/http";
 import { hasAnyPermission } from "../../../lib/permissions";
 import { getCustomizedCartItemSubtotal } from "../../../lib/custom-cart";
@@ -206,10 +207,15 @@ const Header = () => {
                   onClick={() => setDropdownOpen((prev) => !prev)}
                 >
                   {user.avatar ? (
-                    <img
-                      src={user.avatar}
+                    <ImageWithFallback
+                      src={getStaticAssetUrl(user.avatar)}
                       alt={user.name}
                       className="header__user-avatar"
+                      fallback={
+                        <div className="header__user-initials">
+                          {user.name?.[0]?.toUpperCase() ?? "U"}
+                        </div>
+                      }
                     />
                   ) : (
                     <div className="header__user-initials">
@@ -396,13 +402,15 @@ const Header = () => {
                     </label>
 
                     <div className="header__drawer-thumb">
-                      {imageUrl ? (
-                        <img src={imageUrl} alt={item.product.name} />
-                      ) : (
+                      <ImageWithFallback
+                        src={imageUrl}
+                        alt={item.product.name}
+                        fallback={
                         <div className="header__drawer-thumb-placeholder">
                           <FiShoppingBag size={20} />
                         </div>
-                      )}
+                        }
+                      />
                     </div>
 
                     <div className="header__drawer-item-body">

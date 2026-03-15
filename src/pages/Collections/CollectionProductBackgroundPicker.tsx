@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { FiArrowLeft, FiGrid, FiImage, FiTag } from "react-icons/fi";
 import {
+  ImageWithFallback,
   PageBreadcrumb,
   RichTextContent,
   RichTextEditor,
@@ -47,13 +48,15 @@ const BackgroundCard = ({ background, isSelected, onSelect }: BackgroundCardProp
       onClick={onSelect}
     >
       <div className="cbp-card__thumb">
-        {imageUrl ? (
-          <img src={imageUrl} alt={background.name} />
-        ) : (
+        <ImageWithFallback
+          src={imageUrl}
+          alt={background.name}
+          fallback={
           <div className="cbp-card__placeholder">
             <FiImage size={28} />
           </div>
-        )}
+          }
+        />
       </div>
       <div className="cbp-card__body">
         <span className="cbp-card__theme">
@@ -387,13 +390,15 @@ const CollectionProductBackgroundPicker = () => {
           <aside className="cbp-sidebar">
             <div className="cbp-product-card">
               <div className="cbp-product-card__thumb">
-                {productImage ? (
-                  <img src={productImage} alt={product.name} />
-                ) : (
+                <ImageWithFallback
+                  src={productImage}
+                  alt={product.name}
+                  fallback={
                   <div className="cbp-product-card__placeholder">
                     <FiGrid size={30} />
                   </div>
-                )}
+                  }
+                />
               </div>
               <div className="cbp-product-card__body">
                 <span className="cbp-product-card__category">
@@ -409,13 +414,16 @@ const CollectionProductBackgroundPicker = () => {
               {selectedBackground ? (
                 <>
                   <div className="cbp-summary__selected">
-                    {selectedBackgroundImage && (
-                      <img
-                        src={selectedBackgroundImage}
-                        alt={selectedBackground.name}
-                        className="cbp-summary__selected-img"
-                      />
-                    )}
+                    <ImageWithFallback
+                      src={selectedBackgroundImage}
+                      alt={selectedBackground.name}
+                      className="cbp-summary__selected-img"
+                      fallback={
+                        <div className="cbp-summary__selected-img cbp-card__placeholder">
+                          <FiImage size={18} />
+                        </div>
+                      }
+                    />
                     <div>
                       <p className="cbp-summary__selected-theme">{selectedBackground.themeName}</p>
                       <p className="cbp-summary__selected-name">{selectedBackground.name}</p>
@@ -465,10 +473,13 @@ const CollectionProductBackgroundPicker = () => {
 
                         {field.fieldType === "image_upload" ? (
                           typeof value === "string" && value.trim() ? (
-                            <img
+                            <ImageWithFallback
                               src={value}
                               alt={field.label}
                               className="cbp-summary__field-image"
+                              fallback={
+                                <p className="cbp-summary__field-empty">Ảnh không còn khả dụng</p>
+                              }
                             />
                           ) : (
                             <p className="cbp-summary__field-empty">Chưa tải ảnh</p>
@@ -639,10 +650,24 @@ const CollectionProductBackgroundPicker = () => {
                                 />
 
                                 {typeof selectedValue === "string" && selectedValue.trim() && (
-                                  <img
+                                  <ImageWithFallback
                                     src={selectedValue}
                                     alt={field.label}
                                     className="cbp-upload-preview"
+                                    fallback={
+                                      <div
+                                        className="cbp-upload-preview"
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          background: "#f8fafc",
+                                          color: "#94a3b8",
+                                        }}
+                                      >
+                                        <FiImage size={24} />
+                                      </div>
+                                    }
                                   />
                                 )}
                               </div>

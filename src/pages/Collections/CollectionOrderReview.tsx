@@ -11,6 +11,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import {
+  ImageWithFallback,
   PageBreadcrumb,
   RichTextContent,
   RichTextEditor,
@@ -469,13 +470,15 @@ const CollectionOrderReview = () => {
                   <div className="cor-card__head">
                     <div className="cor-card__product">
                       <div className="cor-card__thumb">
-                        {itemImage ? (
-                          <img src={itemImage} alt={item.product.name} />
-                        ) : (
+                        <ImageWithFallback
+                          src={itemImage}
+                          alt={item.product.name}
+                          fallback={
                           <div className="cor-card__thumb-placeholder">
                             <FiShoppingBag size={24} />
                           </div>
-                        )}
+                          }
+                        />
                       </div>
 
                       <div className="cor-card__body">
@@ -552,10 +555,13 @@ const CollectionOrderReview = () => {
                                         <p className="cor-field-item__label">{field.label}</p>
                                         {field.fieldType === "image" ? (
                                           field.value.trim() ? (
-                                            <img
+                                            <ImageWithFallback
                                               src={field.value}
                                               alt={field.label}
                                               className="cor-field-item__image"
+                                              fallback={
+                                                <p className="cor-empty-text">Ảnh không còn khả dụng</p>
+                                              }
                                             />
                                           ) : (
                                             <p className="cor-empty-text">Chưa tải ảnh</p>
@@ -695,7 +701,11 @@ const CollectionOrderReview = () => {
                           <span>{entry.label}</span>
                           {entry.fieldType === "image_upload" ? (
                             typeof entry.value === "string" && entry.value.trim() ? (
-                              <img src={entry.value} alt={entry.label} />
+                              <ImageWithFallback
+                                src={entry.value}
+                                alt={entry.label}
+                                fallback={<strong>Ảnh không còn khả dụng</strong>}
+                              />
                             ) : (
                               <strong>Chưa tải ảnh</strong>
                             )

@@ -7,7 +7,7 @@ import {
   FiRefreshCw,
   FiX,
 } from "react-icons/fi";
-import { RichTextContent } from "../../../components/common";
+import { ImageWithFallback, RichTextContent } from "../../../components/common";
 import { getErrorMessage } from "../../../lib/error";
 import { getStaticAssetUrl } from "../../../lib/http";
 import { buildBackgroundFieldKey } from "../../../lib/custom-cart";
@@ -633,10 +633,15 @@ const OrdersTab = () => {
                           <span className="order-detail-item-bg-field-label">{entry.label}</span>
                           {entry.fieldType === "image_upload" ? (
                             typeof entry.value === "string" && entry.value.trim() ? (
-                              <img
+                              <ImageWithFallback
                                 src={entry.value}
                                 alt={entry.label}
                                 className="order-detail-item-bg-field-img"
+                                fallback={
+                                  <span className="order-detail-item-bg-field-value">
+                                    Ảnh không còn khả dụng
+                                  </span>
+                                }
                               />
                             ) : (
                               <span className="order-detail-item-bg-field-value">Chưa tải ảnh</span>
@@ -685,13 +690,25 @@ const OrdersTab = () => {
                       >
                         {/* ── Head: thumbnail + name + price ── */}
                         <div className="order-detail-item-head">
-                          {productImageUrl && (
-                            <img
-                              src={productImageUrl}
-                              alt={item.productName}
-                              className="order-detail-item-thumb"
-                            />
-                          )}
+                          <ImageWithFallback
+                            src={productImageUrl}
+                            alt={item.productName}
+                            className="order-detail-item-thumb"
+                            fallback={
+                              <div
+                                className="order-detail-item-thumb"
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  background: "#f8fafc",
+                                  color: "#94a3b8",
+                                }}
+                              >
+                                <FiClipboard size={18} />
+                              </div>
+                            }
+                          />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <strong>
                               {index + 1}. {item.productName || "Sản phẩm"}
@@ -798,10 +815,15 @@ const OrdersTab = () => {
                                       {field.label}
                                     </span>
                                     {field.fieldType === "image_upload" ? (
-                                      <img
+                                      <ImageWithFallback
                                         src={typeof value === "string" ? value : ""}
                                         alt={field.label}
                                         className="order-detail-item-bg-field-img"
+                                        fallback={
+                                          <span className="order-detail-item-bg-field-value">
+                                            Ảnh không còn khả dụng
+                                          </span>
+                                        }
                                       />
                                     ) : (
                                       <span className="order-detail-item-bg-field-value">
@@ -836,10 +858,15 @@ const OrdersTab = () => {
                                             {cf.label}
                                           </span>
                                           {cf.fieldType === "image" ? (
-                                            <img
+                                            <ImageWithFallback
                                               src={cf.value}
                                               alt={cf.label}
                                               className="order-detail-item-bg-field-img"
+                                              fallback={
+                                                <span className="order-detail-item-bg-field-value">
+                                                  Ảnh không còn khả dụng
+                                                </span>
+                                              }
                                             />
                                           ) : cf.fieldType === "link" ? (
                                             <a

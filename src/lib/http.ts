@@ -13,9 +13,12 @@ export const SERVER_ORIGIN = (() => {
 })();
 
 export const getStaticAssetUrl = (input: string | null | undefined) => {
-  if (!input?.trim()) return null;
-  if (input.startsWith("http://") || input.startsWith("https://")) return input;
-  return `${SERVER_ORIGIN}/${input.replace(/^\/+/, "")}`;
+  const normalizedInput = input?.trim();
+
+  if (!normalizedInput) return null;
+  if (/^(https?:|data:|blob:)/.test(normalizedInput)) return normalizedInput;
+
+  return `${SERVER_ORIGIN}/${normalizedInput.replace(/^\/+/, "")}`;
 };
 
 export const http = axios.create({

@@ -19,9 +19,14 @@ import {
   FiLink,
 } from "react-icons/fi";
 import type { CollectionRow, CollectionFormState } from "../types";
+import {
+  ImageWithFallback,
+  RichTextContent,
+  RichTextEditor,
+} from "../../../components/common";
+import { getStaticAssetUrl } from "../../../lib/http";
 import { hasPermission } from "../../../lib/permissions";
 import { useAuthStore } from "../../../store/auth.store";
-import { RichTextContent, RichTextEditor } from "../../../components/common";
 import {
   normalizeRichTextForStorage,
   toRichTextPlainText,
@@ -533,13 +538,15 @@ const CollectionsTab = () => {
             >
               {/* Thumbnail */}
               <div className="coll-card__thumb">
-                {c.thumbnail ? (
-                  <img src={c.thumbnail} alt={c.name} />
-                ) : (
+                <ImageWithFallback
+                  src={getStaticAssetUrl(c.thumbnail)}
+                  alt={c.name}
+                  fallback={
                   <div className="coll-card__no-thumb">
                     <FiImage size={32} />
                   </div>
-                )}
+                  }
+                />
                 {c.isFeatured && (
                   <span className="coll-card__featured-badge">
                     <FiStar size={11} /> Nổi bật
@@ -626,11 +633,13 @@ const CollectionsTab = () => {
                   <td>
                     <div className="coll-list__info">
                       <div className="coll-list__thumb">
-                        {c.thumbnail ? (
-                          <img src={c.thumbnail} alt={c.name} />
-                        ) : (
+                        <ImageWithFallback
+                          src={getStaticAssetUrl(c.thumbnail)}
+                          alt={c.name}
+                          fallback={
                           <FiImage size={16} />
-                        )}
+                          }
+                        />
                       </div>
                       <span className="coll-list__name">{c.name}</span>
                     </div>
@@ -807,14 +816,24 @@ const CollectionsTab = () => {
                     {/* Khi đã có ảnh (preview cục bộ hoặc đã upload) */}
                     {localPreview || form.thumbnail ? (
                       <div className="coll-upload-preview-wrap">
-                        <img
-                          src={localPreview ?? form.thumbnail}
+                        <ImageWithFallback
+                          src={getStaticAssetUrl(localPreview ?? form.thumbnail)}
                           alt="preview"
                           className="coll-upload-preview-img"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='1.5'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpath d='M21 15l-5-5L5 21'/%3E%3C/svg%3E";
-                          }}
+                          fallback={
+                            <div
+                              className="coll-upload-preview-img"
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                minHeight: 120,
+                                color: "#cbd5e1",
+                              }}
+                            >
+                              <FiImage size={28} />
+                            </div>
+                          }
                         />
 
                         {/* Overlay khi đang upload */}
@@ -874,12 +893,28 @@ const CollectionsTab = () => {
                 {/* Preview cho URL mode */}
                 {thumbMode === "url" && form.thumbnail && (
                   <div className="coll-thumb-preview">
-                    <img
-                      src={form.thumbnail}
+                    <ImageWithFallback
+                      src={getStaticAssetUrl(form.thumbnail)}
                       alt="preview"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
+                      style={{
+                        width: "100%",
+                        maxHeight: "150px",
+                        objectFit: "cover",
+                        display: "block",
                       }}
+                      fallback={
+                        <div
+                          style={{
+                            minHeight: 150,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#94a3b8",
+                          }}
+                        >
+                          Ảnh không còn khả dụng
+                        </div>
+                      }
                     />
                     <button
                       type="button"

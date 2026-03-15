@@ -8,7 +8,12 @@ import {
   FiGrid,
   FiTag,
 } from "react-icons/fi";
-import { PageBreadcrumb, RichTextContent, SEO } from "../../components/common";
+import {
+  ImageWithFallback,
+  PageBreadcrumb,
+  RichTextContent,
+  SEO,
+} from "../../components/common";
 import type {
   CustomizerNavigationState,
   LegoSelections,
@@ -291,13 +296,15 @@ const CollectionProductCustomizerContent = ({
         <aside className="cpc-sidebar">
           <div className="cpc-product-card">
             <div className="cpc-product-card__thumb">
-              {productImage ? (
-                <img src={productImage} alt={product.name} />
-              ) : (
+              <ImageWithFallback
+                src={productImage}
+                alt={product.name}
+                fallback={
                 <div className="cpc-product-card__placeholder">
                   <FiGrid size={30} />
                 </div>
-              )}
+                }
+              />
             </div>
             <div className="cpc-product-card__body">
               <span className="cpc-product-card__category">
@@ -587,11 +594,11 @@ const CollectionProductCustomizerContent = ({
                               <div>
                                 {option.allowImageUpload ? (
                                   <div className="cpc-option-card__asset cpc-option-card__asset--image">
-                                    {optionImage ? (
-                                      <img src={optionImage} alt={option.name} />
-                                    ) : (
-                                      <span>Chưa có ảnh</span>
-                                    )}
+                                    <ImageWithFallback
+                                      src={optionImage}
+                                      alt={option.name}
+                                      fallback={<span>Chưa có ảnh</span>}
+                                    />
                                   </div>
                                 ) : (
                                   <div className="cpc-option-card__asset cpc-option-card__asset--color">

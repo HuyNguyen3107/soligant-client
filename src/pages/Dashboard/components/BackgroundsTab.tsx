@@ -18,6 +18,7 @@ import {
   FiX,
   FiLayers,
 } from "react-icons/fi";
+import { ImageWithFallback } from "../../../components/common";
 import { getErrorMessage } from "../../../lib/error";
 import { getStaticAssetUrl, http } from "../../../lib/http";
 import type {
@@ -457,15 +458,14 @@ const BackgroundsTab = () => {
               {filteredList.map((bg) => (
                 <tr key={bg.id}>
                   <td>
-                    {getStaticAssetUrl(bg.image) ? (
-                      <img
-                        src={getStaticAssetUrl(bg.image) ?? undefined}
-                        alt={bg.name}
-                        className="bgt-thumb"
-                      />
-                    ) : (
+                    <ImageWithFallback
+                      src={getStaticAssetUrl(bg.image)}
+                      alt={bg.name}
+                      className="bgt-thumb"
+                      fallback={
                       <div className="bgt-thumb bgt-thumb--empty"><FiImage size={16} /></div>
-                    )}
+                      }
+                    />
                   </td>
                   <td><strong>{bg.name}</strong></td>
                   <td><span className="lc-name-chip">{bg.themeName || "ID lỗi"}</span></td>
@@ -553,9 +553,26 @@ const BackgroundsTab = () => {
                 <label className="form-label">Ảnh nền</label>
                 {form.image ? (
                   <div className="bgt-image-preview">
-                    <img
-                      src={getStaticAssetUrl(form.image) ?? undefined}
+                    <ImageWithFallback
+                      src={getStaticAssetUrl(form.image)}
                       alt="Background"
+                      fallback={
+                        <div
+                          style={{
+                            width: 200,
+                            minHeight: 140,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#94a3b8",
+                            borderRadius: 10,
+                            border: "1px solid #e2e8f0",
+                            background: "#f8fafc",
+                          }}
+                        >
+                          <FiImage size={20} />
+                        </div>
+                      }
                     />
                     <button
                       type="button"
