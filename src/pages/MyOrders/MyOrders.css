@@ -1,0 +1,338 @@
+.myo-page {
+    min-height: 72vh;
+    padding: calc(var(--header-height) + 26px) 0 70px;
+    background:
+        radial-gradient(circle at 12% 8%, rgba(115, 22, 24, 0.09), transparent 36%),
+        radial-gradient(circle at 88% 90%, rgba(115, 22, 24, 0.06), transparent 34%),
+        #f7f7f8;
+}
+
+.myo-page__breadcrumb {
+    margin-bottom: 18px;
+}
+
+.myo-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+}
+
+/* Header */
+.myo-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.myo-header__eyebrow {
+    margin: 0 0 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #731618;
+}
+
+.myo-header__title {
+    margin: 0 0 6px;
+    font-size: 28px;
+    color: #111827;
+}
+
+.myo-header__desc {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.6;
+    font-size: 14px;
+    max-width: 540px;
+}
+
+/* Clear button */
+.myo-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    flex-shrink: 0;
+}
+
+.myo-clear-btn:hover {
+    border-color: #e87575;
+    color: #b91c1c;
+}
+
+.myo-clear-btn.is-confirm {
+    border-color: #b91c1c;
+    color: #fff;
+    background: #b91c1c;
+}
+
+/* Order list */
+.myo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Order card */
+.myo-card {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    padding: 18px 20px;
+    transition: box-shadow 0.15s;
+}
+
+.myo-card:hover {
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1);
+}
+
+.myo-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.myo-card__code-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.myo-card__code-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.myo-card__code {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: 0.02em;
+}
+
+.myo-card__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: background 0.14s, color 0.14s;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.myo-card__remove:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.myo-card__products {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 12px;
+    color: #475569;
+    font-size: 13.5px;
+    line-height: 1.5;
+}
+
+.myo-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.myo-card__meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.myo-card__total {
+    font-weight: 700;
+    color: #731618;
+    font-size: 14px;
+}
+
+.myo-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Status badges */
+.myo-status {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.myo-status.is-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.myo-status.is-confirmed {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.myo-status.is-processing {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.myo-status.is-completed {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.myo-status.is-cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Buttons */
+.myo-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.myo-btn--primary {
+    background: #731618;
+    color: #fff;
+    border-color: #731618;
+}
+
+.myo-btn--primary:hover {
+    background: #5a1012;
+    border-color: #5a1012;
+}
+
+.myo-btn--ghost {
+    background: #fff;
+    color: #374151;
+    border-color: #d1d5db;
+}
+
+.myo-btn--ghost:hover {
+    border-color: #731618;
+    color: #731618;
+}
+
+/* Empty state */
+.myo-empty {
+    text-align: center;
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 18px;
+    padding: 52px 32px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.myo-empty__icon {
+    color: #cbd5e1;
+    margin-bottom: 16px;
+}
+
+.myo-empty h2 {
+    margin: 0 0 10px;
+    font-size: 22px;
+    color: #111827;
+}
+
+.myo-empty p {
+    margin: 0 auto 22px;
+    max-width: 480px;
+    color: #64748b;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.myo-empty__actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Footer note */
+.myo-footer-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 22px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.myo-footer-note a {
+    color: #731618;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.myo-footer-note a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+    .myo-header {
+        flex-direction: column;
+    }
+
+    .myo-card__actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .myo-btn {
+        justify-content: center;
+    }
+
+    .myo-empty__actions {
+        flex-direction: column;
+    }
+}

@@ -38,6 +38,7 @@ import { getPublicLegoCustomizations } from "../../services/lego-customizations.
 import { createPublicOrder } from "../../services/orders.service";
 import { getPublicPromotions } from "../../services/promotions.service";
 import { useCustomCartStore } from "../../store/custom-cart.store";
+import { useOrderHistoryStore } from "../../store/order-history.store";
 import "./CollectionOrderReview.css";
 
 type ReviewLocationState = CustomerInfoNavigationState;
@@ -84,6 +85,8 @@ const CollectionOrderReview = () => {
   const clearCustomerInfoEntries = useCustomCartStore((state) => state.clearCustomerInfoEntries);
   const removeItem = useCustomCartStore((state) => state.removeItem);
   const removeItems = useCustomCartStore((state) => state.removeItems);
+
+  const addOrderToHistory = useOrderHistoryStore((state) => state.addOrder);
 
   const locationState = location.state as ReviewLocationState | null;
   const [customerNote, setCustomerNote] = useState("");
@@ -385,6 +388,16 @@ const CollectionOrderReview = () => {
       });
     },
     onSuccess: (createdOrder) => {
+      addOrderToHistory({
+        orderCode: createdOrder.orderCode,
+        status: createdOrder.status,
+        itemsCount: createdOrder.itemsCount,
+        finalTotal: createdOrder.pricingSummary.finalTotal,
+        createdAt: createdOrder.createdAt,
+        savedAt: new Date().toISOString(),
+        productNames: createdOrder.items.map((item) => item.productName).filter(Boolean),
+        collectionName: createdOrder.items[0]?.collectionName ?? "",
+      });
       removeItems(selectedCartItemIds);
       setSelectedItemIds([]);
       clearCustomerInfoEntries();
@@ -394,7 +407,10 @@ const CollectionOrderReview = () => {
       });
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "Không thể đặt hàng. Vui lòng thử lại."));
+      const message = getErrorMessage(error, "Không thể đặt hàng. Vui lòng thử lại.");
+      const isStockError =
+        message.includes("tồn kho") || message.includes("không đủ") || message.includes("không còn tồn tại");
+      toast.error(message, { autoClose: isStockError ? 8000 : 4000 });
     },
   });
 
@@ -754,6 +770,14 @@ const CollectionOrderReview = () => {
                   </div>
                 )}
               </div>
+
+              {placeOrderMutation.isError && (
+                <div className="cor-summary__customer-info-error cor-summary__order-error">
+                  <strong>Đặt hàng không thành công</strong>
+                  <br />
+                  {getErrorMessage(placeOrderMutation.error, "Vui lòng thử lại.")}
+                </div>
+              )}
 
               <div className="cor-summary__actions">
                 <button

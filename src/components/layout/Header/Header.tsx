@@ -56,6 +56,7 @@ const navLinks: NavigationLink[] = [
   { label: "Về chúng tôi", href: "/ve-chung-toi" },
   { label: "Liên hệ", href: "/lien-he" },
   { label: "Tra cứu đơn", href: "/tra-cuu-don-hang" },
+  { label: "Đơn của tôi", href: "/lich-su-don-hang" },
 ];
 
 const Header = () => {

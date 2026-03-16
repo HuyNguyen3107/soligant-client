@@ -8,6 +8,7 @@ import {
   Contact,
   Login,
   Dashboard,
+  MyOrders,
   Collections,
   CollectionDetail,
   CollectionProductCustomizer,
@@ -88,6 +89,10 @@ function App() {
         <Route
           path="/tra-cuu-don-hang"
           element={<StorefrontLayout><CollectionOrderLookup /></StorefrontLayout>}
+        />
+        <Route
+          path="/lich-su-don-hang"
+          element={<StorefrontLayout><MyOrders /></StorefrontLayout>}
         />
         <Route
           path="/bo-suu-tap/:slug"

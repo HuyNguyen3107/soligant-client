@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { FiCheckCircle, FiCopy, FiSearch, FiShoppingBag } from "react-icons/fi";
+import { FiCheckCircle, FiCopy, FiList, FiSearch, FiShoppingBag } from "react-icons/fi";
 import {
   ImageWithFallback,
   PageBreadcrumb,
@@ -269,6 +269,9 @@ const CollectionOrderPlaced = () => {
                   className="cop-btn cop-btn--ghost"
                 >
                   <FiSearch size={16} /> Tra cứu đơn hàng
+                </Link>
+                <Link to="/lich-su-don-hang" className="cop-btn cop-btn--ghost">
+                  <FiList size={16} /> Đơn hàng của tôi
                 </Link>
                 <Link to="/bo-suu-tap" className="cop-btn">
                   <FiShoppingBag size={16} /> Tiếp tục mua sắm
