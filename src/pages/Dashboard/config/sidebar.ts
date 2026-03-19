@@ -30,6 +30,12 @@ export const sidebarSections: SidebarSection[] = [
         permission: "lego-frames.view",
       },
       {
+        id: "bear-variants",
+        label: "Sản phẩm Gấu",
+        icon: FiBox,
+        permission: "bear-variants.view",
+      },
+      {
         id: "inventory",
         label: "Quản lý kho",
         icon: FiArchive,
@@ -46,6 +52,12 @@ export const sidebarSections: SidebarSection[] = [
         label: "Tùy chỉnh Lego",
         icon: FiSliders,
         permission: "lego-customizations.view",
+      },
+      {
+        id: "bear-customizations",
+        label: "Tùy chỉnh Gấu",
+        icon: FiSliders,
+        permission: "bear-customizations.view",
       },
       {
         id: "promotions",

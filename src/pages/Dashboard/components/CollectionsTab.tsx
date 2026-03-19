@@ -31,8 +31,10 @@ import {
   normalizeRichTextForStorage,
   toRichTextPlainText,
 } from "../../../lib/rich-text";
+import { getErrorMessage } from "../../../lib/error";
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 // Origin thuần (không có /api) để dùng cho static file URLs
 const SERVER_ORIGIN = (() => {
   try {
@@ -249,7 +251,7 @@ const CollectionsTab = () => {
     } catch (err) {
       URL.revokeObjectURL(preview);
       setLocalPreview(null);
-      toast.error(err instanceof Error ? err.message : "Không thể upload ảnh.");
+      toast.error(getErrorMessage(err, "Không thể upload ảnh."));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -320,7 +322,7 @@ const CollectionsTab = () => {
       closeModal();
       loadCollections();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
+      toast.error(getErrorMessage(err, "Có lỗi xảy ra."));
     } finally {
       setSaving(false);
     }
@@ -542,9 +544,9 @@ const CollectionsTab = () => {
                   src={getStaticAssetUrl(c.thumbnail)}
                   alt={c.name}
                   fallback={
-                  <div className="coll-card__no-thumb">
-                    <FiImage size={32} />
-                  </div>
+                    <div className="coll-card__no-thumb">
+                      <FiImage size={32} />
+                    </div>
                   }
                 />
                 {c.isFeatured && (
@@ -562,7 +564,10 @@ const CollectionsTab = () => {
                 <h3 className="coll-card__name">{c.name}</h3>
                 {c.slug && <span className="coll-card__slug">/{c.slug}</span>}
                 {c.description && (
-                  <RichTextContent value={c.description} className="coll-card__desc" />
+                  <RichTextContent
+                    value={c.description}
+                    className="coll-card__desc"
+                  />
                 )}
                 {c.productsCount !== undefined && (
                   <span className="coll-card__count">
@@ -587,7 +592,11 @@ const CollectionsTab = () => {
                       title={c.isActive ? "Ẩn" : "Hiện"}
                       onClick={() => toggleActive(c)}
                     >
-                      {c.isActive ? <FiEye size={15} /> : <FiEyeOff size={15} />}
+                      {c.isActive ? (
+                        <FiEye size={15} />
+                      ) : (
+                        <FiEyeOff size={15} />
+                      )}
                     </button>
                     <button
                       className="coll-icon-btn coll-icon-btn--edit"
@@ -636,9 +645,7 @@ const CollectionsTab = () => {
                         <ImageWithFallback
                           src={getStaticAssetUrl(c.thumbnail)}
                           alt={c.name}
-                          fallback={
-                          <FiImage size={16} />
-                          }
+                          fallback={<FiImage size={16} />}
                         />
                       </div>
                       <span className="coll-list__name">{c.name}</span>
@@ -817,7 +824,9 @@ const CollectionsTab = () => {
                     {localPreview || form.thumbnail ? (
                       <div className="coll-upload-preview-wrap">
                         <ImageWithFallback
-                          src={getStaticAssetUrl(localPreview ?? form.thumbnail)}
+                          src={getStaticAssetUrl(
+                            localPreview ?? form.thumbnail,
+                          )}
                           alt="preview"
                           className="coll-upload-preview-img"
                           fallback={

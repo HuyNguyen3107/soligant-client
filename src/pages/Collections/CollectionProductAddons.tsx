@@ -59,7 +59,8 @@ const CollectionProductAddons = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const addItem = useCustomCartStore((state) => state.addItem);
-  const navigationState = location.state as AdditionalOptionsNavigationState | null;
+  const navigationState =
+    location.state as AdditionalOptionsNavigationState | null;
 
   const {
     data: payload,
@@ -98,11 +99,16 @@ const CollectionProductAddons = () => {
     [addonOptions],
   );
 
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, Record<string, string>>>({});
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<string, Record<string, string>>
+  >({});
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const selectedOptionIds = useMemo(
-    () => Object.keys(selectedOptions).filter((optionId) => optionsLookup.has(optionId)),
+    () =>
+      Object.keys(selectedOptions).filter((optionId) =>
+        optionsLookup.has(optionId),
+      ),
     [optionsLookup, selectedOptions],
   );
 
@@ -110,12 +116,18 @@ const CollectionProductAddons = () => {
     () =>
       selectedOptionIds
         .map((optionId) => optionsLookup.get(optionId))
-        .filter((option): option is NonNullable<typeof option> => Boolean(option)),
+        .filter((option): option is NonNullable<typeof option> =>
+          Boolean(option),
+        ),
     [optionsLookup, selectedOptionIds],
   );
 
   const selectedAddonsPrice = useMemo(
-    () => selectedOptionRows.reduce((sum, option) => sum + normalizePrice(option.price), 0),
+    () =>
+      selectedOptionRows.reduce(
+        (sum, option) => sum + normalizePrice(option.price),
+        0,
+      ),
     [selectedOptionRows],
   );
 
@@ -166,7 +178,11 @@ const CollectionProductAddons = () => {
     });
   };
 
-  const updateFieldValue = (optionId: string, fieldKey: string, value: string) => {
+  const updateFieldValue = (
+    optionId: string,
+    fieldKey: string,
+    value: string,
+  ) => {
     setSubmissionError(null);
 
     setSelectedOptions((prev) => ({
@@ -197,9 +213,7 @@ const CollectionProductAddons = () => {
       const dataUrl = await readFileAsDataUrl(file);
       updateFieldValue(optionId, fieldKey, dataUrl);
     } catch (error) {
-      setSubmissionError(
-        error instanceof Error ? error.message : "Không thể đọc file ảnh.",
-      );
+      setSubmissionError(getErrorMessage(error, "Không thể đọc file ảnh."));
     }
   };
 
@@ -225,7 +239,11 @@ const CollectionProductAddons = () => {
           continue;
         }
 
-        const fieldKey = buildAddonFieldKey(index, field.label, field.fieldType);
+        const fieldKey = buildAddonFieldKey(
+          index,
+          field.label,
+          field.fieldType,
+        );
         const value = optionValues[fieldKey] ?? "";
 
         if (field.fieldType === "text") {
@@ -267,7 +285,11 @@ const CollectionProductAddons = () => {
               .slice()
               .sort((left, right) => left.sortOrder - right.sortOrder)
               .map((field, index) => {
-                const key = buildAddonFieldKey(index, field.label, field.fieldType);
+                const key = buildAddonFieldKey(
+                  index,
+                  field.label,
+                  field.fieldType,
+                );
 
                 return {
                   label: field.label,
@@ -362,7 +384,10 @@ const CollectionProductAddons = () => {
               { label: "Trang chủ", to: "/" },
               { label: "Bộ sưu tập", to: "/bo-suu-tap" },
               { label: collectionName, to: `/bo-suu-tap/${slug}` },
-              { label: product.name, to: `/bo-suu-tap/${slug}/san-pham/${productId}/custom` },
+              {
+                label: product.name,
+                to: `/bo-suu-tap/${slug}/san-pham/${productId}/custom`,
+              },
               { label: "Mua thêm" },
             ]}
           />
@@ -376,9 +401,9 @@ const CollectionProductAddons = () => {
                   src={productImage}
                   alt={product.name}
                   fallback={
-                  <div className="cao-product-card__placeholder">
-                    <FiShoppingBag size={28} />
-                  </div>
+                    <div className="cao-product-card__placeholder">
+                      <FiShoppingBag size={28} />
+                    </div>
                   }
                 />
               </div>
@@ -424,7 +449,9 @@ const CollectionProductAddons = () => {
                 </div>
               )}
 
-              {submissionError && <div className="cao-summary__error">{submissionError}</div>}
+              {submissionError && (
+                <div className="cao-summary__error">{submissionError}</div>
+              )}
 
               <div className="cao-summary__actions">
                 <button
@@ -455,11 +482,15 @@ const CollectionProductAddons = () => {
 
           <section className="cao-options">
             <header className="cao-options__header">
-              <p className="cao-options__eyebrow">Bước cuối trước khi hoàn tất</p>
-              <h2 className="cao-options__title">Bạn có muốn mua thêm gì không?</h2>
+              <p className="cao-options__eyebrow">
+                Bước cuối trước khi hoàn tất
+              </p>
+              <h2 className="cao-options__title">
+                Bạn có muốn mua thêm gì không?
+              </h2>
               <p className="cao-options__desc">
-                Bạn có thể chọn nhiều option mua thêm. Nếu không cần mua thêm, bạn vẫn có thể
-                bấm hoàn tất ở khung bên trái.
+                Bạn có thể chọn nhiều option mua thêm. Nếu không cần mua thêm,
+                bạn vẫn có thể bấm hoàn tất ở khung bên trái.
               </p>
             </header>
 
@@ -494,7 +525,9 @@ const CollectionProductAddons = () => {
                         <div className="cao-option-card__meta">
                           <div className="cao-option-card__title-row">
                             <h3>{option.name}</h3>
-                            <span className="cao-option-card__price">{formatMoney(option.price)}</span>
+                            <span className="cao-option-card__price">
+                              {formatMoney(option.price)}
+                            </span>
                           </div>
                           <p className="cao-option-card__type">
                             {option.optionType === "customizable"
@@ -520,7 +553,11 @@ const CollectionProductAddons = () => {
                       {isSelected && option.optionType === "customizable" && (
                         <div className="cao-option-card__fields">
                           {sortedFields.map((field, index) => {
-                            const fieldKey = buildAddonFieldKey(index, field.label, field.fieldType);
+                            const fieldKey = buildAddonFieldKey(
+                              index,
+                              field.label,
+                              field.fieldType,
+                            );
                             const value = optionValues[fieldKey] ?? "";
 
                             return (
@@ -576,9 +613,15 @@ const CollectionProductAddons = () => {
                                       className="cao-input"
                                       type="url"
                                       value={value}
-                                      placeholder={field.placeholder || "https://..."}
+                                      placeholder={
+                                        field.placeholder || "https://..."
+                                      }
                                       onChange={(event) =>
-                                        updateFieldValue(option.id, fieldKey, event.target.value)
+                                        updateFieldValue(
+                                          option.id,
+                                          fieldKey,
+                                          event.target.value,
+                                        )
                                       }
                                     />
                                   </div>
@@ -589,33 +632,46 @@ const CollectionProductAddons = () => {
                                     <RichTextEditor
                                       value={value}
                                       onChange={(nextValue) =>
-                                        updateFieldValue(option.id, fieldKey, nextValue)
+                                        updateFieldValue(
+                                          option.id,
+                                          fieldKey,
+                                          nextValue,
+                                        )
                                       }
-                                      placeholder={field.placeholder || "Nhập nội dung"}
+                                      placeholder={
+                                        field.placeholder || "Nhập nội dung"
+                                      }
                                       minHeight={130}
                                     />
                                   </div>
                                 )}
 
-                                {!field.required && field.fieldType !== "text" && !value.trim() && (
-                                  <p className="cao-field__hint">
-                                    {field.fieldType === "image" ? (
-                                      <>
-                                        <FiImage size={12} /> Trường này không bắt buộc.
-                                      </>
-                                    ) : (
-                                      <>
-                                        <FiLink size={12} /> Trường này không bắt buộc.
-                                      </>
-                                    )}
-                                  </p>
-                                )}
+                                {!field.required &&
+                                  field.fieldType !== "text" &&
+                                  !value.trim() && (
+                                    <p className="cao-field__hint">
+                                      {field.fieldType === "image" ? (
+                                        <>
+                                          <FiImage size={12} /> Trường này không
+                                          bắt buộc.
+                                        </>
+                                      ) : (
+                                        <>
+                                          <FiLink size={12} /> Trường này không
+                                          bắt buộc.
+                                        </>
+                                      )}
+                                    </p>
+                                  )}
 
-                                {!field.required && field.fieldType === "text" && isRichTextEmpty(value) && (
-                                  <p className="cao-field__hint">
-                                    <FiType size={12} /> Trường này không bắt buộc.
-                                  </p>
-                                )}
+                                {!field.required &&
+                                  field.fieldType === "text" &&
+                                  isRichTextEmpty(value) && (
+                                    <p className="cao-field__hint">
+                                      <FiType size={12} /> Trường này không bắt
+                                      buộc.
+                                    </p>
+                                  )}
                               </div>
                             );
                           })}

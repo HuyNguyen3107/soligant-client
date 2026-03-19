@@ -30,6 +30,8 @@ import {
   CustomerOrderFieldsTab,
   BackgroundThemesTab,
   BackgroundsTab,
+  BearVariantsTab,
+  BearCustomizationsTab,
 } from "./components";
 import { sidebarSections, TAB_META } from "./config";
 import { useAuthStore } from "../../store/auth.store";
@@ -49,9 +51,11 @@ const tabMap: Record<string, React.ReactNode> = {
   roles: <RolesTab />,
   collections: <CollectionsTab />,
   "lego-frames": <LegoFramesTab />,
+  "bear-variants": <BearVariantsTab />,
   inventory: <InventoryTab />,
   "lego-categories": <LegoCategoriesTab />,
   "lego-customizations": <LegoCustomizationsTab />,
+  "bear-customizations": <BearCustomizationsTab />,
   promotions: <PromotionsTab />,
   orders: <OrdersTab />,
   "addon-options": <AddonOptionsTab />,

@@ -14,10 +14,12 @@ import {
   FiTag,
 } from "react-icons/fi";
 import type { SysPerm, CustomRole, RoleForm } from "../types";
+import { getErrorMessage } from "../../../lib/error";
 import { hasPermission } from "../../../lib/permissions";
 import { useAuthStore } from "../../../store/auth.store";
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 const EMPTY_ROLE_FORM: RoleForm = {
   name: "",
@@ -227,7 +229,7 @@ const RolesTab = () => {
       closeModal();
       loadRoles();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
+      toast.error(getErrorMessage(err, "Có lỗi xảy ra."));
     } finally {
       setSaving(false);
     }
@@ -257,7 +259,7 @@ const RolesTab = () => {
       setConfirmId(null);
       loadRoles();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
+      toast.error(getErrorMessage(err, "Có lỗi xảy ra."));
     } finally {
       setDeleting(false);
     }

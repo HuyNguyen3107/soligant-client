@@ -14,7 +14,10 @@ import {
   RichTextEditor,
   SEO,
 } from "../../components/common";
-import type { CustomerInfoNavigationState, CustomizedCartItem } from "../../lib/custom-cart";
+import type {
+  CustomerInfoNavigationState,
+  CustomizedCartItem,
+} from "../../lib/custom-cart";
 import {
   buildCustomerOrderFieldKey,
   isCustomerOrderFieldValueEmpty,
@@ -46,8 +49,15 @@ const createInitialFieldValues = (
 
   return Object.fromEntries(
     activeFields.map((field, index) => {
-      const key = buildCustomerOrderFieldKey(index, field.label, field.fieldType);
-      return [key, normalizeCustomerOrderFieldValue(field, initialValueLookup.get(key))];
+      const key = buildCustomerOrderFieldKey(
+        index,
+        field.label,
+        field.fieldType,
+      );
+      return [
+        key,
+        normalizeCustomerOrderFieldValue(field, initialValueLookup.get(key)),
+      ];
     }),
   ) as Record<string, CustomerOrderFieldValue>;
 };
@@ -71,12 +81,15 @@ const CustomerInfoForm = ({
   onBack,
   onSubmit,
 }: CustomerInfoFormProps) => {
-  const [fieldValues, setFieldValues] = useState<Record<string, CustomerOrderFieldValue>>(() =>
-    createInitialFieldValues(activeFields, initialEntries),
-  );
+  const [fieldValues, setFieldValues] = useState<
+    Record<string, CustomerOrderFieldValue>
+  >(() => createInitialFieldValues(activeFields, initialEntries));
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
-  const updateFieldValue = (fieldKey: string, value: CustomerOrderFieldValue) => {
+  const updateFieldValue = (
+    fieldKey: string,
+    value: CustomerOrderFieldValue,
+  ) => {
     setSubmissionError(null);
     setFieldValues((prev) => ({ ...prev, [fieldKey]: value }));
   };
@@ -115,9 +128,7 @@ const CustomerInfoForm = ({
       const dataUrl = await readFileAsDataUrl(file);
       updateFieldValue(fieldKey, dataUrl);
     } catch (readError) {
-      setSubmissionError(
-        readError instanceof Error ? readError.message : "Không thể đọc file ảnh.",
-      );
+      setSubmissionError(getErrorMessage(readError, "Không thể đọc file ảnh."));
     }
   };
 
@@ -127,7 +138,11 @@ const CustomerInfoForm = ({
         continue;
       }
 
-      const fieldKey = buildCustomerOrderFieldKey(index, field.label, field.fieldType);
+      const fieldKey = buildCustomerOrderFieldKey(
+        index,
+        field.label,
+        field.fieldType,
+      );
       const value = fieldValues[fieldKey];
 
       if (isCustomerOrderFieldValueEmpty(field, value)) {
@@ -141,8 +156,15 @@ const CustomerInfoForm = ({
   const buildEntriesForOrder = () => {
     return activeFields
       .map((field, index) => {
-        const key = buildCustomerOrderFieldKey(index, field.label, field.fieldType);
-        const normalizedValue = normalizeCustomerOrderFieldValue(field, fieldValues[key]);
+        const key = buildCustomerOrderFieldKey(
+          index,
+          field.label,
+          field.fieldType,
+        );
+        const normalizedValue = normalizeCustomerOrderFieldValue(
+          field,
+          fieldValues[key],
+        );
 
         return {
           key,
@@ -156,7 +178,10 @@ const CustomerInfoForm = ({
           value: normalizedValue,
         } as CustomerOrderFieldEntry;
       })
-      .filter((entry) => !isCustomerOrderFieldValueEmpty(entry, entry.value) || entry.required)
+      .filter(
+        (entry) =>
+          !isCustomerOrderFieldValueEmpty(entry, entry.value) || entry.required,
+      )
       .sort((left, right) => left.sortOrder - right.sortOrder);
   };
 
@@ -175,7 +200,9 @@ const CustomerInfoForm = ({
     <div className="container ccif-layout">
       <aside className="ccif-sidebar">
         <h2 className="ccif-sidebar__title">Sản phẩm đã chọn</h2>
-        <p className="ccif-sidebar__count">{selectedItems.length} sản phẩm trong đơn</p>
+        <p className="ccif-sidebar__count">
+          {selectedItems.length} sản phẩm trong đơn
+        </p>
 
         <div className="ccif-selected-list">
           {selectedItems.map((item) => (
@@ -187,7 +214,11 @@ const CustomerInfoForm = ({
         </div>
 
         <div className="ccif-sidebar__actions">
-          <button type="button" className="ccif-btn ccif-btn--ghost" onClick={onBack}>
+          <button
+            type="button"
+            className="ccif-btn ccif-btn--ghost"
+            onClick={onBack}
+          >
             <FiArrowLeft size={15} /> Quay lại
           </button>
           <button type="button" className="ccif-btn" onClick={handleContinue}>
@@ -195,12 +226,16 @@ const CustomerInfoForm = ({
           </button>
         </div>
 
-        {submissionError && <div className="ccif-summary__error">{submissionError}</div>}
+        {submissionError && (
+          <div className="ccif-summary__error">{submissionError}</div>
+        )}
       </aside>
 
       <section className="ccif-form-wrap">
         <header className="ccif-form-wrap__header">
-          <p className="ccif-form-wrap__eyebrow">Bước bổ sung trước khi chốt đơn</p>
+          <p className="ccif-form-wrap__eyebrow">
+            Bước bổ sung trước khi chốt đơn
+          </p>
           <h1>{configTitle || "Thông tin khách hàng"}</h1>
           {configDescription && <RichTextContent value={configDescription} />}
         </header>
@@ -208,12 +243,19 @@ const CustomerInfoForm = ({
         {activeFields.length === 0 ? (
           <div className="ccif-empty-form">
             <FiCheckSquare size={38} />
-            <p>Hiện tại chưa có trường thông tin bắt buộc. Bạn có thể tiếp tục ngay.</p>
+            <p>
+              Hiện tại chưa có trường thông tin bắt buộc. Bạn có thể tiếp tục
+              ngay.
+            </p>
           </div>
         ) : (
           <div className="ccif-form-grid">
             {activeFields.map((field, index) => {
-              const fieldKey = buildCustomerOrderFieldKey(index, field.label, field.fieldType);
+              const fieldKey = buildCustomerOrderFieldKey(
+                index,
+                field.label,
+                field.fieldType,
+              );
               const selectedValue = fieldValues[fieldKey];
               const selectType = field.selectType || "dropdown";
 
@@ -229,8 +271,12 @@ const CustomerInfoForm = ({
                       className="ccif-input"
                       type="text"
                       placeholder={field.placeholder || "Nhập nội dung"}
-                      value={typeof selectedValue === "string" ? selectedValue : ""}
-                      onChange={(event) => updateFieldValue(fieldKey, event.target.value)}
+                      value={
+                        typeof selectedValue === "string" ? selectedValue : ""
+                      }
+                      onChange={(event) =>
+                        updateFieldValue(fieldKey, event.target.value)
+                      }
                     />
                   )}
 
@@ -239,8 +285,12 @@ const CustomerInfoForm = ({
                       className="ccif-input"
                       type="number"
                       placeholder={field.placeholder || "Nhập số"}
-                      value={typeof selectedValue === "string" ? selectedValue : ""}
-                      onChange={(event) => updateFieldValue(fieldKey, event.target.value)}
+                      value={
+                        typeof selectedValue === "string" ? selectedValue : ""
+                      }
+                      onChange={(event) =>
+                        updateFieldValue(fieldKey, event.target.value)
+                      }
                     />
                   )}
 
@@ -248,16 +298,26 @@ const CustomerInfoForm = ({
                     <input
                       className="ccif-input"
                       type="date"
-                      value={typeof selectedValue === "string" ? selectedValue : ""}
-                      onChange={(event) => updateFieldValue(fieldKey, event.target.value)}
+                      value={
+                        typeof selectedValue === "string" ? selectedValue : ""
+                      }
+                      onChange={(event) =>
+                        updateFieldValue(fieldKey, event.target.value)
+                      }
                     />
                   )}
 
                   {field.fieldType === "long_text" && (
                     <RichTextEditor
-                      value={typeof selectedValue === "string" ? selectedValue : ""}
-                      onChange={(nextValue) => updateFieldValue(fieldKey, nextValue)}
-                      placeholder={field.placeholder || "Nhập nội dung chi tiết"}
+                      value={
+                        typeof selectedValue === "string" ? selectedValue : ""
+                      }
+                      onChange={(nextValue) =>
+                        updateFieldValue(fieldKey, nextValue)
+                      }
+                      placeholder={
+                        field.placeholder || "Nhập nội dung chi tiết"
+                      }
                       minHeight={150}
                     />
                   )}
@@ -268,12 +328,19 @@ const CustomerInfoForm = ({
                         className="ccif-input"
                         type="file"
                         accept="image/*"
-                        onChange={(event) => handleImageSelect(fieldKey, event.target.files?.[0])}
+                        onChange={(event) =>
+                          handleImageSelect(fieldKey, event.target.files?.[0])
+                        }
                       />
 
-                      {typeof selectedValue === "string" && selectedValue.trim() && (
-                        <img src={selectedValue} alt={field.label} className="ccif-upload-preview" />
-                      )}
+                      {typeof selectedValue === "string" &&
+                        selectedValue.trim() && (
+                          <img
+                            src={selectedValue}
+                            alt={field.label}
+                            className="ccif-upload-preview"
+                          />
+                        )}
 
                       {!selectedValue && (
                         <p className="ccif-field__hint">
@@ -283,20 +350,25 @@ const CustomerInfoForm = ({
                     </div>
                   )}
 
-                  {field.fieldType === "select" && selectType === "dropdown" && (
-                    <select
-                      className="ccif-input"
-                      value={typeof selectedValue === "string" ? selectedValue : ""}
-                      onChange={(event) => updateFieldValue(fieldKey, event.target.value)}
-                    >
-                      <option value="">-- Chọn --</option>
-                      {field.options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  {field.fieldType === "select" &&
+                    selectType === "dropdown" && (
+                      <select
+                        className="ccif-input"
+                        value={
+                          typeof selectedValue === "string" ? selectedValue : ""
+                        }
+                        onChange={(event) =>
+                          updateFieldValue(fieldKey, event.target.value)
+                        }
+                      >
+                        <option value="">-- Chọn --</option>
+                        {field.options.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
 
                   {field.fieldType === "select" && selectType === "radio" && (
                     <div className="ccif-choice-list">
@@ -306,7 +378,9 @@ const CustomerInfoForm = ({
                             type="radio"
                             name={fieldKey}
                             checked={selectedValue === option.value}
-                            onChange={() => updateFieldValue(fieldKey, option.value)}
+                            onChange={() =>
+                              updateFieldValue(fieldKey, option.value)
+                            }
                           />
                           <span>{option.label}</span>
                         </label>
@@ -314,24 +388,32 @@ const CustomerInfoForm = ({
                     </div>
                   )}
 
-                  {field.fieldType === "select" && selectType === "checkbox" && (
-                    <div className="ccif-choice-list">
-                      {field.options.map((option) => {
-                        const selectedValues = Array.isArray(selectedValue) ? selectedValue : [];
+                  {field.fieldType === "select" &&
+                    selectType === "checkbox" && (
+                      <div className="ccif-choice-list">
+                        {field.options.map((option) => {
+                          const selectedValues = Array.isArray(selectedValue)
+                            ? selectedValue
+                            : [];
 
-                        return (
-                          <label key={option.value} className="ccif-choice-item">
-                            <input
-                              type="checkbox"
-                              checked={selectedValues.includes(option.value)}
-                              onChange={() => toggleCheckboxValue(fieldKey, option.value)}
-                            />
-                            <span>{option.label}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
+                          return (
+                            <label
+                              key={option.value}
+                              className="ccif-choice-item"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedValues.includes(option.value)}
+                                onChange={() =>
+                                  toggleCheckboxValue(fieldKey, option.value)
+                                }
+                              />
+                              <span>{option.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
                 </div>
               );
             })}
@@ -346,10 +428,18 @@ const CollectionCustomerInfo = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const cartItems = useCustomCartStore((state) => state.items);
-  const storedSelectedItemIds = useCustomCartStore((state) => state.selectedItemIds);
-  const setSelectedItemIds = useCustomCartStore((state) => state.setSelectedItemIds);
-  const storedCustomerInfoEntries = useCustomCartStore((state) => state.customerInfoEntries);
-  const setCustomerInfoEntries = useCustomCartStore((state) => state.setCustomerInfoEntries);
+  const storedSelectedItemIds = useCustomCartStore(
+    (state) => state.selectedItemIds,
+  );
+  const setSelectedItemIds = useCustomCartStore(
+    (state) => state.setSelectedItemIds,
+  );
+  const storedCustomerInfoEntries = useCustomCartStore(
+    (state) => state.customerInfoEntries,
+  );
+  const setCustomerInfoEntries = useCustomCartStore(
+    (state) => state.setCustomerInfoEntries,
+  );
 
   const locationState = location.state as CustomerInfoNavigationState | null;
 
@@ -359,12 +449,11 @@ const CollectionCustomerInfo = () => {
   );
 
   const effectiveSelectedIds = useMemo(() => {
-    const candidateIds =
-      locationState?.selectedItemIds?.length
-        ? locationState.selectedItemIds
-        : storedSelectedItemIds.length > 0
-          ? storedSelectedItemIds
-          : cartItems.map((item) => item.id);
+    const candidateIds = locationState?.selectedItemIds?.length
+      ? locationState.selectedItemIds
+      : storedSelectedItemIds.length > 0
+        ? storedSelectedItemIds
+        : cartItems.map((item) => item.id);
 
     return candidateIds.filter((itemId) => itemLookup.has(itemId));
   }, [locationState, storedSelectedItemIds, cartItems, itemLookup]);
@@ -372,7 +461,9 @@ const CollectionCustomerInfo = () => {
   useEffect(() => {
     const isSameSelection =
       effectiveSelectedIds.length === storedSelectedItemIds.length &&
-      effectiveSelectedIds.every((itemId, index) => storedSelectedItemIds[index] === itemId);
+      effectiveSelectedIds.every(
+        (itemId, index) => storedSelectedItemIds[index] === itemId,
+      );
 
     if (!isSameSelection) {
       setSelectedItemIds(effectiveSelectedIds);
@@ -388,7 +479,10 @@ const CollectionCustomerInfo = () => {
   );
 
   const initialEntries = useMemo(() => {
-    if (locationState?.customerInfoEntries && locationState.customerInfoEntries.length > 0) {
+    if (
+      locationState?.customerInfoEntries &&
+      locationState.customerInfoEntries.length > 0
+    ) {
       return locationState.customerInfoEntries;
     }
 
@@ -409,14 +503,22 @@ const CollectionCustomerInfo = () => {
   const activeFields = useMemo(
     () =>
       config?.isActive
-        ? config.fields.slice().sort((left, right) => left.sortOrder - right.sortOrder)
+        ? config.fields
+            .slice()
+            .sort((left, right) => left.sortOrder - right.sortOrder)
         : [],
     [config],
   );
 
   const formResetKey = useMemo(
     () =>
-      JSON.stringify(activeFields.map((field) => [field.label, field.fieldType, field.sortOrder])) +
+      JSON.stringify(
+        activeFields.map((field) => [
+          field.label,
+          field.fieldType,
+          field.sortOrder,
+        ]),
+      ) +
       JSON.stringify(initialEntries.map((entry) => [entry.key, entry.value])),
     [activeFields, initialEntries],
   );
@@ -446,7 +548,8 @@ const CollectionCustomerInfo = () => {
             <FiShoppingBag size={42} />
             <h1>Chưa có sản phẩm nào được chọn</h1>
             <p>
-              Hãy chọn ít nhất một sản phẩm trong giỏ hàng trước khi điền thông tin khách hàng.
+              Hãy chọn ít nhất một sản phẩm trong giỏ hàng trước khi điền thông
+              tin khách hàng.
             </p>
             <Link to="/bo-suu-tap" className="ccif-btn">
               <FiArrowLeft size={16} /> Quay lại bộ sưu tập
@@ -460,7 +563,9 @@ const CollectionCustomerInfo = () => {
   if (isLoading) {
     return (
       <div className="ccif-page">
-        <div className="container ccif-loading">Đang tải biểu mẫu thông tin khách hàng...</div>
+        <div className="container ccif-loading">
+          Đang tải biểu mẫu thông tin khách hàng...
+        </div>
       </div>
     );
   }
@@ -471,7 +576,9 @@ const CollectionCustomerInfo = () => {
         <div className="container ccif-error">
           <FiFileText size={44} />
           <h2>Không thể mở bước thông tin khách hàng</h2>
-          <p>{getErrorMessage(error, "Có lỗi xảy ra khi tải cấu hình biểu mẫu.")}</p>
+          <p>
+            {getErrorMessage(error, "Có lỗi xảy ra khi tải cấu hình biểu mẫu.")}
+          </p>
           <div className="ccif-error__actions">
             <button
               type="button"

@@ -17,11 +17,12 @@ import {
 } from "../../lib/custom-cart";
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
-import {
-  isRichTextEmpty,
-} from "../../lib/rich-text";
+import { isRichTextEmpty } from "../../lib/rich-text";
 import { getPublicCollectionProducts } from "../../services/collections.service";
-import { getPublicBackgrounds, type PublicBackground } from "../../services/backgrounds.service";
+import {
+  getPublicBackgrounds,
+  type PublicBackground,
+} from "../../services/backgrounds.service";
 import "./CollectionProductBackgroundPicker.css";
 
 const readFileAsDataUrl = (file: File) =>
@@ -38,7 +39,11 @@ interface BackgroundCardProps {
   onSelect: () => void;
 }
 
-const BackgroundCard = ({ background, isSelected, onSelect }: BackgroundCardProps) => {
+const BackgroundCard = ({
+  background,
+  isSelected,
+  onSelect,
+}: BackgroundCardProps) => {
   const imageUrl = getStaticAssetUrl(background.image);
 
   return (
@@ -52,9 +57,9 @@ const BackgroundCard = ({ background, isSelected, onSelect }: BackgroundCardProp
           src={imageUrl}
           alt={background.name}
           fallback={
-          <div className="cbp-card__placeholder">
-            <FiImage size={28} />
-          </div>
+            <div className="cbp-card__placeholder">
+              <FiImage size={28} />
+            </div>
           }
         />
       </div>
@@ -109,7 +114,10 @@ const CollectionProductBackgroundPicker = () => {
   const collectionName = payload?.collection?.name ?? "";
 
   const groupedByTheme = useMemo(() => {
-    const groups: Record<string, { themeId: string; themeName: string; items: PublicBackground[] }> = {};
+    const groups: Record<
+      string,
+      { themeId: string; themeName: string; items: PublicBackground[] }
+    > = {};
 
     backgrounds.forEach((bg) => {
       const key = bg.themeId;
@@ -128,11 +136,15 @@ const CollectionProductBackgroundPicker = () => {
   >({});
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
-  const selectedBackground = backgrounds.find((bg) => bg.id === selectedBackgroundId);
+  const selectedBackground = backgrounds.find(
+    (bg) => bg.id === selectedBackgroundId,
+  );
   const selectedBackgroundFields = useMemo(
     () =>
       selectedBackground
-        ? [...selectedBackground.fields].sort((a, b) => a.sortOrder - b.sortOrder)
+        ? [...selectedBackground.fields].sort(
+            (a, b) => a.sortOrder - b.sortOrder,
+          )
         : [],
     [selectedBackground],
   );
@@ -157,7 +169,11 @@ const CollectionProductBackgroundPicker = () => {
       const next: Record<string, BackgroundFieldValue> = {};
 
       selectedBackgroundFields.forEach((field, index) => {
-        const key = buildBackgroundFieldKey(index, field.label, field.fieldType);
+        const key = buildBackgroundFieldKey(
+          index,
+          field.label,
+          field.fieldType,
+        );
 
         if (prev[key] !== undefined) {
           next[key] = prev[key];
@@ -174,7 +190,10 @@ const CollectionProductBackgroundPicker = () => {
     });
   }, [selectedBackground, selectedBackgroundFields]);
 
-  const updateBackgroundFieldValue = (key: string, value: BackgroundFieldValue) => {
+  const updateBackgroundFieldValue = (
+    key: string,
+    value: BackgroundFieldValue,
+  ) => {
     setSubmissionError(null);
     setBackgroundFieldValues((prev) => ({ ...prev, [key]: value }));
   };
@@ -213,13 +232,14 @@ const CollectionProductBackgroundPicker = () => {
       const dataUrl = await readFileAsDataUrl(file);
       updateBackgroundFieldValue(fieldKey, dataUrl);
     } catch (error) {
-      setSubmissionError(
-        error instanceof Error ? error.message : "Không thể đọc file ảnh.",
-      );
+      setSubmissionError(getErrorMessage(error, "Không thể đọc file ảnh."));
     }
   };
 
-  const resolveOptionLabels = (fieldKey: string, field: PublicBackground["fields"][number]) => {
+  const resolveOptionLabels = (
+    fieldKey: string,
+    field: PublicBackground["fields"][number],
+  ) => {
     const selectedValue = backgroundFieldValues[fieldKey];
     if (!Array.isArray(selectedValue)) {
       return [];
@@ -245,7 +265,11 @@ const CollectionProductBackgroundPicker = () => {
         continue;
       }
 
-      const fieldKey = buildBackgroundFieldKey(index, field.label, field.fieldType);
+      const fieldKey = buildBackgroundFieldKey(
+        index,
+        field.label,
+        field.fieldType,
+      );
       const value = backgroundFieldValues[fieldKey];
 
       if (field.fieldType === "select" && field.selectType === "checkbox") {
@@ -318,7 +342,10 @@ const CollectionProductBackgroundPicker = () => {
   const errorMessage = isProductError
     ? getErrorMessage(productError, "Có lỗi xảy ra khi tải sản phẩm.")
     : isBackgroundsError
-      ? getErrorMessage(backgroundsError, "Có lỗi xảy ra khi tải danh sách nền.")
+      ? getErrorMessage(
+          backgroundsError,
+          "Có lỗi xảy ra khi tải danh sách nền.",
+        )
       : null;
 
   if (isProductLoading || isBackgroundsLoading || !slug || !productId) {
@@ -339,7 +366,10 @@ const CollectionProductBackgroundPicker = () => {
           <FiGrid size={44} />
           <h2>Không thể mở trang chọn nền</h2>
           <p>{errorMessage ?? "Dữ liệu bộ sưu tập không khả dụng."}</p>
-          <Link to={`/bo-suu-tap/${slug}/san-pham/${productId}/custom`} className="cbp-btn-back">
+          <Link
+            to={`/bo-suu-tap/${slug}/san-pham/${productId}/custom`}
+            className="cbp-btn-back"
+          >
             <FiArrowLeft size={16} /> Quay lại tùy chỉnh
           </Link>
         </div>
@@ -380,7 +410,10 @@ const CollectionProductBackgroundPicker = () => {
               { label: "Trang chủ", to: "/" },
               { label: "Bộ sưu tập", to: "/bo-suu-tap" },
               { label: collectionName, to: `/bo-suu-tap/${slug}` },
-              { label: product.name, to: `/bo-suu-tap/${slug}/san-pham/${productId}/custom` },
+              {
+                label: product.name,
+                to: `/bo-suu-tap/${slug}/san-pham/${productId}/custom`,
+              },
               { label: "Chọn nền" },
             ]}
           />
@@ -394,9 +427,9 @@ const CollectionProductBackgroundPicker = () => {
                   src={productImage}
                   alt={product.name}
                   fallback={
-                  <div className="cbp-product-card__placeholder">
-                    <FiGrid size={30} />
-                  </div>
+                    <div className="cbp-product-card__placeholder">
+                      <FiGrid size={30} />
+                    </div>
                   }
                 />
               </div>
@@ -425,8 +458,12 @@ const CollectionProductBackgroundPicker = () => {
                       }
                     />
                     <div>
-                      <p className="cbp-summary__selected-theme">{selectedBackground.themeName}</p>
-                      <p className="cbp-summary__selected-name">{selectedBackground.name}</p>
+                      <p className="cbp-summary__selected-theme">
+                        {selectedBackground.themeName}
+                      </p>
+                      <p className="cbp-summary__selected-name">
+                        {selectedBackground.name}
+                      </p>
                     </div>
                   </div>
                   {!isRichTextEmpty(selectedBackground.description) && (
@@ -448,12 +485,17 @@ const CollectionProductBackgroundPicker = () => {
                   </div>
                   <div className="cbp-summary__pricing-row">
                     <span>Lego thêm</span>
-                    <strong>{customizerState.selectedAdditionalLegoCount}</strong>
+                    <strong>
+                      {customizerState.selectedAdditionalLegoCount}
+                    </strong>
                   </div>
                   <div className="cbp-summary__pricing-row">
                     <span>Tạm tính hiện tại</span>
                     <strong>
-                      {customizerState.pricingSummary.total.toLocaleString("vi-VN")} đ
+                      {customizerState.pricingSummary.total.toLocaleString(
+                        "vi-VN",
+                      )}{" "}
+                      đ
                     </strong>
                   </div>
                 </div>
@@ -464,12 +506,18 @@ const CollectionProductBackgroundPicker = () => {
                   <p className="cbp-summary__fields-title">Thông tin đã nhập</p>
 
                   {selectedBackgroundFields.map((field, index) => {
-                    const fieldKey = buildBackgroundFieldKey(index, field.label, field.fieldType);
+                    const fieldKey = buildBackgroundFieldKey(
+                      index,
+                      field.label,
+                      field.fieldType,
+                    );
                     const value = backgroundFieldValues[fieldKey];
 
                     return (
                       <div key={fieldKey} className="cbp-summary__field-item">
-                        <p className="cbp-summary__field-label">{field.label}</p>
+                        <p className="cbp-summary__field-label">
+                          {field.label}
+                        </p>
 
                         {field.fieldType === "image_upload" ? (
                           typeof value === "string" && value.trim() ? (
@@ -478,28 +526,45 @@ const CollectionProductBackgroundPicker = () => {
                               alt={field.label}
                               className="cbp-summary__field-image"
                               fallback={
-                                <p className="cbp-summary__field-empty">Ảnh không còn khả dụng</p>
+                                <p className="cbp-summary__field-empty">
+                                  Ảnh không còn khả dụng
+                                </p>
                               }
                             />
                           ) : (
-                            <p className="cbp-summary__field-empty">Chưa tải ảnh</p>
+                            <p className="cbp-summary__field-empty">
+                              Chưa tải ảnh
+                            </p>
                           )
                         ) : field.fieldType === "long_text" ? (
-                          isRichTextEmpty(typeof value === "string" ? value : "") ? (
-                            <p className="cbp-summary__field-empty">Chưa nhập nội dung</p>
+                          isRichTextEmpty(
+                            typeof value === "string" ? value : "",
+                          ) ? (
+                            <p className="cbp-summary__field-empty">
+                              Chưa nhập nội dung
+                            </p>
                           ) : (
-                            <RichTextContent value={typeof value === "string" ? value : ""} />
+                            <RichTextContent
+                              value={typeof value === "string" ? value : ""}
+                            />
                           )
-                        ) : field.fieldType === "select" && field.selectType === "checkbox" ? (
+                        ) : field.fieldType === "select" &&
+                          field.selectType === "checkbox" ? (
                           resolveOptionLabels(fieldKey, field).length > 0 ? (
                             <p className="cbp-summary__field-value">
                               {resolveOptionLabels(fieldKey, field).join(", ")}
                             </p>
                           ) : (
-                            <p className="cbp-summary__field-empty">Chưa chọn</p>
+                            <p className="cbp-summary__field-empty">
+                              Chưa chọn
+                            </p>
                           )
-                        ) : !isRichTextEmpty(typeof value === "string" ? value : "") ? (
-                          <p className="cbp-summary__field-value">{String(value)}</p>
+                        ) : !isRichTextEmpty(
+                            typeof value === "string" ? value : "",
+                          ) ? (
+                          <p className="cbp-summary__field-value">
+                            {String(value)}
+                          </p>
                         ) : (
                           <p className="cbp-summary__field-empty">Chưa nhập</p>
                         )}
@@ -511,7 +576,8 @@ const CollectionProductBackgroundPicker = () => {
 
               {!customizerState && (
                 <div className="cbp-summary__error">
-                  Vui lòng quay lại bước tùy chỉnh để hoàn tất thêm giỏ hàng hoặc đặt hàng ngay.
+                  Vui lòng quay lại bước tùy chỉnh để hoàn tất thêm giỏ hàng
+                  hoặc đặt hàng ngay.
                 </div>
               )}
 
@@ -543,9 +609,12 @@ const CollectionProductBackgroundPicker = () => {
           <section className="cbp-editor">
             <header className="cbp-editor__header">
               <p className="cbp-editor__eyebrow">Chọn nền cho sản phẩm</p>
-              <h2 className="cbp-editor__title">Chọn hình nền phù hợp cho khung tranh</h2>
+              <h2 className="cbp-editor__title">
+                Chọn hình nền phù hợp cho khung tranh
+              </h2>
               <p className="cbp-editor__desc">
-                Bấm vào một hình nền bên dưới để chọn. Bạn có thể thay đổi lựa chọn bất kỳ lúc nào trước khi hoàn tất.
+                Bấm vào một hình nền bên dưới để chọn. Bạn có thể thay đổi lựa
+                chọn bất kỳ lúc nào trước khi hoàn tất.
               </p>
             </header>
 
@@ -558,7 +627,9 @@ const CollectionProductBackgroundPicker = () => {
               <>
                 {groupedByTheme.map((group) => (
                   <div key={group.themeId} className="cbp-theme-group">
-                    <h3 className="cbp-theme-group__title">{group.themeName}</h3>
+                    <h3 className="cbp-theme-group__title">
+                      {group.themeName}
+                    </h3>
                     <div className="cbp-grid">
                       {group.items.map((bg) => (
                         <BackgroundCard
@@ -574,14 +645,21 @@ const CollectionProductBackgroundPicker = () => {
 
                 {selectedBackground && selectedBackgroundFields.length > 0 && (
                   <div className="cbp-form-section">
-                    <h3 className="cbp-form-section__title">Thông tin cần nhập cho nền đã chọn</h3>
+                    <h3 className="cbp-form-section__title">
+                      Thông tin cần nhập cho nền đã chọn
+                    </h3>
                     <p className="cbp-form-section__desc">
-                      Điền các trường dưới đây để hoàn tất thông tin cho background này.
+                      Điền các trường dưới đây để hoàn tất thông tin cho
+                      background này.
                     </p>
 
                     <div className="cbp-form-fields">
                       {selectedBackgroundFields.map((field, index) => {
-                        const fieldKey = buildBackgroundFieldKey(index, field.label, field.fieldType);
+                        const fieldKey = buildBackgroundFieldKey(
+                          index,
+                          field.label,
+                          field.fieldType,
+                        );
                         const selectedValue = backgroundFieldValues[fieldKey];
                         const selectType = field.selectType || "dropdown";
 
@@ -596,10 +674,19 @@ const CollectionProductBackgroundPicker = () => {
                               <input
                                 className="cbp-input"
                                 type="text"
-                                placeholder={field.placeholder || "Nhập nội dung"}
-                                value={typeof selectedValue === "string" ? selectedValue : ""}
+                                placeholder={
+                                  field.placeholder || "Nhập nội dung"
+                                }
+                                value={
+                                  typeof selectedValue === "string"
+                                    ? selectedValue
+                                    : ""
+                                }
                                 onChange={(event) =>
-                                  updateBackgroundFieldValue(fieldKey, event.target.value)
+                                  updateBackgroundFieldValue(
+                                    fieldKey,
+                                    event.target.value,
+                                  )
                                 }
                               />
                             )}
@@ -609,9 +696,16 @@ const CollectionProductBackgroundPicker = () => {
                                 className="cbp-input"
                                 type="number"
                                 placeholder={field.placeholder || "Nhập số"}
-                                value={typeof selectedValue === "string" ? selectedValue : ""}
+                                value={
+                                  typeof selectedValue === "string"
+                                    ? selectedValue
+                                    : ""
+                                }
                                 onChange={(event) =>
-                                  updateBackgroundFieldValue(fieldKey, event.target.value)
+                                  updateBackgroundFieldValue(
+                                    fieldKey,
+                                    event.target.value,
+                                  )
                                 }
                               />
                             )}
@@ -620,20 +714,36 @@ const CollectionProductBackgroundPicker = () => {
                               <input
                                 className="cbp-input"
                                 type="date"
-                                value={typeof selectedValue === "string" ? selectedValue : ""}
+                                value={
+                                  typeof selectedValue === "string"
+                                    ? selectedValue
+                                    : ""
+                                }
                                 onChange={(event) =>
-                                  updateBackgroundFieldValue(fieldKey, event.target.value)
+                                  updateBackgroundFieldValue(
+                                    fieldKey,
+                                    event.target.value,
+                                  )
                                 }
                               />
                             )}
 
                             {field.fieldType === "long_text" && (
                               <RichTextEditor
-                                value={typeof selectedValue === "string" ? selectedValue : ""}
-                                onChange={(nextValue) =>
-                                  updateBackgroundFieldValue(fieldKey, nextValue)
+                                value={
+                                  typeof selectedValue === "string"
+                                    ? selectedValue
+                                    : ""
                                 }
-                                placeholder={field.placeholder || "Nhập nội dung chi tiết"}
+                                onChange={(nextValue) =>
+                                  updateBackgroundFieldValue(
+                                    fieldKey,
+                                    nextValue,
+                                  )
+                                }
+                                placeholder={
+                                  field.placeholder || "Nhập nội dung chi tiết"
+                                }
                                 minHeight={150}
                               />
                             )}
@@ -645,91 +755,124 @@ const CollectionProductBackgroundPicker = () => {
                                   type="file"
                                   accept="image/*"
                                   onChange={(event) =>
-                                    onFieldImageSelect(fieldKey, event.target.files?.[0])
+                                    onFieldImageSelect(
+                                      fieldKey,
+                                      event.target.files?.[0],
+                                    )
                                   }
                                 />
 
-                                {typeof selectedValue === "string" && selectedValue.trim() && (
-                                  <ImageWithFallback
-                                    src={selectedValue}
-                                    alt={field.label}
-                                    className="cbp-upload-preview"
-                                    fallback={
-                                      <div
-                                        className="cbp-upload-preview"
-                                        style={{
-                                          display: "flex",
-                                          alignItems: "center",
-                                          justifyContent: "center",
-                                          background: "#f8fafc",
-                                          color: "#94a3b8",
-                                        }}
-                                      >
-                                        <FiImage size={24} />
-                                      </div>
-                                    }
-                                  />
-                                )}
-                              </div>
-                            )}
-
-                            {field.fieldType === "select" && selectType === "dropdown" && (
-                              <select
-                                className="cbp-input"
-                                value={typeof selectedValue === "string" ? selectedValue : ""}
-                                onChange={(event) =>
-                                  updateBackgroundFieldValue(fieldKey, event.target.value)
-                                }
-                              >
-                                <option value="">-- Chọn --</option>
-                                {field.options.map((option) => (
-                                  <option key={option.value} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
-                            )}
-
-                            {field.fieldType === "select" && selectType === "radio" && (
-                              <div className="cbp-choice-list">
-                                {field.options.map((option) => (
-                                  <label key={option.value} className="cbp-choice-item">
-                                    <input
-                                      type="radio"
-                                      name={fieldKey}
-                                      checked={selectedValue === option.value}
-                                      onChange={() =>
-                                        updateBackgroundFieldValue(fieldKey, option.value)
+                                {typeof selectedValue === "string" &&
+                                  selectedValue.trim() && (
+                                    <ImageWithFallback
+                                      src={selectedValue}
+                                      alt={field.label}
+                                      className="cbp-upload-preview"
+                                      fallback={
+                                        <div
+                                          className="cbp-upload-preview"
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            background: "#f8fafc",
+                                            color: "#94a3b8",
+                                          }}
+                                        >
+                                          <FiImage size={24} />
+                                        </div>
                                       }
                                     />
-                                    <span>{option.label}</span>
-                                  </label>
-                                ))}
+                                  )}
                               </div>
                             )}
 
-                            {field.fieldType === "select" && selectType === "checkbox" && (
-                              <div className="cbp-choice-list">
-                                {field.options.map((option) => {
-                                  const selectedValues = Array.isArray(selectedValue)
-                                    ? selectedValue
-                                    : [];
+                            {field.fieldType === "select" &&
+                              selectType === "dropdown" && (
+                                <select
+                                  className="cbp-input"
+                                  value={
+                                    typeof selectedValue === "string"
+                                      ? selectedValue
+                                      : ""
+                                  }
+                                  onChange={(event) =>
+                                    updateBackgroundFieldValue(
+                                      fieldKey,
+                                      event.target.value,
+                                    )
+                                  }
+                                >
+                                  <option value="">-- Chọn --</option>
+                                  {field.options.map((option) => (
+                                    <option
+                                      key={option.value}
+                                      value={option.value}
+                                    >
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
 
-                                  return (
-                                    <label key={option.value} className="cbp-choice-item">
+                            {field.fieldType === "select" &&
+                              selectType === "radio" && (
+                                <div className="cbp-choice-list">
+                                  {field.options.map((option) => (
+                                    <label
+                                      key={option.value}
+                                      className="cbp-choice-item"
+                                    >
                                       <input
-                                        type="checkbox"
-                                        checked={selectedValues.includes(option.value)}
+                                        type="radio"
+                                        name={fieldKey}
+                                        checked={selectedValue === option.value}
                                         onChange={() =>
-                                          toggleCheckboxValue(fieldKey, option.value)
+                                          updateBackgroundFieldValue(
+                                            fieldKey,
+                                            option.value,
+                                          )
                                         }
                                       />
                                       <span>{option.label}</span>
                                     </label>
-                                  );
-                                })}
-                              </div>
-                            )}
+                                  ))}
+                                </div>
+                              )}
+
+                            {field.fieldType === "select" &&
+                              selectType === "checkbox" && (
+                                <div className="cbp-choice-list">
+                                  {field.options.map((option) => {
+                                    const selectedValues = Array.isArray(
+                                      selectedValue,
+                                    )
+                                      ? selectedValue
+                                      : [];
+
+                                    return (
+                                      <label
+                                        key={option.value}
+                                        className="cbp-choice-item"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedValues.includes(
+                                            option.value,
+                                          )}
+                                          onChange={() =>
+                                            toggleCheckboxValue(
+                                              fieldKey,
+                                              option.value,
+                                            )
+                                          }
+                                        />
+                                        <span>{option.label}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              )}
                           </div>
                         );
                       })}

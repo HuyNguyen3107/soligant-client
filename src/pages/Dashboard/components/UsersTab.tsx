@@ -12,10 +12,12 @@ import {
   FiLock,
 } from "react-icons/fi";
 import type { RoleOption, UserRow, UserFormState } from "../types";
+import { getErrorMessage } from "../../../lib/error";
 import { hasPermission } from "../../../lib/permissions";
 import { useAuthStore } from "../../../store/auth.store";
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 const SERVER_ORIGIN = (() => {
   try {
     return new URL(API_URL).origin;
@@ -101,7 +103,7 @@ const UsersTab = () => {
   useEffect(() => {
     loadUsers();
     loadRoles();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canViewUsers, canViewRoles]);
 
   const openCreate = () => {
@@ -220,7 +222,7 @@ const UsersTab = () => {
       closeModal();
       loadUsers();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
+      toast.error(getErrorMessage(err, "Có lỗi xảy ra."));
     } finally {
       setSaving(false);
     }
@@ -249,7 +251,7 @@ const UsersTab = () => {
       setConfirmId(null);
       loadUsers();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
+      toast.error(getErrorMessage(err, "Có lỗi xảy ra."));
     } finally {
       setDeleting(false);
     }

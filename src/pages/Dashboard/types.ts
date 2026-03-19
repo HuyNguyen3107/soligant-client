@@ -532,3 +532,77 @@ export interface OrderRow {
   updatedAt: string;
 }
 
+// ─── BEAR VARIANT TAB TYPES ──────────────────────────────────────────────────
+export interface BearVariant {
+  id: string;
+  collectionId: string;
+  collectionName?: string;
+  categoryId: string;
+  categoryName?: string;
+  name: string;
+  variantSymbol: string;
+  description: string;
+  image: string;
+  price: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface BearVariantForm {
+  collectionId: string;
+  categoryId: string;
+  name: string;
+  variantSymbol: string;
+  description: string;
+  image: string;
+  price: string;
+  stockQuantity: string;
+  lowStockThreshold: string;
+  isActive: boolean;
+}
+
+// ─── BEAR CUSTOMIZATIONS TAB TYPES ───────────────────────────────────────────
+export interface BearCustomizationOption {
+  id: string;
+  groupId: string;
+  name: string;
+  description: string;
+  price: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  allowImageUpload: boolean;
+  image: string;
+  colorCode: string;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface BearCustomizationGroup {
+  id: string;
+  name: string;
+  helper: string;
+  isActive: boolean;
+  optionCount: number;
+  updatedAt: string;
+  options: BearCustomizationOption[];
+}
+
+export interface BearCustomizationGroupForm {
+  name: string;
+  helper: string;
+}
+
+export interface BearCustomizationOptionForm {
+  groupId: string;
+  name: string;
+  description: string;
+  price: string;
+  stockQuantity: string;
+  lowStockThreshold: string;
+  allowImageUpload: boolean;
+  image: string;
+  colorCode: string;
+}
+

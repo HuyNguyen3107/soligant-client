@@ -31,6 +31,11 @@ const RichTextEditor = ({
   useEffect(() => {
     if (!editorRef.current) return;
 
+    // Do not rewrite DOM while user is typing; it resets caret position.
+    if (document.activeElement === editorRef.current) {
+      return;
+    }
+
     if (editorRef.current.innerHTML !== normalizedValue) {
       editorRef.current.innerHTML = normalizedValue;
     }
@@ -56,26 +61,61 @@ const RichTextEditor = ({
   return (
     <div className={`rte${focused ? " is-focused" : ""}`}>
       <div className="rte__toolbar">
-        <button type="button" className="rte__tool-btn" onClick={() => runCommand("bold")} title="In đậm">
+        <button
+          type="button"
+          className="rte__tool-btn"
+          onClick={() => runCommand("bold")}
+          title="In đậm"
+        >
           <FiBold size={14} />
         </button>
-        <button type="button" className="rte__tool-btn" onClick={() => runCommand("italic")} title="In nghiêng">
+        <button
+          type="button"
+          className="rte__tool-btn"
+          onClick={() => runCommand("italic")}
+          title="In nghiêng"
+        >
           <FiItalic size={14} />
         </button>
-        <button type="button" className="rte__tool-btn" onClick={() => runCommand("underline")} title="Gạch chân">
+        <button
+          type="button"
+          className="rte__tool-btn"
+          onClick={() => runCommand("underline")}
+          title="Gạch chân"
+        >
           <FiUnderline size={14} />
         </button>
-        <button type="button" className="rte__tool-btn" onClick={() => runCommand("insertUnorderedList")} title="Danh sách chấm">
+        <button
+          type="button"
+          className="rte__tool-btn"
+          onClick={() => runCommand("insertUnorderedList")}
+          title="Danh sách chấm"
+        >
           <FiList size={14} />
         </button>
-        <button type="button" className="rte__tool-btn" onClick={() => runCommand("insertOrderedList")} title="Danh sách số">
+        <button
+          type="button"
+          className="rte__tool-btn"
+          onClick={() => runCommand("insertOrderedList")}
+          title="Danh sách số"
+        >
           <span style={{ fontSize: 11 }}>1.</span>
           <FiList size={14} />
         </button>
-        <button type="button" className="rte__tool-btn" onClick={handleInsertLink} title="Chèn liên kết">
+        <button
+          type="button"
+          className="rte__tool-btn"
+          onClick={handleInsertLink}
+          title="Chèn liên kết"
+        >
           <FiLink size={14} />
         </button>
-        <button type="button" className="rte__tool-btn" onClick={() => runCommand("removeFormat")} title="Xóa định dạng">
+        <button
+          type="button"
+          className="rte__tool-btn"
+          onClick={() => runCommand("removeFormat")}
+          title="Xóa định dạng"
+        >
           <FiRotateCcw size={14} />
         </button>
       </div>

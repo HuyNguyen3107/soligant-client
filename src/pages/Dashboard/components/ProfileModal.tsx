@@ -16,8 +16,10 @@ import type {
   PasswordForm,
   ShowPasswordState,
 } from "../types";
+import { getErrorMessage } from "../../../lib/error";
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 // Origin thuần (không có /api) để dùng cho static file URLs
 const SERVER_ORIGIN = (() => {
   try {
@@ -105,7 +107,7 @@ const ProfileModal = ({ user, onClose, onSaved, dark }: ProfileModalProps) => {
     } catch (err) {
       URL.revokeObjectURL(preview);
       setLocalPreview(null);
-      toast.error(err instanceof Error ? err.message : "Không thể upload ảnh.");
+      toast.error(getErrorMessage(err, "Không thể upload ảnh."));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -158,7 +160,7 @@ const ProfileModal = ({ user, onClose, onSaved, dark }: ProfileModalProps) => {
       toast.success("Đã cập nhật thông tin thành công!");
       onSaved({ ...user, ...updated });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
+      toast.error(getErrorMessage(err, "Có lỗi xảy ra."));
     } finally {
       setSaving(false);
     }
@@ -223,7 +225,7 @@ const ProfileModal = ({ user, onClose, onSaved, dark }: ProfileModalProps) => {
       setPwForm({ current: "", newPw: "", confirm: "" });
       onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra.");
+      toast.error(getErrorMessage(err, "Có lỗi xảy ra."));
     } finally {
       setPwSaving(false);
     }

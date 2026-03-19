@@ -37,6 +37,14 @@ export const TAB_META: Record<string, TabMeta> = {
       "khung tranh lego, biến thể sản phẩm, kích thước 20x20, 18x18, 15x15, Soligant",
     path: "/dashboard/lego-frames",
   },
+  "bear-variants": {
+    title: "Quản lý sản phẩm Gấu",
+    description:
+      "Quản lý các biến thể sản phẩm gấu tại Soligant, bao gồm tên, ảnh, giá và tồn kho.",
+    keywords:
+      "sản phẩm gấu, biến thể gấu, quản lý gấu, Soligant",
+    path: "/dashboard/bear-variants",
+  },
   inventory: {
     title: "Quản lý kho",
     description:
@@ -54,9 +62,18 @@ export const TAB_META: Record<string, TabMeta> = {
   "lego-customizations": {
     title: "Tùy chỉnh Lego",
     description:
-      "Quản lý các nhóm tùy chỉnh Lego và các lựa chọn cụ thể như áo, quần, tóc, phụ kiện để hiển thị ra trang khách hàng qua API public.",
-    keywords: "tùy chỉnh lego, áo, quần, phụ kiện, dashboard, Soligant",
+      "Tùy chỉnh các nhóm và lựa chọn thêm cho sản phẩm lắp ráp Lego tại Soligant (màu áo, tóc, thú cưng, kính, bóng bay...).",
+    keywords:
+      "tùy chỉnh lego, phụ kiện lego, áo màu lego, thú cưng lego, bóng bay lego",
     path: "/dashboard/lego-customizations",
+  },
+  "bear-customizations": {
+    title: "Tùy chỉnh Gấu",
+    description:
+      "Cấu hình các nhóm và lựa chọn thêm cho sản phẩm Gấu (Phụ kiện, nơ cổ...).",
+    keywords:
+      "tùy chỉnh gấu, gấu soligant, phụ kiện gấu",
+    path: "/dashboard/bear-customizations",
   },
   promotions: {
     title: "Quản lý ưu đãi",
