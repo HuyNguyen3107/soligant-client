@@ -41,15 +41,15 @@ export const TAB_META: Record<string, TabMeta> = {
     title: "Quản lý sản phẩm Gấu",
     description:
       "Quản lý các biến thể sản phẩm gấu tại Soligant, bao gồm tên, ảnh, giá và tồn kho.",
-    keywords:
-      "sản phẩm gấu, biến thể gấu, quản lý gấu, Soligant",
+    keywords: "sản phẩm gấu, biến thể gấu, quản lý gấu, Soligant",
     path: "/dashboard/bear-variants",
   },
   inventory: {
     title: "Quản lý kho",
     description:
       "Theo dõi tồn kho theo từng lựa chọn tùy chỉnh, cập nhật nhập xuất kho và cảnh báo tồn thấp.",
-    keywords: "quản lý kho, tồn kho, inventory, lựa chọn tùy chỉnh, nhập kho, xuất kho, Soligant",
+    keywords:
+      "quản lý kho, tồn kho, inventory, lựa chọn tùy chỉnh, nhập kho, xuất kho, Soligant",
     path: "/dashboard/inventory",
   },
   "lego-categories": {
@@ -71,14 +71,13 @@ export const TAB_META: Record<string, TabMeta> = {
     title: "Tùy chỉnh Gấu",
     description:
       "Cấu hình các nhóm và lựa chọn thêm cho sản phẩm Gấu (Phụ kiện, nơ cổ...).",
-    keywords:
-      "tùy chỉnh gấu, gấu soligant, phụ kiện gấu",
+    keywords: "tùy chỉnh gấu, gấu soligant, phụ kiện gấu",
     path: "/dashboard/bear-customizations",
   },
   promotions: {
     title: "Quản lý ưu đãi",
     description:
-      "Quản lý các chương trình ưu đãi cho khách hàng Soligant - Tạo, chỉnh sửa, xóa ưu đãi theo số lượng Lego hoặc Set.",
+      "Quản lý các chương trình ưu đãi cho khách hàng Soligant - Tạo, chỉnh sửa, xóa ưu đãi theo số lượng tùy chỉnh hoặc số lượng sản phẩm.",
     keywords: "ưu đãi, khuyến mãi, giảm giá, tặng quà, promotions, Soligant",
     path: "/dashboard/promotions",
   },
@@ -93,7 +92,8 @@ export const TAB_META: Record<string, TabMeta> = {
     title: "Option mua thêm",
     description:
       "Quản lý các option mua thêm cho biến thể sản phẩm, bao gồm loại cơ bản và ấn phẩm tùy chỉnh.",
-    keywords: "option mua thêm, upsell, addon options, ấn phẩm tùy chỉnh, Soligant",
+    keywords:
+      "option mua thêm, upsell, addon options, ấn phẩm tùy chỉnh, Soligant",
     path: "/dashboard/addon-options",
   },
   "customer-order-fields": {
@@ -106,13 +106,15 @@ export const TAB_META: Record<string, TabMeta> = {
   },
   "background-themes": {
     title: "Chủ đề Background",
-    description: "Quản lý các danh mục/chủ đề nhóm các bối cảnh tùy chỉnh cho sản phẩm.",
+    description:
+      "Quản lý các danh mục/chủ đề nhóm các bối cảnh tùy chỉnh cho sản phẩm.",
     keywords: "chủ đề background, background themes, danh mục bối cảnh",
     path: "/dashboard/background-themes",
   },
   backgrounds: {
     title: "Quản lý Background",
-    description: "Thêm và cấu hình các bối cảnh, ảnh nền và trường thông tin tùy biến (Google Form style).",
+    description:
+      "Thêm và cấu hình các bối cảnh, ảnh nền và trường thông tin tùy biến (Google Form style).",
     keywords: "backgrounds, mẫu background, form background, cấu hình bối cảnh",
     path: "/dashboard/backgrounds",
   },

@@ -101,12 +101,14 @@ const deleteUploadedImageByUrl = async (url: string) => {
 const LegoFramesTab = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">(
-    "all",
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [sizeFilter, setSizeFilter] = useState<"all" | LegoFrameSize>("all");
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
-  const [editingVariant, setEditingVariant] = useState<LegoFrameVariant | null>(null);
+  const [editingVariant, setEditingVariant] = useState<LegoFrameVariant | null>(
+    null,
+  );
   const [confirmDeleteVariant, setConfirmDeleteVariant] =
     useState<LegoFrameVariant | null>(null);
   const [form, setForm] = useState<LegoFrameVariantForm>(EMPTY_FORM);
@@ -135,7 +137,8 @@ const LegoFramesTab = () => {
   });
 
   const collectionsById = useMemo(
-    () => new Map(collections.map((collection) => [collection._id, collection])),
+    () =>
+      new Map(collections.map((collection) => [collection._id, collection])),
     [collections],
   );
   const categoriesById = useMemo(
@@ -237,7 +240,9 @@ const LegoFramesTab = () => {
       queryClient.invalidateQueries({ queryKey: ["lego-frame-variants"] });
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "Không thể thay đổi trạng thái biến thể."));
+      toast.error(
+        getErrorMessage(error, "Không thể thay đổi trạng thái biến thể."),
+      );
     },
   });
 
@@ -265,7 +270,9 @@ const LegoFramesTab = () => {
 
   const sortedVariants = useMemo(
     () =>
-      [...variants].sort((a, b) => LEGO_SIZE_ORDER[a.size] - LEGO_SIZE_ORDER[b.size]),
+      [...variants].sort(
+        (a, b) => LEGO_SIZE_ORDER[a.size] - LEGO_SIZE_ORDER[b.size],
+      ),
     [variants],
   );
 
@@ -277,7 +284,9 @@ const LegoFramesTab = () => {
         !keyword ||
         variant.name.toLowerCase().includes(keyword) ||
         variant.variantSymbol.toLowerCase().includes(keyword) ||
-        toRichTextPlainText(variant.description).toLowerCase().includes(keyword) ||
+        toRichTextPlainText(variant.description)
+          .toLowerCase()
+          .includes(keyword) ||
         variant.size.toLowerCase().includes(keyword) ||
         resolveCollectionName(variant).toLowerCase().includes(keyword) ||
         resolveCategoryName(variant).toLowerCase().includes(keyword);
@@ -307,12 +316,16 @@ const LegoFramesTab = () => {
     }
 
     if (collections.length === 0) {
-      toast.error("Vui lòng tạo ít nhất một bộ sưu tập trước khi thêm biến thể.");
+      toast.error(
+        "Vui lòng tạo ít nhất một bộ sưu tập trước khi thêm biến thể.",
+      );
       return;
     }
 
     if (productCategories.length === 0) {
-      toast.error("Vui lòng tạo ít nhất một danh mục sản phẩm trước khi thêm biến thể.");
+      toast.error(
+        "Vui lòng tạo ít nhất một danh mục sản phẩm trước khi thêm biến thể.",
+      );
       return;
     }
 
@@ -369,9 +382,7 @@ const LegoFramesTab = () => {
   };
 
   const onFormChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -458,7 +469,9 @@ const LegoFramesTab = () => {
     }
 
     if (!/^[A-Z0-9]{1,10}$/.test(variantSymbol)) {
-      toast.error("Ký hiệu biến thể chỉ gồm chữ cái in hoa và số (tối đa 10 ký tự).");
+      toast.error(
+        "Ký hiệu biến thể chỉ gồm chữ cái in hoa và số (tối đa 10 ký tự).",
+      );
       return;
     }
 
@@ -479,7 +492,9 @@ const LegoFramesTab = () => {
 
     if (form.allowVariableLegoCount) {
       if (!Number.isInteger(legoCountMin) || legoCountMin < 0) {
-        toast.error("Số Lego chọn thêm tối thiểu phải là số nguyên từ 0 trở lên.");
+        toast.error(
+          "Số Lego chọn thêm tối thiểu phải là số nguyên từ 0 trở lên.",
+        );
         return;
       }
 
@@ -510,7 +525,9 @@ const LegoFramesTab = () => {
     }
 
     if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
-      toast.error("Ngưỡng cảnh báo tồn kho thấp phải là số nguyên từ 0 trở lên.");
+      toast.error(
+        "Ngưỡng cảnh báo tồn kho thấp phải là số nguyên từ 0 trở lên.",
+      );
       return;
     }
 
@@ -531,7 +548,8 @@ const LegoFramesTab = () => {
     const duplicateSymbol = variants.find(
       (variant) =>
         variant.id !== editingVariant?.id &&
-        variant.variantSymbol.trim().toLowerCase() === variantSymbol.toLowerCase(),
+        variant.variantSymbol.trim().toLowerCase() ===
+          variantSymbol.toLowerCase(),
     );
 
     if (duplicateSymbol) {
@@ -580,7 +598,9 @@ const LegoFramesTab = () => {
           allowVariableLegoCount: form.allowVariableLegoCount,
           legoCountMin: form.allowVariableLegoCount ? legoCountMin : 0,
           legoCountMax: form.allowVariableLegoCount ? legoCountMax : 0,
-          additionalLegoPrice: form.allowVariableLegoCount ? additionalLegoPrice : 0,
+          additionalLegoPrice: form.allowVariableLegoCount
+            ? additionalLegoPrice
+            : 0,
           price: Math.round(price),
           stockQuantity,
           lowStockThreshold,
@@ -676,7 +696,9 @@ const LegoFramesTab = () => {
           </div>
         </div>
         <div className="lf-stat-card">
-          <span className="lf-stat-card__icon lf-stat-card__icon--active">A</span>
+          <span className="lf-stat-card__icon lf-stat-card__icon--active">
+            A
+          </span>
           <div>
             <strong>{activeCount}</strong>
             <span>Đang bán</span>
@@ -707,7 +729,9 @@ const LegoFramesTab = () => {
           <select
             className="form-input lf-filter-select"
             value={sizeFilter}
-            onChange={(e) => setSizeFilter(e.target.value as "all" | LegoFrameSize)}
+            onChange={(e) =>
+              setSizeFilter(e.target.value as "all" | LegoFrameSize)
+            }
           >
             <option value="all">Tất cả kích thước</option>
             {LEGO_SIZES.map((size) => (
@@ -752,7 +776,6 @@ const LegoFramesTab = () => {
                 <th>Danh mục</th>
                 <th>Kích thước</th>
                 <th>Lego mặc định</th>
-                <th>Tồn kho</th>
                 <th>Giá tiền</th>
                 <th>Trạng thái</th>
                 <th>Cập nhật</th>
@@ -781,12 +804,17 @@ const LegoFramesTab = () => {
                       <div className="lf-name-cell">
                         <p className="lf-name-cell__title">{variant.name}</p>
                         {variant.description && (
-                          <RichTextContent value={variant.description} className="lf-name-cell__desc" />
+                          <RichTextContent
+                            value={variant.description}
+                            className="lf-name-cell__desc"
+                          />
                         )}
                       </div>
                     </td>
                     <td>
-                      <span className="lf-size-cell">{variant.variantSymbol}</span>
+                      <span className="lf-size-cell">
+                        {variant.variantSymbol}
+                      </span>
                     </td>
                     <td>{resolveCollectionName(variant)}</td>
                     <td>{resolveCategoryName(variant)}</td>
@@ -800,14 +828,9 @@ const LegoFramesTab = () => {
                         {variant.legoQuantity}
                       </span>
                     </td>
-                    <td>
-                      <span
-                        className={`lf-stock${variant.stockQuantity <= variant.lowStockThreshold ? " low" : ""}${variant.stockQuantity === 0 ? " is-out" : ""}`}
-                      >
-                        {variant.stockQuantity}
-                      </span>
+                    <td className="lf-price-cell">
+                      {formatCurrency(variant.price)}
                     </td>
-                    <td className="lf-price-cell">{formatCurrency(variant.price)}</td>
                     <td>
                       <button
                         className={`status-badge ${
@@ -822,7 +845,9 @@ const LegoFramesTab = () => {
                         {variant.isActive ? "Đang bán" : "Đang ẩn"}
                       </button>
                     </td>
-                    <td className="text-muted">{formatDateTime(variant.updatedAt)}</td>
+                    <td className="text-muted">
+                      {formatDateTime(variant.updatedAt)}
+                    </td>
                     <td>
                       <div className="tab-actions">
                         {canEditVariant && (
@@ -854,12 +879,16 @@ const LegoFramesTab = () => {
       )}
 
       <p className="lf-summary">
-        Hiển thị {filteredVariants.length}/{variants.length} biến thể của {LEGO_PRODUCT_NAME}
+        Hiển thị {filteredVariants.length}/{variants.length} biến thể của{" "}
+        {LEGO_PRODUCT_NAME}
       </p>
 
       {modal && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-box modal-box--lg" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-box modal-box--lg"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3 className="modal-title">
                 {modal === "create" ? "Thêm biến thể" : "Chỉnh sửa biến thể"}
@@ -888,14 +917,17 @@ const LegoFramesTab = () => {
                         {collection.isActive ? "" : " (đang ẩn)"}
                       </option>
                     ))}
-                    {form.collectionId && !collectionsById.has(form.collectionId) && (
-                      <option value={form.collectionId}>
-                        Bộ sưu tập cũ (không còn tồn tại)
-                      </option>
-                    )}
+                    {form.collectionId &&
+                      !collectionsById.has(form.collectionId) && (
+                        <option value={form.collectionId}>
+                          Bộ sưu tập cũ (không còn tồn tại)
+                        </option>
+                      )}
                   </select>
                   {collectionErrorMessage && (
-                    <p className="form-hint lf-empty-hint">{collectionErrorMessage}</p>
+                    <p className="form-hint lf-empty-hint">
+                      {collectionErrorMessage}
+                    </p>
                   )}
                   {!collectionErrorMessage && collections.length === 0 && (
                     <p className="form-hint lf-empty-hint">
@@ -920,15 +952,17 @@ const LegoFramesTab = () => {
                         {category.name}
                       </option>
                     ))}
-                    {form.categoryId && !categoriesById.has(form.categoryId) && (
-                      <option value={form.categoryId}>
-                        Danh mục cũ (không còn tồn tại)
-                      </option>
-                    )}
+                    {form.categoryId &&
+                      !categoriesById.has(form.categoryId) && (
+                        <option value={form.categoryId}>
+                          Danh mục cũ (không còn tồn tại)
+                        </option>
+                      )}
                   </select>
                   {productCategories.length === 0 && (
                     <p className="form-hint lf-empty-hint">
-                      Chưa có danh mục sản phẩm. Hãy tạo ở tab Danh mục sản phẩm.
+                      Chưa có danh mục sản phẩm. Hãy tạo ở tab Danh mục sản
+                      phẩm.
                     </p>
                   )}
                 </div>
@@ -967,7 +1001,9 @@ const LegoFramesTab = () => {
                     }
                     placeholder="VD: A"
                   />
-                  <p className="form-hint">Dùng cho mã đơn hàng, ví dụ: A, B2, TN01.</p>
+                  <p className="form-hint">
+                    Dùng cho mã đơn hàng, ví dụ: A, B2, TN01.
+                  </p>
                 </div>
               </div>
 
@@ -993,10 +1029,10 @@ const LegoFramesTab = () => {
                       src={modalPreviewSrc}
                       alt={form.name || "Ảnh biến thể"}
                       fallback={
-                      <div className="lf-image-preview__empty">
-                        <FiImage size={18} />
-                        <span>Chưa có ảnh</span>
-                      </div>
+                        <div className="lf-image-preview__empty">
+                          <FiImage size={18} />
+                          <span>Chưa có ảnh</span>
+                        </div>
                       }
                     />
                   </div>
@@ -1079,7 +1115,9 @@ const LegoFramesTab = () => {
               <div className="lf-form-row">
                 <div className="lf-mode-switch">
                   <div className="lf-mode-switch__copy">
-                    <span className="lf-mode-switch__eyebrow">Chế độ số lượng Lego</span>
+                    <span className="lf-mode-switch__eyebrow">
+                      Chế độ số lượng Lego
+                    </span>
                     <div className="lf-mode-switch__title-row">
                       <strong className="lf-mode-switch__title">
                         {form.allowVariableLegoCount
@@ -1118,59 +1156,62 @@ const LegoFramesTab = () => {
 
               {form.allowVariableLegoCount && (
                 <>
-                <div className="lf-form-row">
-                  <div className="form-group">
-                    <label className="form-label">
-                      Số Lego chọn thêm tối thiểu <span className="form-required">*</span>
-                    </label>
-                    <input
-                      className="form-input"
-                      type="number"
-                      min={0}
-                      step={1}
-                      name="legoCountMin"
-                      value={form.legoCountMin}
-                      onChange={onFormChange}
-                      placeholder="VD: 1"
-                    />
-                  </div>
+                  <div className="lf-form-row">
+                    <div className="form-group">
+                      <label className="form-label">
+                        Số Lego chọn thêm tối thiểu{" "}
+                        <span className="form-required">*</span>
+                      </label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min={0}
+                        step={1}
+                        name="legoCountMin"
+                        value={form.legoCountMin}
+                        onChange={onFormChange}
+                        placeholder="VD: 1"
+                      />
+                    </div>
 
-                  <div className="form-group">
-                    <label className="form-label">
-                      Số Lego chọn thêm tối đa <span className="form-required">*</span>
-                    </label>
-                    <input
-                      className="form-input"
-                      type="number"
-                      min={0}
-                      step={1}
-                      name="legoCountMax"
-                      value={form.legoCountMax}
-                      onChange={onFormChange}
-                      placeholder="VD: 2"
-                    />
+                    <div className="form-group">
+                      <label className="form-label">
+                        Số Lego chọn thêm tối đa{" "}
+                        <span className="form-required">*</span>
+                      </label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min={0}
+                        step={1}
+                        name="legoCountMax"
+                        value={form.legoCountMax}
+                        onChange={onFormChange}
+                        placeholder="VD: 2"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="lf-form-row">
-                  <div className="form-group">
-                    <label className="form-label">
-                      Giá cho mỗi Lego thêm (VND) <span className="form-required">*</span>
-                    </label>
-                    <input
-                      className="form-input"
-                      type="number"
-                      min={0}
-                      step={1000}
-                      name="additionalLegoPrice"
-                      value={form.additionalLegoPrice}
-                      onChange={onFormChange}
-                      placeholder="VD: 15000"
-                    />
-                    <p className="form-hint">
-                      Để trống hoặc nhập 0 nếu Lego thêm không tính phí riêng.
-                    </p>
+                  <div className="lf-form-row">
+                    <div className="form-group">
+                      <label className="form-label">
+                        Giá cho mỗi Lego thêm (VND){" "}
+                        <span className="form-required">*</span>
+                      </label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min={0}
+                        step={1000}
+                        name="additionalLegoPrice"
+                        value={form.additionalLegoPrice}
+                        onChange={onFormChange}
+                        placeholder="VD: 15000"
+                      />
+                      <p className="form-hint">
+                        Để trống hoặc nhập 0 nếu Lego thêm không tính phí riêng.
+                      </p>
+                    </div>
                   </div>
-                </div>
                 </>
               )}
 
@@ -1190,51 +1231,19 @@ const LegoFramesTab = () => {
                     placeholder="VD: 349000"
                   />
                 </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    Tồn kho hiện tại <span className="form-required">*</span>
-                  </label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    min={0}
-                    step={1}
-                    name="stockQuantity"
-                    value={form.stockQuantity}
-                    onChange={onFormChange}
-                    placeholder="VD: 30"
-                  />
-                </div>
               </div>
 
               <div className="lf-form-row">
-                <div className="form-group">
-                  <label className="form-label">
-                    Ngưỡng cảnh báo tồn kho thấp <span className="form-required">*</span>
-                  </label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    min={0}
-                    step={1}
-                    name="lowStockThreshold"
-                    value={form.lowStockThreshold}
-                    onChange={onFormChange}
-                    placeholder="VD: 5"
-                  />
-                  <p className="form-hint">
-                    Khi tồn kho nhỏ hơn hoặc bằng ngưỡng này, sản phẩm sẽ được đánh dấu tồn thấp.
-                  </p>
-                </div>
-
                 <div className="form-group form-group--row lf-toggle-wrap">
                   <label className="form-toggle">
                     <input
                       type="checkbox"
                       checked={form.isActive}
                       onChange={(e) =>
-                        setForm((prev) => ({ ...prev, isActive: e.target.checked }))
+                        setForm((prev) => ({
+                          ...prev,
+                          isActive: e.target.checked,
+                        }))
                       }
                     />
                     <span className="form-toggle__track" />
@@ -1246,10 +1255,18 @@ const LegoFramesTab = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={closeModal}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closeModal}
+                >
                   Hủy
                 </button>
-                <button type="submit" className="btn-primary" disabled={saveMutation.isPending}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={saveMutation.isPending}
+                >
                   {saveMutation.isPending ? (
                     <>
                       <span className="btn-spinner" /> Đang lưu...
@@ -1267,11 +1284,20 @@ const LegoFramesTab = () => {
       )}
 
       {confirmDeleteVariant && (
-        <div className="modal-overlay" onClick={() => setConfirmDeleteVariant(null)}>
-          <div className="modal-box modal-box--sm" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          onClick={() => setConfirmDeleteVariant(null)}
+        >
+          <div
+            className="modal-box modal-box--sm"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3 className="modal-title modal-title--danger">Xóa biến thể</h3>
-              <button className="modal-close" onClick={() => setConfirmDeleteVariant(null)}>
+              <button
+                className="modal-close"
+                onClick={() => setConfirmDeleteVariant(null)}
+              >
                 <FiX size={16} />
               </button>
             </div>
@@ -1279,8 +1305,9 @@ const LegoFramesTab = () => {
               <div className="confirm-body">
                 <FiAlertTriangle className="confirm-icon" />
                 <p>
-                  Bạn có chắc muốn xóa biến thể <strong>{confirmDeleteVariant.name}</strong>?
-                  Hành động này không thể hoàn tác.
+                  Bạn có chắc muốn xóa biến thể{" "}
+                  <strong>{confirmDeleteVariant.name}</strong>? Hành động này
+                  không thể hoàn tác.
                 </p>
               </div>
               <div className="modal-footer">

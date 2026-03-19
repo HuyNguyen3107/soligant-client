@@ -25,6 +25,7 @@ export interface CollectionProductCategory {
 
 export interface CollectionProduct {
   id: string;
+  productType?: "lego" | "bear";
   collectionId: string;
   categoryId: string;
   categoryName: string;
@@ -59,7 +60,9 @@ export const getPublicCollectionBySlug = async (slug: string) => {
 };
 
 export const getPublicProductCategories = async () => {
-  const { data } = await http.get<PublicProductCategory[]>("/public/product-categories");
+  const { data } = await http.get<PublicProductCategory[]>(
+    "/public/product-categories",
+  );
   return data;
 };
 

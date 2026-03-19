@@ -7,11 +7,26 @@ export type BackgroundPayload = BackgroundFormState & {
 
 export type PublicBackground = Pick<
   Background,
-  "id" | "name" | "description" | "themeId" | "themeName" | "image" | "fields"
+  | "id"
+  | "name"
+  | "description"
+  | "themeId"
+  | "themeName"
+  | "image"
+  | "fields"
+  | "applicableProductType"
 >;
 
-export const getPublicBackgrounds = async (): Promise<PublicBackground[]> => {
-  const { data } = await http.get<PublicBackground[]>("/public/backgrounds");
+export interface GetPublicBackgroundsParams {
+  productType?: "lego" | "bear";
+}
+
+export const getPublicBackgrounds = async (
+  params?: GetPublicBackgroundsParams,
+): Promise<PublicBackground[]> => {
+  const { data } = await http.get<PublicBackground[]>("/public/backgrounds", {
+    params,
+  });
   return data;
 };
 

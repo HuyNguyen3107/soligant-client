@@ -52,9 +52,15 @@ const EMPTY_FORM: BearVariantForm = {
   variantSymbol: "",
   description: "",
   image: "",
+  bearQuantity: "1",
+  allowVariableBearCount: false,
+  bearCountMin: "",
+  bearCountMax: "",
+  additionalBearPrice: "",
   price: "",
   stockQuantity: "0",
   lowStockThreshold: "5",
+  hasBackground: true,
   isActive: true,
 };
 
@@ -88,11 +94,13 @@ const deleteUploadedImageByUrl = async (url: string) => {
 const BearVariantsTab = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">(
-    "all",
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
-  const [editingVariant, setEditingVariant] = useState<BearVariant | null>(null);
+  const [editingVariant, setEditingVariant] = useState<BearVariant | null>(
+    null,
+  );
   const [confirmDeleteVariant, setConfirmDeleteVariant] =
     useState<BearVariant | null>(null);
   const [form, setForm] = useState<BearVariantForm>(EMPTY_FORM);
@@ -121,7 +129,8 @@ const BearVariantsTab = () => {
   });
 
   const collectionsById = useMemo(
-    () => new Map(collections.map((collection) => [collection._id, collection])),
+    () =>
+      new Map(collections.map((collection) => [collection._id, collection])),
     [collections],
   );
   const categoriesById = useMemo(
@@ -207,9 +216,15 @@ const BearVariantsTab = () => {
         variantSymbol: variant.variantSymbol,
         description: variant.description,
         image: variant.image,
+        bearQuantity: variant.bearQuantity,
+        allowVariableBearCount: variant.allowVariableBearCount,
+        bearCountMin: variant.bearCountMin,
+        bearCountMax: variant.bearCountMax,
+        additionalBearPrice: variant.additionalBearPrice,
         price: variant.price,
         stockQuantity: variant.stockQuantity,
         lowStockThreshold: variant.lowStockThreshold,
+        hasBackground: variant.hasBackground,
         isActive: !variant.isActive,
       });
     },
@@ -217,7 +232,9 @@ const BearVariantsTab = () => {
       queryClient.invalidateQueries({ queryKey: ["bear-variants"] });
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "Không thể thay đổi trạng thái biến thể."));
+      toast.error(
+        getErrorMessage(error, "Không thể thay đổi trạng thái biến thể."),
+      );
     },
   });
 
@@ -251,7 +268,9 @@ const BearVariantsTab = () => {
         !keyword ||
         variant.name.toLowerCase().includes(keyword) ||
         variant.variantSymbol.toLowerCase().includes(keyword) ||
-        toRichTextPlainText(variant.description).toLowerCase().includes(keyword) ||
+        toRichTextPlainText(variant.description)
+          .toLowerCase()
+          .includes(keyword) ||
         resolveCollectionName(variant).toLowerCase().includes(keyword) ||
         resolveCategoryName(variant).toLowerCase().includes(keyword);
       const byStatus =
@@ -278,12 +297,16 @@ const BearVariantsTab = () => {
     }
 
     if (collections.length === 0) {
-      toast.error("Vui lòng tạo ít nhất một bộ sưu tập trước khi thêm biến thể.");
+      toast.error(
+        "Vui lòng tạo ít nhất một bộ sưu tập trước khi thêm biến thể.",
+      );
       return;
     }
 
     if (productCategories.length === 0) {
-      toast.error("Vui lòng tạo ít nhất một danh mục sản phẩm trước khi thêm biến thể.");
+      toast.error(
+        "Vui lòng tạo ít nhất một danh mục sản phẩm trước khi thêm biến thể.",
+      );
       return;
     }
 
@@ -295,9 +318,15 @@ const BearVariantsTab = () => {
       variantSymbol: "",
       description: "",
       image: "",
+      bearQuantity: "1",
+      allowVariableBearCount: false,
+      bearCountMin: "",
+      bearCountMax: "",
+      additionalBearPrice: "",
       price: "",
       stockQuantity: "0",
       lowStockThreshold: "5",
+      hasBackground: true,
       isActive: true,
     });
     resetImageDraft();
@@ -318,9 +347,15 @@ const BearVariantsTab = () => {
       variantSymbol: variant.variantSymbol,
       description: variant.description,
       image: variant.image,
+      bearQuantity: String(variant.bearQuantity),
+      allowVariableBearCount: variant.allowVariableBearCount,
+      bearCountMin: String(variant.bearCountMin),
+      bearCountMax: String(variant.bearCountMax),
+      additionalBearPrice: String(variant.additionalBearPrice),
       price: String(variant.price),
       stockQuantity: String(variant.stockQuantity),
       lowStockThreshold: String(variant.lowStockThreshold),
+      hasBackground: variant.hasBackground,
       isActive: variant.isActive,
     });
     resetImageDraft();
@@ -328,9 +363,7 @@ const BearVariantsTab = () => {
   };
 
   const onFormChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -388,6 +421,10 @@ const BearVariantsTab = () => {
     const name = form.name.trim();
     const variantSymbol = form.variantSymbol.trim().toUpperCase();
     const description = normalizeRichTextForStorage(form.description);
+    const bearQuantity = Number(form.bearQuantity);
+    const bearCountMin = Number(form.bearCountMin);
+    const bearCountMax = Number(form.bearCountMax);
+    const additionalBearPrice = Number(form.additionalBearPrice);
     const price = Number(form.price);
     const stockQuantity = Number(form.stockQuantity);
     const lowStockThreshold = Number(form.lowStockThreshold);
@@ -413,7 +450,9 @@ const BearVariantsTab = () => {
     }
 
     if (!/^[A-Z0-9]{1,10}$/.test(variantSymbol)) {
-      toast.error("Ký hiệu biến thể chỉ gồm chữ cái in hoa và số (tối đa 10 ký tự).");
+      toast.error(
+        "Ký hiệu biến thể chỉ gồm chữ cái in hoa và số (tối đa 10 ký tự).",
+      );
       return;
     }
 
@@ -427,13 +466,44 @@ const BearVariantsTab = () => {
       return;
     }
 
+    if (!Number.isInteger(bearQuantity) || bearQuantity <= 0) {
+      toast.error("Số lượng gấu phải là số nguyên lớn hơn 0.");
+      return;
+    }
+
+    if (form.allowVariableBearCount) {
+      if (!Number.isInteger(bearCountMin) || bearCountMin < 0) {
+        toast.error(
+          "Số gấu chọn thêm tối thiểu phải là số nguyên từ 0 trở lên.",
+        );
+        return;
+      }
+
+      if (!Number.isInteger(bearCountMax) || bearCountMax < 0) {
+        toast.error("Số gấu chọn thêm tối đa phải là số nguyên từ 0 trở lên.");
+        return;
+      }
+
+      if (bearCountMin > bearCountMax) {
+        toast.error("Số gấu chọn thêm tối thiểu không được vượt quá tối đa.");
+        return;
+      }
+
+      if (!Number.isInteger(additionalBearPrice) || additionalBearPrice < 0) {
+        toast.error("Giá cho mỗi gấu thêm phải là số nguyên từ 0 trở lên.");
+        return;
+      }
+    }
+
     if (!Number.isInteger(stockQuantity) || stockQuantity < 0) {
       toast.error("Tồn kho phải là số nguyên từ 0 trở lên.");
       return;
     }
 
     if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
-      toast.error("Ngưỡng cảnh báo tồn kho thấp phải là số nguyên từ 0 trở lên.");
+      toast.error(
+        "Ngưỡng cảnh báo tồn kho thấp phải là số nguyên từ 0 trở lên.",
+      );
       return;
     }
 
@@ -453,7 +523,8 @@ const BearVariantsTab = () => {
     const duplicateSymbol = variants.find(
       (variant) =>
         variant.id !== editingVariant?.id &&
-        variant.variantSymbol.trim().toLowerCase() === variantSymbol.toLowerCase(),
+        variant.variantSymbol.trim().toLowerCase() ===
+          variantSymbol.toLowerCase(),
     );
 
     if (duplicateSymbol) {
@@ -497,9 +568,17 @@ const BearVariantsTab = () => {
           variantSymbol,
           description,
           image,
+          bearQuantity,
+          allowVariableBearCount: form.allowVariableBearCount,
+          bearCountMin: form.allowVariableBearCount ? bearCountMin : 0,
+          bearCountMax: form.allowVariableBearCount ? bearCountMax : 0,
+          additionalBearPrice: form.allowVariableBearCount
+            ? additionalBearPrice
+            : 0,
           price: Math.round(price),
           stockQuantity,
           lowStockThreshold,
+          hasBackground: form.hasBackground,
           isActive: form.isActive,
         },
       });
@@ -585,7 +664,9 @@ const BearVariantsTab = () => {
           </div>
         </div>
         <div className="lf-stat-card">
-          <span className="lf-stat-card__icon lf-stat-card__icon--active">A</span>
+          <span className="lf-stat-card__icon lf-stat-card__icon--active">
+            A
+          </span>
           <div>
             <strong>{activeCount}</strong>
             <span>Đang bán</span>
@@ -646,8 +727,8 @@ const BearVariantsTab = () => {
                 <th>Ký hiệu</th>
                 <th>Bộ sưu tập</th>
                 <th>Danh mục</th>
-                <th>Tồn kho</th>
                 <th>Giá tiền</th>
+                <th>Background</th>
                 <th>Trạng thái</th>
                 <th>Cập nhật</th>
                 <th></th>
@@ -675,23 +756,34 @@ const BearVariantsTab = () => {
                       <div className="lf-name-cell">
                         <p className="lf-name-cell__title">{variant.name}</p>
                         {variant.description && (
-                          <RichTextContent value={variant.description} className="lf-name-cell__desc" />
+                          <RichTextContent
+                            value={variant.description}
+                            className="lf-name-cell__desc"
+                          />
                         )}
                       </div>
                     </td>
                     <td>
-                      <span className="lf-size-cell">{variant.variantSymbol}</span>
+                      <span className="lf-size-cell">
+                        {variant.variantSymbol}
+                      </span>
                     </td>
                     <td>{resolveCollectionName(variant)}</td>
                     <td>{resolveCategoryName(variant)}</td>
+                    <td className="lf-price-cell">
+                      {formatCurrency(variant.price)}
+                    </td>
                     <td>
                       <span
-                        className={`lf-stock${variant.stockQuantity <= variant.lowStockThreshold ? " low" : ""}${variant.stockQuantity === 0 ? " is-out" : ""}`}
+                        className={`status-badge ${
+                          variant.hasBackground
+                            ? "status-badge--active"
+                            : "status-badge--inactive"
+                        }`}
                       >
-                        {variant.stockQuantity}
+                        {variant.hasBackground ? "Có" : "Không"}
                       </span>
                     </td>
-                    <td className="lf-price-cell">{formatCurrency(variant.price)}</td>
                     <td>
                       <button
                         className={`status-badge ${
@@ -706,7 +798,9 @@ const BearVariantsTab = () => {
                         {variant.isActive ? "Đang bán" : "Đang ẩn"}
                       </button>
                     </td>
-                    <td className="text-muted">{formatDateTime(variant.updatedAt)}</td>
+                    <td className="text-muted">
+                      {formatDateTime(variant.updatedAt)}
+                    </td>
                     <td>
                       <div className="tab-actions">
                         {canEditVariant && (
@@ -738,15 +832,21 @@ const BearVariantsTab = () => {
       )}
 
       <p className="lf-summary">
-        Hiển thị {filteredVariants.length}/{variants.length} biến thể của {BEAR_PRODUCT_NAME}
+        Hiển thị {filteredVariants.length}/{variants.length} biến thể của{" "}
+        {BEAR_PRODUCT_NAME}
       </p>
 
       {modal && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-box modal-box--lg" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-box modal-box--lg"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3 className="modal-title">
-                {modal === "create" ? "Thêm biến thể gấu" : "Chỉnh sửa biến thể gấu"}
+                {modal === "create"
+                  ? "Thêm biến thể gấu"
+                  : "Chỉnh sửa biến thể gấu"}
               </h3>
               <button className="modal-close" onClick={closeModal}>
                 <FiX size={16} />
@@ -772,14 +872,17 @@ const BearVariantsTab = () => {
                         {collection.isActive ? "" : " (đang ẩn)"}
                       </option>
                     ))}
-                    {form.collectionId && !collectionsById.has(form.collectionId) && (
-                      <option value={form.collectionId}>
-                        Bộ sưu tập cũ (không còn tồn tại)
-                      </option>
-                    )}
+                    {form.collectionId &&
+                      !collectionsById.has(form.collectionId) && (
+                        <option value={form.collectionId}>
+                          Bộ sưu tập cũ (không còn tồn tại)
+                        </option>
+                      )}
                   </select>
                   {collectionErrorMessage && (
-                    <p className="form-hint lf-empty-hint">{collectionErrorMessage}</p>
+                    <p className="form-hint lf-empty-hint">
+                      {collectionErrorMessage}
+                    </p>
                   )}
                   {!collectionErrorMessage && collections.length === 0 && (
                     <p className="form-hint lf-empty-hint">
@@ -804,15 +907,17 @@ const BearVariantsTab = () => {
                         {category.name}
                       </option>
                     ))}
-                    {form.categoryId && !categoriesById.has(form.categoryId) && (
-                      <option value={form.categoryId}>
-                        Danh mục cũ (không còn tồn tại)
-                      </option>
-                    )}
+                    {form.categoryId &&
+                      !categoriesById.has(form.categoryId) && (
+                        <option value={form.categoryId}>
+                          Danh mục cũ (không còn tồn tại)
+                        </option>
+                      )}
                   </select>
                   {productCategories.length === 0 && (
                     <p className="form-hint lf-empty-hint">
-                      Chưa có danh mục sản phẩm. Hãy tạo ở tab Danh mục sản phẩm.
+                      Chưa có danh mục sản phẩm. Hãy tạo ở tab Danh mục sản
+                      phẩm.
                     </p>
                   )}
                 </div>
@@ -851,7 +956,9 @@ const BearVariantsTab = () => {
                     }
                     placeholder="VD: G1"
                   />
-                  <p className="form-hint">Dùng cho mã đơn hàng, ví dụ: G1, G2, GB01.</p>
+                  <p className="form-hint">
+                    Dùng cho mã đơn hàng, ví dụ: G1, G2, GB01.
+                  </p>
                 </div>
               </div>
 
@@ -877,10 +984,10 @@ const BearVariantsTab = () => {
                       src={modalPreviewSrc}
                       alt={form.name || "Ảnh biến thể"}
                       fallback={
-                      <div className="lf-image-preview__empty">
-                        <FiImage size={18} />
-                        <span>Chưa có ảnh</span>
-                      </div>
+                        <div className="lf-image-preview__empty">
+                          <FiImage size={18} />
+                          <span>Chưa có ảnh</span>
+                        </div>
                       }
                     />
                   </div>
@@ -927,6 +1034,22 @@ const BearVariantsTab = () => {
               <div className="lf-form-row">
                 <div className="form-group">
                   <label className="form-label">
+                    Số lượng gấu <span className="form-required">*</span>
+                  </label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min={1}
+                    step={1}
+                    name="bearQuantity"
+                    value={form.bearQuantity}
+                    onChange={onFormChange}
+                    placeholder="VD: 1"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
                     Giá tiền (VND) <span className="form-required">*</span>
                   </label>
                   <input
@@ -940,51 +1063,164 @@ const BearVariantsTab = () => {
                     placeholder="VD: 349000"
                   />
                 </div>
+              </div>
 
-                <div className="form-group">
-                  <label className="form-label">
-                    Tồn kho hiện tại <span className="form-required">*</span>
+              <div className="lf-form-row">
+                <div className="lf-mode-switch">
+                  <div className="lf-mode-switch__copy">
+                    <span className="lf-mode-switch__eyebrow">
+                      Chế độ số lượng sản phẩm gấu
+                    </span>
+                    <div className="lf-mode-switch__title-row">
+                      <strong className="lf-mode-switch__title">
+                        {form.allowVariableBearCount
+                          ? "Cho phép người dùng chọn thêm số lượng gấu"
+                          : "Số lượng gấu cố định"}
+                      </strong>
+                      <span
+                        className={`lf-mode-switch__badge${form.allowVariableBearCount ? " is-on" : ""}`}
+                      >
+                        {form.allowVariableBearCount ? "Linh hoạt" : "Cố định"}
+                      </span>
+                    </div>
+                    <p className="form-hint">
+                      {form.allowVariableBearCount
+                        ? "Người dùng sẽ có sẵn số lượng gấu cơ bản của biến thể và được chọn thêm trong khoảng bạn thiết lập bên dưới."
+                        : "Người dùng sẽ dùng đúng số lượng gấu cố định của biến thể này."}
+                    </p>
+                  </div>
+
+                  <label className="form-toggle lf-mode-switch__toggle">
+                    <input
+                      type="checkbox"
+                      aria-label="Cho phép người dùng chọn thêm số lượng gấu"
+                      checked={form.allowVariableBearCount}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          allowVariableBearCount: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="form-toggle__track" />
                   </label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    min={0}
-                    step={1}
-                    name="stockQuantity"
-                    value={form.stockQuantity}
-                    onChange={onFormChange}
-                    placeholder="VD: 30"
-                  />
+                </div>
+              </div>
+
+              {form.allowVariableBearCount && (
+                <>
+                  <div className="lf-form-row">
+                    <div className="form-group">
+                      <label className="form-label">
+                        Số gấu chọn thêm tối thiểu{" "}
+                        <span className="form-required">*</span>
+                      </label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min={0}
+                        step={1}
+                        name="bearCountMin"
+                        value={form.bearCountMin}
+                        onChange={onFormChange}
+                        placeholder="VD: 0"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">
+                        Số gấu chọn thêm tối đa{" "}
+                        <span className="form-required">*</span>
+                      </label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min={0}
+                        step={1}
+                        name="bearCountMax"
+                        value={form.bearCountMax}
+                        onChange={onFormChange}
+                        placeholder="VD: 2"
+                      />
+                    </div>
+                  </div>
+                  <div className="lf-form-row">
+                    <div className="form-group">
+                      <label className="form-label">
+                        Giá cho mỗi gấu thêm (VND){" "}
+                        <span className="form-required">*</span>
+                      </label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min={0}
+                        step={1000}
+                        name="additionalBearPrice"
+                        value={form.additionalBearPrice}
+                        onChange={onFormChange}
+                        placeholder="VD: 15000"
+                      />
+                      <p className="form-hint">
+                        Để trống hoặc nhập 0 nếu gấu thêm không tính phí riêng.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="lf-form-row">
+                <div className="lf-mode-switch">
+                  <div className="lf-mode-switch__copy">
+                    <span className="lf-mode-switch__eyebrow">
+                      Hiển thị bước chọn background
+                    </span>
+                    <div className="lf-mode-switch__title-row">
+                      <strong className="lf-mode-switch__title">
+                        {form.hasBackground
+                          ? "Biến thể này có background"
+                          : "Biến thể này không có background"}
+                      </strong>
+                      <span
+                        className={`lf-mode-switch__badge${form.hasBackground ? " is-on" : ""}`}
+                      >
+                        {form.hasBackground ? "Có" : "Không"}
+                      </span>
+                    </div>
+                    <p className="form-hint">
+                      {form.hasBackground
+                        ? "Biến thể sẽ được hiển thị trong danh sách chọn khi tạo background."
+                        : "Biến thể sẽ bị ẩn khỏi danh sách chọn khi tạo background."}
+                    </p>
+                  </div>
+
+                  <label className="form-toggle lf-mode-switch__toggle">
+                    <input
+                      type="checkbox"
+                      aria-label="Biến thể này có background"
+                      checked={form.hasBackground}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          hasBackground: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="form-toggle__track" />
+                  </label>
                 </div>
               </div>
 
               <div className="lf-form-row">
-                <div className="form-group">
-                  <label className="form-label">
-                    Ngưỡng cảnh báo tồn kho thấp <span className="form-required">*</span>
-                  </label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    min={0}
-                    step={1}
-                    name="lowStockThreshold"
-                    value={form.lowStockThreshold}
-                    onChange={onFormChange}
-                    placeholder="VD: 5"
-                  />
-                  <p className="form-hint">
-                    Khi tồn kho nhỏ hơn hoặc bằng ngưỡng này, sản phẩm sẽ được đánh dấu tồn thấp.
-                  </p>
-                </div>
-
                 <div className="form-group form-group--row lf-toggle-wrap">
                   <label className="form-toggle">
                     <input
                       type="checkbox"
                       checked={form.isActive}
                       onChange={(e) =>
-                        setForm((prev) => ({ ...prev, isActive: e.target.checked }))
+                        setForm((prev) => ({
+                          ...prev,
+                          isActive: e.target.checked,
+                        }))
                       }
                     />
                     <span className="form-toggle__track" />
@@ -996,10 +1232,18 @@ const BearVariantsTab = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={closeModal}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closeModal}
+                >
                   Hủy
                 </button>
-                <button type="submit" className="btn-primary" disabled={saveMutation.isPending}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={saveMutation.isPending}
+                >
                   {saveMutation.isPending ? (
                     <>
                       <span className="btn-spinner" /> Đang lưu...
@@ -1017,11 +1261,20 @@ const BearVariantsTab = () => {
       )}
 
       {confirmDeleteVariant && (
-        <div className="modal-overlay" onClick={() => setConfirmDeleteVariant(null)}>
-          <div className="modal-box modal-box--sm" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          onClick={() => setConfirmDeleteVariant(null)}
+        >
+          <div
+            className="modal-box modal-box--sm"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3 className="modal-title modal-title--danger">Xóa biến thể</h3>
-              <button className="modal-close" onClick={() => setConfirmDeleteVariant(null)}>
+              <button
+                className="modal-close"
+                onClick={() => setConfirmDeleteVariant(null)}
+              >
                 <FiX size={16} />
               </button>
             </div>
@@ -1029,8 +1282,9 @@ const BearVariantsTab = () => {
               <div className="confirm-body">
                 <FiAlertTriangle className="confirm-icon" />
                 <p>
-                  Bạn có chắc muốn xóa biến thể <strong>{confirmDeleteVariant.name}</strong>?
-                  Hành động này không thể hoàn tác.
+                  Bạn có chắc muốn xóa biến thể{" "}
+                  <strong>{confirmDeleteVariant.name}</strong>? Hành động này
+                  không thể hoàn tác.
                 </p>
               </div>
               <div className="modal-footer">

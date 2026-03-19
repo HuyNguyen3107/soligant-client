@@ -4,14 +4,11 @@ import { toast } from "react-toastify";
 import {
   FiAlertTriangle,
   FiBox,
-  FiChevronDown,
-  FiChevronUp,
   FiEdit2,
-  FiGrid,
   FiImage,
   FiLayers,
+  FiPackage,
   FiPlus,
-  FiSave,
   FiSliders,
   FiTrash2,
   FiUpload,
@@ -37,12 +34,19 @@ import type {
 import { getErrorMessage } from "../../../lib/error";
 import { getStaticAssetUrl, http } from "../../../lib/http";
 import { hasPermission } from "../../../lib/permissions";
+import { isRichTextEmpty } from "../../../lib/rich-text";
 import { useAuthStore } from "../../../store/auth.store";
-import { ImageWithFallback } from "../../../components/common";
+import {
+  ImageWithFallback,
+  RichTextContent,
+  RichTextEditor,
+} from "../../../components/common";
 
 interface UploadImageResponse {
   url?: string;
 }
+
+const DEFAULT_COLOR_CODE = "#D1D5DB";
 
 const EMPTY_GROUP_FORM: BearCustomizationGroupForm = {
   name: "",
@@ -58,7 +62,7 @@ const EMPTY_OPTION_FORM: BearCustomizationOptionForm = {
   lowStockThreshold: "5",
   allowImageUpload: false,
   image: "",
-  colorCode: "",
+  colorCode: DEFAULT_COLOR_CODE,
 };
 
 const BEARS_CUSTOMIZATIONS_NAME = "Tùy chỉnh Gấu";
@@ -88,16 +92,20 @@ const deleteUploadedImageByUrl = async (url: string) => {
 const BearCustomizationsTab = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const [groupModal, setGroupModal] = useState<"create" | "edit" | null>(null);
-  const [editingGroup, setEditingGroup] = useState<BearCustomizationGroup | null>(null);
+  const [editingGroup, setEditingGroup] =
+    useState<BearCustomizationGroup | null>(null);
   const [confirmDeleteGroup, setConfirmDeleteGroup] =
     useState<BearCustomizationGroup | null>(null);
-  const [groupForm, setGroupForm] = useState<BearCustomizationGroupForm>(EMPTY_GROUP_FORM);
+  const [groupForm, setGroupForm] =
+    useState<BearCustomizationGroupForm>(EMPTY_GROUP_FORM);
 
-  const [optionModal, setOptionModal] = useState<"create" | "edit" | null>(null);
-  const [editingOption, setEditingOption] = useState<BearCustomizationOption | null>(null);
+  const [optionModal, setOptionModal] = useState<"create" | "edit" | null>(
+    null,
+  );
+  const [editingOption, setEditingOption] =
+    useState<BearCustomizationOption | null>(null);
   const [confirmDeleteOption, setConfirmDeleteOption] =
     useState<BearCustomizationOption | null>(null);
   const [optionForm, setOptionForm] =
@@ -158,7 +166,10 @@ const BearCustomizationsTab = () => {
 
   // --- MUTATIONS ---
   const saveGroupMutation = useMutation({
-    mutationFn: async (variables: { id?: string; payload: BearCustomizationGroupPayload }) => {
+    mutationFn: async (variables: {
+      id?: string;
+      payload: BearCustomizationGroupPayload;
+    }) => {
       if (variables.id) {
         return updateBearCustomizationGroup(variables.id, variables.payload);
       }
@@ -166,7 +177,9 @@ const BearCustomizationsTab = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["bear-customizations"] });
-      toast.success(variables.id ? "Đã cập nhật nhóm tùy chỉnh." : "Đã tạo nhóm tùy chỉnh.");
+      toast.success(
+        variables.id ? "Đã cập nhật nhóm tùy chỉnh." : "Đã tạo nhóm tùy chỉnh.",
+      );
       closeGroupModal();
     },
     onError: (error) => {
@@ -186,24 +199,11 @@ const BearCustomizationsTab = () => {
     },
   });
 
-  const toggleGroupMutation = useMutation({
-    mutationFn: async (group: BearCustomizationGroup) => {
-      return updateBearCustomizationGroup(group.id, {
-        name: group.name,
-        helper: group.helper,
-        isActive: !group.isActive,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bear-customizations"] });
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, "Không thể trạng thái chuyển nhóm."));
-    },
-  });
-
   const saveOptionMutation = useMutation({
-    mutationFn: async (variables: { id?: string; payload: BearCustomizationOptionPayload }) => {
+    mutationFn: async (variables: {
+      id?: string;
+      payload: BearCustomizationOptionPayload;
+    }) => {
       if (variables.id) {
         return updateBearCustomizationOption(variables.id, variables.payload);
       }
@@ -211,7 +211,9 @@ const BearCustomizationsTab = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["bear-customizations"] });
-      toast.success(variables.id ? "Đã cập nhật lựa chọn." : "Đã thêm lựa chọn.");
+      toast.success(
+        variables.id ? "Đã cập nhật lựa chọn." : "Đã thêm lựa chọn.",
+      );
       closeOptionModal();
     },
     onError: (error) => {
@@ -231,79 +233,25 @@ const BearCustomizationsTab = () => {
     },
   });
 
-  const toggleOptionMutation = useMutation({
-    mutationFn: async (option: BearCustomizationOption) => {
-      return updateBearCustomizationOption(option.id, {
-        groupId: option.groupId,
-        name: option.name,
-        description: option.description,
-        price: option.price,
-        stockQuantity: option.stockQuantity,
-        lowStockThreshold: option.lowStockThreshold,
-        allowImageUpload: option.allowImageUpload,
-        image: option.image,
-        colorCode: option.colorCode,
-        isActive: !option.isActive,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bear-customizations"] });
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, "Không thể đổi trạng thái lựa chọn."));
-    },
-  });
-
   // --- FILTERING ---
   const filteredGroups = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     if (!keyword) return groups;
 
-    return groups
-      .map((group) => {
-        const groupMatches =
-          group.name.toLowerCase().includes(keyword) ||
-          group.helper.toLowerCase().includes(keyword);
+    return groups.filter((group) => {
+      const groupMatches =
+        group.name.toLowerCase().includes(keyword) ||
+        group.helper.toLowerCase().includes(keyword);
 
-        const matchingOptions = group.options.filter(
-          (opt) =>
-            opt.name.toLowerCase().includes(keyword) ||
-            opt.description.toLowerCase().includes(keyword),
-        );
-
-        if (groupMatches || matchingOptions.length > 0) {
-          return {
-            ...group,
-            options: groupMatches ? group.options : matchingOptions,
-            _isExpandedDueToSearch: true,
-          };
-        }
-        return null;
-      })
-      .filter((g) => g !== null) as (BearCustomizationGroup & {
-      _isExpandedDueToSearch?: boolean;
-    })[];
-  }, [groups, search]);
-
-  useEffect(() => {
-    if (search.trim()) {
-      const allExpanded = filteredGroups.reduce(
-        (acc, g) => {
-          if (g._isExpandedDueToSearch) acc[g.id] = true;
-          return acc;
-        },
-        {} as Record<string, boolean>,
+      const hasMatchingOption = group.options.some(
+        (opt) =>
+          opt.name.toLowerCase().includes(keyword) ||
+          opt.description.toLowerCase().includes(keyword),
       );
-      setExpandedGroups(allExpanded);
-    }
-  }, [search, filteredGroups]);
 
-  const toggleGroupExpand = (groupId: string) => {
-    setExpandedGroups((prev) => ({
-      ...prev,
-      [groupId]: !prev[groupId],
-    }));
-  };
+      return groupMatches || hasMatchingOption;
+    });
+  }, [groups, search]);
 
   const totalOptions = groups.reduce((sum, g) => sum + g.options.length, 0);
 
@@ -397,24 +345,43 @@ const BearCustomizationsTab = () => {
       lowStockThreshold: String(option.lowStockThreshold),
       allowImageUpload: option.allowImageUpload,
       image: option.image,
-      colorCode: option.colorCode,
+      colorCode:
+        option.allowImageUpload || option.colorCode.trim()
+          ? option.colorCode
+          : DEFAULT_COLOR_CODE,
     });
     resetImageDraft();
     setOptionModal("edit");
   };
 
   const handleOptionFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value, type } = e.target;
+
+    if (name === "allowImageUpload") {
+      const allowImageUpload = (e.target as HTMLInputElement).checked;
+      setOptionForm((prev) => ({
+        ...prev,
+        allowImageUpload,
+        colorCode: allowImageUpload
+          ? prev.colorCode
+          : prev.colorCode.trim() || DEFAULT_COLOR_CODE,
+      }));
+      return;
+    }
+
     if (type === "checkbox") {
       setOptionForm((prev) => ({
         ...prev,
         [name]: (e.target as HTMLInputElement).checked,
       }));
-    } else {
-      setOptionForm((prev) => ({ ...prev, [name]: value }));
+      return;
     }
+
+    setOptionForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -491,7 +458,10 @@ const BearCustomizationsTab = () => {
     }
 
     const colorRegex = /^#[0-9A-Fa-f]{6}$/;
-    if (optionForm.colorCode.trim() && !colorRegex.test(optionForm.colorCode.trim())) {
+    if (
+      optionForm.colorCode.trim() &&
+      !colorRegex.test(optionForm.colorCode.trim())
+    ) {
       toast.error("Mã màu không hợp lệ. Vui lòng chọn màu từ bảng màu.");
       return;
     }
@@ -583,8 +553,8 @@ const BearCustomizationsTab = () => {
         <div className="lf-product-card__content">
           <h3>Các nhóm {BEARS_CUSTOMIZATIONS_NAME.toLowerCase()}</h3>
           <p>
-            Tạo các nhóm tùy chọn. Bên trong mỗi nhóm chứa các lựa chọn con 
-            (VD: Phụ kiện cầm tay, Nơ cổ, Ảnh tải lên).
+            Tạo các nhóm tùy chọn. Bên trong mỗi nhóm chứa các lựa chọn con (VD:
+            Phụ kiện cầm tay, Nơ cổ, Ảnh tải lên).
           </p>
         </div>
       </section>
@@ -601,7 +571,7 @@ const BearCustomizationsTab = () => {
         </div>
         <div className="lf-stat-card">
           <span className="lf-stat-card__icon lf-stat-card__icon--active">
-            <FiGrid size={16} />
+            <FiPackage size={15} />
           </span>
           <div>
             <strong>{totalOptions}</strong>
@@ -650,220 +620,179 @@ const BearCustomizationsTab = () => {
           <p>Không tìm thấy nhóm hoặc lựa chọn phù hợp.</p>
         </div>
       ) : (
-        <div className="lf-groups-list">
-          {filteredGroups.map((group) => {
-            const isExpanded = !!expandedGroups[group.id];
-
-            return (
-              <div key={group.id} className="lf-group-card">
-                <div
-                  className="lf-group-header"
-                  onClick={() => toggleGroupExpand(group.id)}
-                >
-                  <div className="lf-group-header__title">
-                    <h4>{group.name}</h4>
-                    {group.helper && <span>{group.helper}</span>}
+        <div className="lcu-group-list">
+          {filteredGroups.map((group) => (
+            <article key={group.id} className="lcu-group-card">
+              <div className="lcu-group-card__header">
+                <div>
+                  <div className="lcu-group-card__meta">
+                    <span className="lc-name-chip">{group.name}</span>
                   </div>
 
-                  <div
-                    className="lf-group-header__actions"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <span className="lf-badge">
-                      {group.optionCount} lựa chọn
-                    </span>
-                    <button
-                      className={`status-badge ${
-                        group.isActive
-                          ? "status-badge--active"
-                          : "status-badge--inactive"
-                      }`}
-                      onClick={() =>
-                        canEdit
-                          ? toggleGroupMutation.mutate(group)
-                          : toast.error("Bạn không có quyền sửa nhóm.")
-                      }
-                      title="Bật/Tắt nhóm"
-                    >
-                      {group.isActive ? "Đang mở" : "Đang ẩn"}
-                    </button>
-                    {canEdit && (
-                      <button
-                        className="btn-icon"
-                        onClick={() => openEditGroup(group)}
-                        title="Sửa nhóm"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        className="btn-icon btn-del"
-                        onClick={() => setConfirmDeleteGroup(group)}
-                        title="Xóa nhóm"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    )}
-                    <button
-                      className="btn-icon"
-                      onClick={() => toggleGroupExpand(group.id)}
-                    >
-                      {isExpanded ? (
-                        <FiChevronUp size={16} />
-                      ) : (
-                        <FiChevronDown size={16} />
-                      )}
-                    </button>
+                  {isRichTextEmpty(group.helper) ? (
+                    <p className="lcu-group-card__helper">
+                      Chưa có mô tả hướng dẫn cho nhóm này.
+                    </p>
+                  ) : (
+                    <RichTextContent
+                      value={group.helper}
+                      className="lcu-group-card__helper"
+                    />
+                  )}
+
+                  <div className="lcu-group-card__foot">
+                    <span>{group.optionCount} lựa chọn</span>
+                    <span>Cập nhật: {formatDateTime(group.updatedAt)}</span>
                   </div>
                 </div>
 
-                {isExpanded && (
-                  <div className="lf-group-body">
-                    <div className="lf-group-body__toolbar">
-                      <h5>Các lựa chọn</h5>
-                      {canCreate && (
-                        <button
-                          className="btn-secondary btn-sm"
-                          onClick={() => openCreateOption(group.id)}
-                        >
-                          <FiPlus size={14} /> Thêm lựa chọn
-                        </button>
-                      )}
-                    </div>
+                <div className="tab-actions lcu-group-card__actions">
+                  {canCreate && (
+                    <button
+                      className="btn-icon btn-edit"
+                      onClick={() => openCreateOption(group.id)}
+                      title="Thêm lựa chọn"
+                    >
+                      <FiPlus size={14} />
+                    </button>
+                  )}
+                  {canEdit && (
+                    <button
+                      className="btn-icon btn-edit"
+                      onClick={() => openEditGroup(group)}
+                      title="Chỉnh sửa nhóm"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      className="btn-icon btn-del"
+                      onClick={() => setConfirmDeleteGroup(group)}
+                      title="Xóa nhóm"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
 
-                    {group.options.length === 0 ? (
-                      <div className="tab-empty tab-empty--sm">
-                        <p>Chưa có lựa chọn nào trong nhóm này.</p>
-                      </div>
-                    ) : (
-                      <div className="tab-table-wrap">
-                        <table className="tab-table">
-                          <thead>
-                            <tr>
-                              <th>Hiển thị</th>
-                              <th>Tên lựa chọn</th>
-                              <th>Giá thu thêm</th>
-                              <th>Tồn kho</th>
-                              <th>Trạng thái</th>
-                              <th>Cập nhật</th>
-                              <th></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {group.options.map((option) => (
-                              <tr
-                                key={option.id}
-                                className={option.isActive ? "" : "row--inactive"}
-                              >
-                                <td>
-                                  {option.allowImageUpload ? (
-                                    <div className="lf-visual-cell lf-visual-cell--upload">
-                                      <FiUpload size={14} />
-                                      <span>Khách tải lên</span>
-                                    </div>
-                                  ) : option.colorCode ? (
-                                    <div className="lf-visual-cell">
-                                      <span
-                                        className="lf-color-swatch"
-                                        style={{
-                                          backgroundColor: option.colorCode,
-                                        }}
-                                        title={option.colorCode}
-                                      />
-                                    </div>
+              <div className="lcu-group-card__body">
+                {group.options.length === 0 ? (
+                  <div className="lcu-option-empty">
+                    Chưa có lựa chọn nào trong nhóm này. Tạo các mục như Áo đỏ,
+                    Áo xanh, Nơ cổ... để khách hàng có thể chọn ở trang
+                    customizer.
+                  </div>
+                ) : (
+                  <div className="tab-table-wrap">
+                    <table className="tab-table">
+                      <thead>
+                        <tr>
+                          <th>Lựa chọn</th>
+                          <th>Hiển thị</th>
+                          <th>Giá</th>
+                          <th>Tồn kho</th>
+                          <th>Cập nhật</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.options.map((option) => {
+                          const optionImageUrl = getStaticAssetUrl(
+                            option.image,
+                          );
+
+                          return (
+                            <tr key={option.id}>
+                              <td>
+                                <div className="lcu-option-name">
+                                  <strong>{option.name}</strong>
+                                  {isRichTextEmpty(option.description) ? (
+                                    <span>Chưa có mô tả cho lựa chọn này.</span>
                                   ) : (
-                                    <div className="lf-visual-cell">
-                                      <div className="lf-thumb lf-thumb--sm">
-                                        <ImageWithFallback
-                                          src={getStaticAssetUrl(option.image)}
-                                          alt={option.name}
-                                        />
-                                      </div>
-                                    </div>
+                                    <RichTextContent
+                                      value={option.description}
+                                      className="lcu-option-name__desc"
+                                    />
                                   )}
-                                </td>
-                                <td>
-                                  <div className="lf-name-cell">
-                                    <p className="lf-name-cell__title">
-                                      {option.name}
-                                    </p>
-                                    {option.description && (
-                                      <p className="lf-name-cell__desc">
-                                        {option.description}
-                                      </p>
-                                    )}
+                                </div>
+                              </td>
+                              <td>
+                                {option.allowImageUpload ? (
+                                  <div className="lcu-option-visual lcu-option-visual--image">
+                                    <ImageWithFallback
+                                      src={optionImageUrl}
+                                      alt={option.name}
+                                      fallback={<span>Chưa có ảnh</span>}
+                                    />
                                   </div>
-                                </td>
-                                <td className="lf-price-cell">
-                                  {option.price > 0
-                                    ? `+ ${formatCurrency(option.price)}`
-                                    : "Miễn phí"}
-                                </td>
-                                <td>
+                                ) : (
+                                  <div className="lcu-option-visual lcu-option-visual--color">
+                                    <span
+                                      className="lcu-color-swatch"
+                                      style={{
+                                        backgroundColor:
+                                          option.colorCode || "#D1D5DB",
+                                      }}
+                                    />
+                                    <span className="lcu-color-code">
+                                      {option.colorCode || "#D1D5DB"}
+                                    </span>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="lcu-price">
+                                {formatCurrency(option.price)}
+                              </td>
+                              <td>
+                                <div style={{ display: "grid", gap: "2px" }}>
+                                  <strong>{option.stockQuantity}</strong>
                                   <span
-                                    className={`lf-stock${
-                                      option.stockQuantity <= option.lowStockThreshold
-                                        ? " low"
-                                        : ""
-                                    }${option.stockQuantity === 0 ? " is-out" : ""}`}
-                                    title={`Ngưỡng cảnh báo: ${option.lowStockThreshold}`}
+                                    className="text-muted"
+                                    style={{ fontSize: "12px" }}
                                   >
-                                    {option.stockQuantity}
+                                    Ngưỡng thấp: {option.lowStockThreshold}
                                   </span>
-                                </td>
-                                <td>
-                                  <button
-                                    className={`status-badge ${
-                                      option.isActive
-                                        ? "status-badge--active"
-                                        : "status-badge--inactive"
-                                    }`}
-                                    onClick={() =>
-                                      canEdit
-                                        ? toggleOptionMutation.mutate(option)
-                                        : toast.error("Bạn không có quyền sửa lựa chọn.")
-                                    }
-                                  >
-                                    {option.isActive ? "Bật" : "Tắt"}
-                                  </button>
-                                </td>
-                                <td className="text-muted">
-                                  {formatDateTime(option.updatedAt)}
-                                </td>
-                                <td>
-                                  <div className="tab-actions">
-                                    {canEdit && (
-                                      <button
-                                        className="btn-icon btn-edit"
-                                        onClick={() => openEditOption(option)}
-                                        title="Chỉnh sửa"
-                                      >
-                                        <FiEdit2 size={14} />
-                                      </button>
-                                    )}
-                                    {canDelete && (
-                                      <button
-                                        className="btn-icon btn-del"
-                                        onClick={() => setConfirmDeleteOption(option)}
-                                        title="Xóa"
-                                      >
-                                        <FiTrash2 size={14} />
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                                </div>
+                              </td>
+                              <td className="text-muted">
+                                {formatDateTime(option.updatedAt)}
+                              </td>
+                              <td>
+                                <div className="tab-actions">
+                                  {canEdit && (
+                                    <button
+                                      className="btn-icon btn-edit"
+                                      onClick={() => openEditOption(option)}
+                                      title="Chỉnh sửa lựa chọn"
+                                    >
+                                      <FiEdit2 size={14} />
+                                    </button>
+                                  )}
+                                  {canDelete && (
+                                    <button
+                                      className="btn-icon btn-del"
+                                      onClick={() =>
+                                        setConfirmDeleteOption(option)
+                                      }
+                                      title="Xóa lựa chọn"
+                                    >
+                                      <FiTrash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
-            );
-          })}
+            </article>
+          ))}
         </div>
       )}
 
@@ -871,12 +800,14 @@ const BearCustomizationsTab = () => {
       {groupModal && (
         <div className="modal-overlay" onClick={closeGroupModal}>
           <div
-            className="modal-box modal-box--md"
+            className="modal-box modal-box--lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
               <h3 className="modal-title">
-                {groupModal === "create" ? "Thêm nhóm tùy chỉnh mới" : "Sửa nhóm tùy chỉnh"}
+                {groupModal === "create"
+                  ? "Tạo nhóm tùy chỉnh"
+                  : "Chỉnh sửa nhóm tùy chỉnh"}
               </h3>
               <button className="modal-close" onClick={closeGroupModal}>
                 <FiX size={16} />
@@ -884,9 +815,7 @@ const BearCustomizationsTab = () => {
             </div>
             <form className="modal-body" onSubmit={handleSaveGroup}>
               <div className="form-group">
-                <label className="form-label">
-                  Tên nhóm <span className="form-required">*</span>
-                </label>
+                <label className="form-label">Tên nhóm</label>
                 <input
                   className="form-input"
                   name="name"
@@ -896,14 +825,16 @@ const BearCustomizationsTab = () => {
                   autoFocus
                 />
               </div>
+
               <div className="form-group">
-                <label className="form-label">Gợi ý cho khách hàng</label>
-                <input
-                  className="form-input"
-                  name="helper"
+                <label className="form-label">Mô tả hướng dẫn</label>
+                <RichTextEditor
                   value={groupForm.helper}
-                  onChange={handleGroupFormChange}
-                  placeholder="VD: Chọn 1 loại phụ kiện ưng ý..."
+                  onChange={(nextValue) =>
+                    setGroupForm((prev) => ({ ...prev, helper: nextValue }))
+                  }
+                  placeholder="Gợi ý cho khách hàng, ví dụ: Chọn 1 loại phụ kiện ưng ý..."
+                  minHeight={130}
                 />
               </div>
 
@@ -939,7 +870,8 @@ const BearCustomizationsTab = () => {
               <h3 className="modal-title">
                 {optionModal === "create" ? "Thêm lựa chọn" : "Sửa lựa chọn"}{" "}
                 <span className="text-muted text-sm font-normal ml-2">
-                  (Nhóm: {groups.find((g) => g.id === optionForm.groupId)?.name})
+                  (Nhóm: {groups.find((g) => g.id === optionForm.groupId)?.name}
+                  )
                 </span>
               </h3>
               <button className="modal-close" onClick={closeOptionModal}>
@@ -948,190 +880,206 @@ const BearCustomizationsTab = () => {
             </div>
 
             <form className="modal-body" onSubmit={handleSaveOption}>
-              <div className="lf-form-row">
-                <div className="form-group">
-                  <label className="form-label">
-                    Tên lựa chọn <span className="form-required">*</span>
-                  </label>
-                  <input
-                    className="form-input"
-                    name="name"
-                    value={optionForm.name}
-                    onChange={handleOptionFormChange}
-                    placeholder="VD: Trái tim"
-                    autoFocus
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
-                    Giá thu thêm (VND) <span className="form-required">*</span>
-                  </label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    min={0}
-                    step={1000}
-                    name="price"
-                    value={optionForm.price}
-                    onChange={handleOptionFormChange}
-                  />
-                  <p className="form-hint">Để 0 nếu miễn phí.</p>
-                </div>
+              <div className="form-group">
+                <label className="form-label">Nhóm tùy chỉnh</label>
+                <select
+                  className="form-input"
+                  name="groupId"
+                  value={optionForm.groupId}
+                  onChange={handleOptionFormChange}
+                >
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Mô tả thêm</label>
-                <textarea
+                <label className="form-label">Tên lựa chọn</label>
+                <input
                   className="form-input"
-                  name="description"
-                  rows={2}
-                  value={optionForm.description}
+                  name="name"
+                  value={optionForm.name}
                   onChange={handleOptionFormChange}
-                  placeholder="VD: Kích thước 3x3cm..."
+                  placeholder="VD: Trái tim"
+                  autoFocus
                 />
               </div>
 
-              <div className="lf-form-row">
-                <div className="form-group">
-                  <label className="form-label">
-                    Tồn kho <span className="form-required">*</span>
-                  </label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    min={0}
-                    name="stockQuantity"
-                    value={optionForm.stockQuantity}
-                    onChange={handleOptionFormChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
-                    Mức cảnh báo sắp hết <span className="form-required">*</span>
-                  </label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    min={0}
-                    name="lowStockThreshold"
-                    value={optionForm.lowStockThreshold}
-                    onChange={handleOptionFormChange}
-                  />
-                </div>
+              <div className="form-group">
+                <label className="form-label">Mô tả</label>
+                <RichTextEditor
+                  value={optionForm.description}
+                  onChange={(nextValue) =>
+                    setOptionForm((prev) => ({
+                      ...prev,
+                      description: nextValue,
+                    }))
+                  }
+                  placeholder="Mô tả ngắn giúp khách hàng phân biệt lựa chọn này."
+                  minHeight={130}
+                />
               </div>
 
-              <div className="form-group lf-visual-config">
-                <div className="lf-visual-config__header">
-                  <label className="form-label mb-0">Thiết lập hiển thị</label>
-                  <label className="form-toggle">
-                    <input
-                      type="checkbox"
-                      name="allowImageUpload"
-                      checked={optionForm.allowImageUpload}
-                      onChange={handleOptionFormChange}
-                    />
-                    <span className="form-toggle__track" />
-                    <span className="form-toggle__label">
-                      Cho phép khách tải ảnh lên thay vì chọn mẫu
-                    </span>
-                  </label>
-                </div>
+              <div className="form-group">
+                <label className="form-label">Giá</label>
+                <input
+                  className="form-input"
+                  type="number"
+                  min={0}
+                  step={1}
+                  name="price"
+                  value={optionForm.price}
+                  onChange={handleOptionFormChange}
+                  placeholder="Để trống sẽ là miễn phí"
+                />
+                <p className="form-hint">
+                  Để trống hoặc nhập 0 nếu bạn muốn lựa chọn này miễn phí.
+                </p>
+              </div>
 
-                {!optionForm.allowImageUpload && (
-                  <div className="lf-visual-config__body">
-                    <div className="lf-visual-section">
-                      <label className="form-label">Cách 1: Chọn màu sắc (Mã HEX)</label>
-                      <div className="lf-color-picker-wrap">
-                        <input
-                          type="color"
-                          className="lf-color-input"
-                          value={
-                            optionForm.colorCode.startsWith("#")
-                              ? optionForm.colorCode
-                              : "#ffffff"
-                          }
-                          onChange={(e) =>
-                            setOptionForm((prev) => ({
-                              ...prev,
-                              colorCode: e.target.value.toUpperCase(),
-                            }))
-                          }
-                        />
-                        <input
-                          className="form-input font-mono"
-                          name="colorCode"
-                          value={optionForm.colorCode}
-                          onChange={(e) =>
-                            setOptionForm((prev) => ({
-                              ...prev,
-                              colorCode: e.target.value.toUpperCase(),
-                            }))
-                          }
-                          placeholder="#FF0000"
-                          maxLength={7}
-                        />
-                        {optionForm.colorCode && (
-                          <button
-                            type="button"
-                            className="btn-secondary btn-sm"
-                            onClick={() =>
-                              setOptionForm((prev) => ({ ...prev, colorCode: "" }))
-                            }
-                          >
-                            Xóa
-                          </button>
-                        )}
-                      </div>
-                      <p className="form-hint">Ưu tiên hiển thị bảng màu nếu có mã màu.</p>
+              <div className="form-group">
+                <label className="form-label">Số lượng tồn kho</label>
+                <input
+                  className="form-input"
+                  type="number"
+                  min={0}
+                  step={1}
+                  name="stockQuantity"
+                  value={optionForm.stockQuantity}
+                  onChange={handleOptionFormChange}
+                  placeholder="VD: 25"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Ngưỡng cảnh báo tồn thấp</label>
+                <input
+                  className="form-input"
+                  type="number"
+                  min={0}
+                  step={1}
+                  name="lowStockThreshold"
+                  value={optionForm.lowStockThreshold}
+                  onChange={handleOptionFormChange}
+                  placeholder="VD: 5"
+                />
+              </div>
+
+              <label className="form-toggle">
+                <input
+                  type="checkbox"
+                  name="allowImageUpload"
+                  checked={optionForm.allowImageUpload}
+                  onChange={handleOptionFormChange}
+                />
+                <span className="form-toggle__track" />
+                <span className="form-toggle__label">
+                  Dùng ảnh cho lựa chọn này (tắt để dùng mã màu)
+                </span>
+              </label>
+
+              {optionForm.allowImageUpload ? (
+                <div className="form-group">
+                  <label className="form-label">Ảnh lựa chọn</label>
+                  <div className="lcu-upload-wrap">
+                    <div className="lcu-upload-preview">
+                      <ImageWithFallback
+                        src={optionPreviewSrc}
+                        alt={optionForm.name || "Ảnh lựa chọn"}
+                        fallback={
+                          <div className="lcu-upload-preview__empty">
+                            <FiImage size={18} />
+                            <span>Chưa có ảnh</span>
+                          </div>
+                        }
+                      />
                     </div>
 
-                    <div className="lf-visual-section--divider">HOẶC</div>
-
-                    <div className="lf-visual-section">
-                      <label className="form-label">Cách 2: Tải ảnh minh họa</label>
-                      <div className="lf-image-field">
-                        <div className="lf-image-preview lf-image-preview--sm">
-                          <ImageWithFallback
-                            src={optionPreviewSrc}
-                            alt="Preview"
-                            fallback={
-                              <div className="lf-image-preview__empty">
-                                <FiImage size={16} />
-                                <span>Chưa có</span>
-                              </div>
-                            }
-                          />
-                        </div>
-                        <div className="lf-image-actions">
-                          <input
-                            ref={imageInputRef}
-                            className="lf-image-input"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageSelect}
-                          />
-                          <button
-                            type="button"
-                            className="btn-secondary btn-sm"
-                            onClick={() => imageInputRef.current?.click()}
-                          >
-                            <FiUpload size={14} /> Chọn ảnh
-                          </button>
-                          {(pendingImageFile || optionForm.image) && (
-                            <button
-                              type="button"
-                              className="btn-secondary btn-sm"
-                              onClick={clearImage}
-                            >
-                              <FiX size={14} /> Xóa ảnh
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                    <div className="lcu-upload-actions">
+                      <input
+                        ref={imageInputRef}
+                        className="lcu-upload-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                      />
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={saveOptionMutation.isPending}
+                        onClick={() => imageInputRef.current?.click()}
+                      >
+                        <FiUpload size={14} />
+                        {pendingImageFile
+                          ? " Chọn lại ảnh"
+                          : optionForm.image
+                            ? " Đổi ảnh"
+                            : " Tải ảnh lên"}
+                      </button>
+                      {(pendingImageFile || optionForm.image) && (
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={saveOptionMutation.isPending}
+                          onClick={clearImage}
+                        >
+                          <FiX size={14} /> Xóa ảnh
+                        </button>
+                      )}
                     </div>
+
+                    <p className="form-hint">
+                      Ảnh dưới 5MB, sẽ upload khi bấm lưu lựa chọn.
+                    </p>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label className="form-label">Mã màu</label>
+                  <div className="lcu-color-input-wrap">
+                    <span
+                      className="lcu-color-swatch"
+                      style={{
+                        backgroundColor: optionForm.colorCode.startsWith("#")
+                          ? optionForm.colorCode
+                          : "#ffffff",
+                      }}
+                    />
+                    <input
+                      className="form-input font-mono"
+                      type="color"
+                      name="colorCode"
+                      value={
+                        optionForm.colorCode.startsWith("#")
+                          ? optionForm.colorCode
+                          : "#ffffff"
+                      }
+                      onChange={(e) =>
+                        setOptionForm((prev) => ({
+                          ...prev,
+                          colorCode: e.target.value.toUpperCase(),
+                        }))
+                      }
+                    />
+                    <input
+                      className="form-input font-mono"
+                      name="colorCode"
+                      value={optionForm.colorCode}
+                      onChange={(e) =>
+                        setOptionForm((prev) => ({
+                          ...prev,
+                          colorCode: e.target.value.toUpperCase(),
+                        }))
+                      }
+                      placeholder="#FFFFFF"
+                      maxLength={7}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="modal-footer">
                 <button
@@ -1146,7 +1094,9 @@ const BearCustomizationsTab = () => {
                   className="btn-primary"
                   disabled={saveOptionMutation.isPending}
                 >
-                  {saveOptionMutation.isPending ? "Đang lưu..." : "Lưu lựa chọn"}
+                  {saveOptionMutation.isPending
+                    ? "Đang lưu..."
+                    : "Lưu lựa chọn"}
                 </button>
               </div>
             </form>
@@ -1156,11 +1106,22 @@ const BearCustomizationsTab = () => {
 
       {/* MODAL: Confirm Delete Group */}
       {confirmDeleteGroup && (
-        <div className="modal-overlay" onClick={() => setConfirmDeleteGroup(null)}>
-          <div className="modal-box modal-box--sm" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          onClick={() => setConfirmDeleteGroup(null)}
+        >
+          <div
+            className="modal-box modal-box--sm"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
-              <h3 className="modal-title modal-title--danger">Xóa nhóm tùy chỉnh</h3>
-              <button className="modal-close" onClick={() => setConfirmDeleteGroup(null)}>
+              <h3 className="modal-title modal-title--danger">
+                Xóa nhóm tùy chỉnh
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setConfirmDeleteGroup(null)}
+              >
                 <FiX size={16} />
               </button>
             </div>
@@ -1168,11 +1129,13 @@ const BearCustomizationsTab = () => {
               <div className="confirm-body">
                 <FiAlertTriangle className="confirm-icon" />
                 <p>
-                  Bạn có chắc muốn xóa nhóm <strong>{confirmDeleteGroup.name}</strong>?
+                  Bạn có chắc muốn xóa nhóm{" "}
+                  <strong>{confirmDeleteGroup.name}</strong>?
                   {confirmDeleteGroup.optionCount > 0 && (
                     <span className="text-danger d-block mt-2 font-medium">
-                      Nhóm này đang có {confirmDeleteGroup.optionCount} lựa chọn. Hãy xóa
-                      hết các lựa chọn bên trong trước khi xóa nhóm.
+                      Nhóm này đang có {confirmDeleteGroup.optionCount} lựa
+                      chọn. Hãy xóa hết các lựa chọn bên trong trước khi xóa
+                      nhóm.
                     </span>
                   )}
                 </p>
@@ -1186,9 +1149,12 @@ const BearCustomizationsTab = () => {
                 </button>
                 <button
                   className="btn-danger"
-                  onClick={() => deleteGroupMutation.mutate(confirmDeleteGroup.id)}
+                  onClick={() =>
+                    deleteGroupMutation.mutate(confirmDeleteGroup.id)
+                  }
                   disabled={
-                    deleteGroupMutation.isPending || confirmDeleteGroup.optionCount > 0
+                    deleteGroupMutation.isPending ||
+                    confirmDeleteGroup.optionCount > 0
                   }
                 >
                   <FiTrash2 size={14} /> Đi tới Xóa
@@ -1201,11 +1167,20 @@ const BearCustomizationsTab = () => {
 
       {/* MODAL: Confirm Delete Option */}
       {confirmDeleteOption && (
-        <div className="modal-overlay" onClick={() => setConfirmDeleteOption(null)}>
-          <div className="modal-box modal-box--sm" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          onClick={() => setConfirmDeleteOption(null)}
+        >
+          <div
+            className="modal-box modal-box--sm"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3 className="modal-title modal-title--danger">Xóa lựa chọn</h3>
-              <button className="modal-close" onClick={() => setConfirmDeleteOption(null)}>
+              <button
+                className="modal-close"
+                onClick={() => setConfirmDeleteOption(null)}
+              >
                 <FiX size={16} />
               </button>
             </div>
@@ -1213,8 +1188,9 @@ const BearCustomizationsTab = () => {
               <div className="confirm-body">
                 <FiAlertTriangle className="confirm-icon" />
                 <p>
-                  Bạn có chắc muốn xóa lựa chọn <strong>{confirmDeleteOption.name}</strong>?
-                  Hành động này không thể hoàn tác.
+                  Bạn có chắc muốn xóa lựa chọn{" "}
+                  <strong>{confirmDeleteOption.name}</strong>? Hành động này
+                  không thể hoàn tác.
                 </p>
               </div>
               <div className="modal-footer">
@@ -1226,7 +1202,9 @@ const BearCustomizationsTab = () => {
                 </button>
                 <button
                   className="btn-danger"
-                  onClick={() => deleteOptionMutation.mutate(confirmDeleteOption.id)}
+                  onClick={() =>
+                    deleteOptionMutation.mutate(confirmDeleteOption.id)
+                  }
                   disabled={deleteOptionMutation.isPending}
                 >
                   <FiTrash2 size={14} /> Xóa

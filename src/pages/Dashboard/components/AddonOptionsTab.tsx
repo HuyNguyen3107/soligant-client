@@ -24,13 +24,13 @@ import {
   updateAddonOption,
 } from "../../../services/addon-options.service";
 import { getLegoFrameVariants } from "../../../services/lego-frame-variants.service";
+import { getBearVariants } from "../../../services/bear-variants.service";
 import type {
   AddonOptionFieldForm,
   AddonOptionFieldType,
   AddonOptionFormState,
   AddonOptionRow,
   AddonOptionType,
-  LegoFrameVariant,
 } from "../types";
 import {
   normalizeRichTextForStorage,
@@ -61,6 +61,7 @@ const INITIAL_FORM: AddonOptionFormState = {
   optionType: "basic",
   price: "0",
   applicableProductIds: [],
+  applicableProductType: "lego",
   fields: [],
   isActive: true,
 };
@@ -87,8 +88,12 @@ const AddonOptionsTab = () => {
 
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
-  const [editingOption, setEditingOption] = useState<AddonOptionRow | null>(null);
-  const [deletingOption, setDeletingOption] = useState<AddonOptionRow | null>(null);
+  const [editingOption, setEditingOption] = useState<AddonOptionRow | null>(
+    null,
+  );
+  const [deletingOption, setDeletingOption] = useState<AddonOptionRow | null>(
+    null,
+  );
   const [form, setForm] = useState<AddonOptionFormState>({ ...INITIAL_FORM });
 
   const { data: addonOptions = [] } = useQuery({
@@ -101,15 +106,46 @@ const AddonOptionsTab = () => {
     queryFn: getLegoFrameVariants,
   });
 
-  const variantLookup = useMemo(
-    () => new Map(legoFrameVariants.map((variant) => [variant.id, variant])),
-    [legoFrameVariants],
-  );
+  const { data: bearVariants = [] } = useQuery({
+    queryKey: ["bear-variants"],
+    queryFn: getBearVariants,
+  });
 
-  const variantsByCollection = useMemo(() => {
-    const groups = new Map<string, { collectionName: string; items: LegoFrameVariant[] }>();
+  const variantLookup = useMemo(() => {
+    const lookup = new Map<string, { name: string }>();
 
     legoFrameVariants.forEach((variant) => {
+      lookup.set(variant.id, { name: variant.name });
+    });
+
+    bearVariants.forEach((variant) => {
+      lookup.set(variant.id, { name: variant.name });
+    });
+
+    return lookup;
+  }, [bearVariants, legoFrameVariants]);
+
+  interface ProductVariant {
+    id: string;
+    collectionId: string;
+    collectionName: string;
+    categoryName: string;
+    name: string;
+    price: number;
+  }
+
+  const variantsByCollection = useMemo(() => {
+    const sourceVariants: ProductVariant[] =
+      form.applicableProductType === "bear"
+        ? (bearVariants as ProductVariant[])
+        : (legoFrameVariants as ProductVariant[]);
+
+    const groups = new Map<
+      string,
+      { collectionName: string; items: ProductVariant[] }
+    >();
+
+    sourceVariants.forEach((variant) => {
       const key = variant.collectionId || variant.collectionName || "default";
       const current = groups.get(key);
 
@@ -132,7 +168,7 @@ const AddonOptionsTab = () => {
         return leftLabel.localeCompare(rightLabel, "vi");
       }),
     }));
-  }, [legoFrameVariants]);
+  }, [form.applicableProductType, bearVariants, legoFrameVariants]);
 
   const saveMutation = useMutation({
     mutationFn: async (payload: {
@@ -228,6 +264,7 @@ const AddonOptionsTab = () => {
       optionType: option.optionType,
       price: String(option.price),
       applicableProductIds: option.applicableProductIds,
+      applicableProductType: option.applicableProductType ?? "lego",
       fields:
         option.optionType === "customizable"
           ? option.fields
@@ -389,6 +426,7 @@ const AddonOptionsTab = () => {
         optionType: form.optionType,
         price: Math.max(0, Math.floor(price)),
         applicableProductIds: form.applicableProductIds,
+        applicableProductType: form.applicableProductType,
         fields:
           form.optionType === "customizable"
             ? form.fields.map((field, index) => ({
@@ -423,7 +461,8 @@ const AddonOptionsTab = () => {
         <div>
           <h2 className="tab-title">Option mua thêm</h2>
           <p className="tab-subtitle">
-            Quản lý các option mua thêm cơ bản và ấn phẩm tùy chỉnh cho từng biến thể sản phẩm.
+            Quản lý các option mua thêm cơ bản và ấn phẩm tùy chỉnh cho từng
+            biến thể sản phẩm.
           </p>
         </div>
         {canCreate && (
@@ -448,7 +487,13 @@ const AddonOptionsTab = () => {
             <FiType size={15} />
           </span>
           <div>
-            <strong>{addonOptions.filter((option) => option.optionType === "customizable").length}</strong>
+            <strong>
+              {
+                addonOptions.filter(
+                  (option) => option.optionType === "customizable",
+                ).length
+              }
+            </strong>
             <span>Ấn phẩm tùy chỉnh</span>
           </div>
         </div>
@@ -505,19 +550,30 @@ const AddonOptionsTab = () => {
                       <strong>{option.name}</strong>
                       {option.description && (
                         <div style={{ fontSize: "12px", margin: "2px 0 0" }}>
-                          <RichTextContent value={option.description} className="text-muted" />
+                          <RichTextContent
+                            value={option.description}
+                            className="text-muted"
+                          />
                         </div>
                       )}
                     </div>
                   </td>
                   <td>
-                    <span className="lc-name-chip">{OPTION_TYPE_LABELS[option.optionType]}</span>
-                    <p className="text-muted" style={{ fontSize: "12px", margin: "2px 0 0" }}>
+                    <span className="lc-name-chip">
+                      {OPTION_TYPE_LABELS[option.optionType]}
+                    </span>
+                    <p
+                      className="text-muted"
+                      style={{ fontSize: "12px", margin: "2px 0 0" }}
+                    >
                       {renderOptionSummary(option)}
                     </p>
                   </td>
                   <td>
-                    <p className="text-muted" style={{ fontSize: "12px", margin: 0, lineHeight: 1.5 }}>
+                    <p
+                      className="text-muted"
+                      style={{ fontSize: "12px", margin: 0, lineHeight: 1.5 }}
+                    >
                       {renderApplicableProducts(option)}
                     </p>
                   </td>
@@ -535,7 +591,9 @@ const AddonOptionsTab = () => {
                       {option.isActive ? "Hoạt động" : "Tạm dừng"}
                     </span>
                   </td>
-                  <td className="text-muted">{formatDateTime(option.updatedAt)}</td>
+                  <td className="text-muted">
+                    {formatDateTime(option.updatedAt)}
+                  </td>
                   <td>
                     <div className="tab-actions">
                       {canEdit && (
@@ -571,10 +629,15 @@ const AddonOptionsTab = () => {
 
       {modal && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-box modal-box--lg" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="modal-box modal-box--lg"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="modal-header">
               <h3 className="modal-title">
-                {modal === "create" ? "Tạo option mua thêm mới" : "Chỉnh sửa option mua thêm"}
+                {modal === "create"
+                  ? "Tạo option mua thêm mới"
+                  : "Chỉnh sửa option mua thêm"}
               </h3>
               <button className="modal-close" onClick={closeModal}>
                 <FiX size={16} />
@@ -601,7 +664,9 @@ const AddonOptionsTab = () => {
                 <label className="form-label">Mô tả</label>
                 <RichTextEditor
                   value={form.description}
-                  onChange={(nextValue) => updateField("description", nextValue)}
+                  onChange={(nextValue) =>
+                    updateField("description", nextValue)
+                  }
                   placeholder="Mô tả option mua thêm..."
                   minHeight={120}
                 />
@@ -629,6 +694,38 @@ const AddonOptionsTab = () => {
                       onChange={() => setOptionType("customizable")}
                     />
                     <span>Ấn phẩm tùy chỉnh (có form nhập cho user)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  Áp dụng cho loại sản phẩm *
+                </label>
+                <div className="promo-radio-group">
+                  <label className="promo-radio">
+                    <input
+                      type="radio"
+                      name="applicableProductType"
+                      value="lego"
+                      checked={form.applicableProductType === "lego"}
+                      onChange={() =>
+                        updateField("applicableProductType", "lego")
+                      }
+                    />
+                    <span>Sản phẩm Lego</span>
+                  </label>
+                  <label className="promo-radio">
+                    <input
+                      type="radio"
+                      name="applicableProductType"
+                      value="bear"
+                      checked={form.applicableProductType === "bear"}
+                      onChange={() =>
+                        updateField("applicableProductType", "bear")
+                      }
+                    />
+                    <span>Sản phẩm Gấu</span>
                   </label>
                 </div>
               </div>
@@ -671,8 +768,12 @@ const AddonOptionsTab = () => {
                   )}
                 </div>
 
-                <p className="text-muted" style={{ margin: "0 0 10px", fontSize: "12px" }}>
-                  Không chọn sản phẩm nào thì option này sẽ áp dụng cho toàn bộ biến thể.
+                <p
+                  className="text-muted"
+                  style={{ margin: "0 0 10px", fontSize: "12px" }}
+                >
+                  Không chọn sản phẩm nào thì option này sẽ áp dụng cho toàn bộ
+                  biến thể.
                 </p>
 
                 <div
@@ -688,18 +789,26 @@ const AddonOptionsTab = () => {
                   }}
                 >
                   {variantsByCollection.length === 0 ? (
-                    <p className="text-muted" style={{ margin: 0, fontSize: "13px" }}>
+                    <p
+                      className="text-muted"
+                      style={{ margin: 0, fontSize: "13px" }}
+                    >
                       Chưa có sản phẩm nào để chọn phạm vi áp dụng.
                     </p>
                   ) : (
                     variantsByCollection.map((group) => (
-                      <div key={group.collectionName} style={{ display: "grid", gap: "8px" }}>
+                      <div
+                        key={group.collectionName}
+                        style={{ display: "grid", gap: "8px" }}
+                      >
                         <strong style={{ fontSize: "13px", color: "#1f2937" }}>
                           {group.collectionName}
                         </strong>
                         <div style={{ display: "grid", gap: "8px" }}>
                           {group.items.map((variant) => {
-                            const checked = form.applicableProductIds.includes(variant.id);
+                            const checked = form.applicableProductIds.includes(
+                              variant.id,
+                            );
 
                             return (
                               <label
@@ -708,20 +817,35 @@ const AddonOptionsTab = () => {
                                 style={{
                                   justifyContent: "space-between",
                                   alignItems: "flex-start",
-                                  border: checked ? "1px solid #d7b0b1" : "1px solid #ebeef5",
+                                  border: checked
+                                    ? "1px solid #d7b0b1"
+                                    : "1px solid #ebeef5",
                                   borderRadius: "10px",
                                   padding: "10px 12px",
                                   background: checked ? "#fff7f7" : "#ffffff",
                                 }}
                               >
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "10px",
+                                  }}
+                                >
                                   <input
                                     type="checkbox"
                                     checked={checked}
-                                    onChange={() => toggleApplicableProduct(variant.id)}
+                                    onChange={() =>
+                                      toggleApplicableProduct(variant.id)
+                                    }
                                   />
                                   <span>
-                                    <strong style={{ display: "block", fontSize: "13px" }}>
+                                    <strong
+                                      style={{
+                                        display: "block",
+                                        fontSize: "13px",
+                                      }}
+                                    >
                                       {variant.name}
                                     </strong>
                                     <small style={{ color: "#6b7280" }}>
@@ -729,7 +853,12 @@ const AddonOptionsTab = () => {
                                     </small>
                                   </span>
                                 </span>
-                                <small style={{ color: "#6b7280", whiteSpace: "nowrap" }}>
+                                <small
+                                  style={{
+                                    color: "#6b7280",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
                                   {formatMoney(variant.price)}
                                 </small>
                               </label>
@@ -756,14 +885,22 @@ const AddonOptionsTab = () => {
                     <label className="form-label" style={{ marginBottom: 0 }}>
                       Trường tùy chỉnh ấn phẩm *
                     </label>
-                    <button type="button" className="btn-secondary" onClick={addField}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={addField}
+                    >
                       <FiPlus size={14} /> Thêm trường
                     </button>
                   </div>
 
                   {form.fields.length === 0 && (
-                    <p className="text-muted" style={{ margin: "0 0 8px", fontSize: "12px" }}>
-                      Chưa có trường nào. Nhấn "Thêm trường" để tạo form cho người dùng.
+                    <p
+                      className="text-muted"
+                      style={{ margin: "0 0 8px", fontSize: "12px" }}
+                    >
+                      Chưa có trường nào. Nhấn "Thêm trường" để tạo form cho
+                      người dùng.
                     </p>
                   )}
 
@@ -779,7 +916,13 @@ const AddonOptionsTab = () => {
                         }}
                       >
                         <div style={{ display: "grid", gap: "8px" }}>
-                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              alignItems: "center",
+                            }}
+                          >
                             <span
                               style={{
                                 display: "inline-flex",
@@ -802,7 +945,11 @@ const AddonOptionsTab = () => {
                               className="form-input"
                               value={field.label}
                               onChange={(event) =>
-                                updateCustomField(index, "label", event.target.value)
+                                updateCustomField(
+                                  index,
+                                  "label",
+                                  event.target.value,
+                                )
                               }
                               placeholder="Tên trường hiển thị cho user"
                             />
@@ -812,7 +959,11 @@ const AddonOptionsTab = () => {
                               style={{ maxWidth: "160px" }}
                               value={field.fieldType}
                               onChange={(event) =>
-                                updateCustomField(index, "fieldType", event.target.value)
+                                updateCustomField(
+                                  index,
+                                  "fieldType",
+                                  event.target.value,
+                                )
                               }
                             >
                               <option value="image">Ảnh</option>
@@ -836,17 +987,28 @@ const AddonOptionsTab = () => {
                             className="form-input"
                             value={field.placeholder}
                             onChange={(event) =>
-                              updateCustomField(index, "placeholder", event.target.value)
+                              updateCustomField(
+                                index,
+                                "placeholder",
+                                event.target.value,
+                              )
                             }
                             placeholder="Placeholder gợi ý cho người dùng"
                           />
 
-                          <label className="promo-radio" style={{ cursor: "pointer" }}>
+                          <label
+                            className="promo-radio"
+                            style={{ cursor: "pointer" }}
+                          >
                             <input
                               type="checkbox"
                               checked={field.required}
                               onChange={(event) =>
-                                updateCustomField(index, "required", event.target.checked)
+                                updateCustomField(
+                                  index,
+                                  "required",
+                                  event.target.checked,
+                                )
                               }
                             />
                             <span>Bắt buộc nhập</span>
@@ -870,17 +1032,27 @@ const AddonOptionsTab = () => {
                   <input
                     type="checkbox"
                     checked={form.isActive}
-                    onChange={(event) => updateField("isActive", event.target.checked)}
+                    onChange={(event) =>
+                      updateField("isActive", event.target.checked)
+                    }
                   />
                   <span>Kích hoạt option mua thêm</span>
                 </label>
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={closeModal}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closeModal}
+                >
                   Hủy
                 </button>
-                <button type="submit" className="btn-primary" disabled={saveMutation.isPending}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={saveMutation.isPending}
+                >
                   {saveMutation.isPending ? (
                     <>
                       <span className="btn-spinner" /> Đang lưu...
@@ -899,10 +1071,18 @@ const AddonOptionsTab = () => {
 
       {deletingOption && (
         <div className="modal-overlay" onClick={() => setDeletingOption(null)}>
-          <div className="modal-box modal-box--sm" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="modal-box modal-box--sm"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="modal-header">
-              <h3 className="modal-title modal-title--danger">Xóa option mua thêm</h3>
-              <button className="modal-close" onClick={() => setDeletingOption(null)}>
+              <h3 className="modal-title modal-title--danger">
+                Xóa option mua thêm
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setDeletingOption(null)}
+              >
                 <FiX size={16} />
               </button>
             </div>
@@ -910,11 +1090,15 @@ const AddonOptionsTab = () => {
               <div className="confirm-body">
                 <FiAlertTriangle className="confirm-icon" />
                 <p>
-                  Bạn có chắc muốn xóa option <strong>{deletingOption.name}</strong>?
+                  Bạn có chắc muốn xóa option{" "}
+                  <strong>{deletingOption.name}</strong>?
                 </p>
               </div>
               <div className="modal-footer">
-                <button className="btn-secondary" onClick={() => setDeletingOption(null)}>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setDeletingOption(null)}
+                >
                   Hủy
                 </button>
                 <button

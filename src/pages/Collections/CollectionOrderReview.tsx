@@ -55,15 +55,23 @@ const getRewardSummary = (promotion: AppliedPromotion) => {
     const modeLabel =
       promotion.rewardGiftQuantityMode === "multiply_by_condition"
         ? promotion.conditionType === "lego_quantity"
-          ? "(nhân theo số Lego)"
+          ? "(nhân theo số lượng tùy chỉnh)"
           : "(nhân theo số set)"
         : "";
 
     const giftSummary = promotion.rewardGifts
-      .map((gift) => `${gift.optionName || gift.groupName || "Quà tặng"} x${gift.quantity}`)
+      .map(
+        (gift) =>
+          `${gift.optionName || gift.groupName || "Quà tặng"} x${gift.quantity}`,
+      )
       .join(", ");
 
-    return modeLabel ? `${giftSummary} ${modeLabel}` : giftSummary;
+    const selectionPrefix =
+      promotion.rewardGiftSelectionMode === "choose_one" ? "Chọn 1: " : "";
+
+    return modeLabel
+      ? `${selectionPrefix}${giftSummary} ${modeLabel}`
+      : `${selectionPrefix}${giftSummary}`;
   }
 
   if (promotion.rewardType === "discount_fixed") {
@@ -73,16 +81,52 @@ const getRewardSummary = (promotion: AppliedPromotion) => {
   return `Giảm ${promotion.rewardDiscountValue}%`;
 };
 
+interface GiftSelectionEntry {
+  key: string;
+  promotion: AppliedPromotion;
+  contextLabel: string;
+}
+
+const buildItemPromotionSelectionKey = (
+  itemId: string,
+  promotionId: string,
+  promotionIndex: number,
+) => `item:${itemId}:${promotionId}:${promotionIndex}`;
+
+const buildOrderPromotionSelectionKey = (
+  promotionId: string,
+  eligibleItemIds: string[],
+  promotionIndex: number,
+) => {
+  const normalizedEligibleIds = [...eligibleItemIds]
+    .map((itemId) => itemId.trim())
+    .filter(Boolean)
+    .sort()
+    .join(",");
+
+  return `order:${promotionId}:${normalizedEligibleIds}:${promotionIndex}`;
+};
+
 const CollectionOrderReview = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
   const cartItems = useCustomCartStore((state) => state.items);
-  const storedSelectedItemIds = useCustomCartStore((state) => state.selectedItemIds);
-  const storedCustomerInfoEntries = useCustomCartStore((state) => state.customerInfoEntries);
-  const setSelectedItemIds = useCustomCartStore((state) => state.setSelectedItemIds);
-  const setCustomerInfoEntries = useCustomCartStore((state) => state.setCustomerInfoEntries);
-  const clearCustomerInfoEntries = useCustomCartStore((state) => state.clearCustomerInfoEntries);
+  const storedSelectedItemIds = useCustomCartStore(
+    (state) => state.selectedItemIds,
+  );
+  const storedCustomerInfoEntries = useCustomCartStore(
+    (state) => state.customerInfoEntries,
+  );
+  const setSelectedItemIds = useCustomCartStore(
+    (state) => state.setSelectedItemIds,
+  );
+  const setCustomerInfoEntries = useCustomCartStore(
+    (state) => state.setCustomerInfoEntries,
+  );
+  const clearCustomerInfoEntries = useCustomCartStore(
+    (state) => state.clearCustomerInfoEntries,
+  );
   const removeItem = useCustomCartStore((state) => state.removeItem);
   const removeItems = useCustomCartStore((state) => state.removeItems);
 
@@ -90,6 +134,9 @@ const CollectionOrderReview = () => {
 
   const locationState = location.state as ReviewLocationState | null;
   const [customerNote, setCustomerNote] = useState("");
+  const [selectedGiftByPromotionKey, setSelectedGiftByPromotionKey] = useState<
+    Record<string, string>
+  >({});
   const customerNotePlainText = toRichTextPlainText(customerNote);
   const isCustomerNoteTooLong = customerNotePlainText.length > 2000;
 
@@ -111,7 +158,9 @@ const CollectionOrderReview = () => {
   useEffect(() => {
     const isSameSelection =
       effectiveSelectedIds.length === storedSelectedItemIds.length &&
-      effectiveSelectedIds.every((itemId, index) => storedSelectedItemIds[index] === itemId);
+      effectiveSelectedIds.every(
+        (itemId, index) => storedSelectedItemIds[index] === itemId,
+      );
 
     if (!isSameSelection) {
       setSelectedItemIds(effectiveSelectedIds);
@@ -127,7 +176,10 @@ const CollectionOrderReview = () => {
   );
 
   const effectiveCustomerInfoEntries = useMemo(() => {
-    if (locationState?.customerInfoEntries && locationState.customerInfoEntries.length > 0) {
+    if (
+      locationState?.customerInfoEntries &&
+      locationState.customerInfoEntries.length > 0
+    ) {
       return locationState.customerInfoEntries;
     }
 
@@ -154,7 +206,11 @@ const CollectionOrderReview = () => {
     if (!isSameEntries) {
       setCustomerInfoEntries(fromState);
     }
-  }, [locationState?.customerInfoEntries, setCustomerInfoEntries, storedCustomerInfoEntries]);
+  }, [
+    locationState?.customerInfoEntries,
+    setCustomerInfoEntries,
+    storedCustomerInfoEntries,
+  ]);
 
   const { data: promotions = [] } = useQuery({
     queryKey: ["public-promotions"],
@@ -168,11 +224,12 @@ const CollectionOrderReview = () => {
     enabled: selectedItems.length > 0,
   });
 
-  const { data: customerInfoConfig, isLoading: isCustomerInfoConfigLoading } = useQuery({
-    queryKey: ["public-customer-order-fields-config"],
-    queryFn: getPublicCustomerOrderFieldsConfig,
-    enabled: selectedItems.length > 0,
-  });
+  const { data: customerInfoConfig, isLoading: isCustomerInfoConfigLoading } =
+    useQuery({
+      queryKey: ["public-customer-order-fields-config"],
+      queryFn: getPublicCustomerOrderFieldsConfig,
+      enabled: selectedItems.length > 0,
+    });
 
   const customGroupLookup = useMemo(
     () => new Map(customGroups.map((group) => [group.id, group])),
@@ -189,23 +246,136 @@ const CollectionOrderReview = () => {
   const hasOrderPromotions = pricing.orderPromotions.length > 0;
 
   const pricingByItemId = useMemo(
-    () => new Map(pricing.itemResults.map((result) => [result.item.id, result])),
+    () =>
+      new Map(pricing.itemResults.map((result) => [result.item.id, result])),
     [pricing.itemResults],
+  );
+
+  const requiredGiftSelections = useMemo<GiftSelectionEntry[]>(() => {
+    const entries: GiftSelectionEntry[] = [];
+
+    pricing.itemResults.forEach((result) => {
+      result.appliedPromotions.forEach((promotion, promotionIndex) => {
+        if (
+          promotion.rewardType !== "gift" ||
+          promotion.rewardGiftSelectionMode !== "choose_one" ||
+          promotion.rewardGifts.length === 0
+        ) {
+          return;
+        }
+
+        entries.push({
+          key: buildItemPromotionSelectionKey(
+            result.item.id,
+            promotion.id,
+            promotionIndex,
+          ),
+          promotion,
+          contextLabel: `Theo sản phẩm: ${result.item.product.name}`,
+        });
+      });
+    });
+
+    pricing.orderPromotions.forEach((promotion, promotionIndex) => {
+      if (
+        promotion.rewardType !== "gift" ||
+        promotion.rewardGiftSelectionMode !== "choose_one" ||
+        promotion.rewardGifts.length === 0
+      ) {
+        return;
+      }
+
+      const eligibleItemNames = promotion.eligibleItemIds
+        .map((itemId) => itemLookup.get(itemId)?.product.name)
+        .filter((name): name is string => Boolean(name));
+
+      const scopeLabel =
+        eligibleItemNames.length === 0
+          ? "Theo ưu đãi theo set"
+          : eligibleItemNames.length <= 2
+            ? `Theo set: ${eligibleItemNames.join(", ")}`
+            : `Theo set: ${eligibleItemNames.slice(0, 2).join(", ")} +${eligibleItemNames.length - 2} sản phẩm`;
+
+      entries.push({
+        key: buildOrderPromotionSelectionKey(
+          promotion.id,
+          promotion.eligibleItemIds,
+          promotionIndex,
+        ),
+        promotion,
+        contextLabel: scopeLabel,
+      });
+    });
+
+    return entries;
+  }, [itemLookup, pricing.itemResults, pricing.orderPromotions]);
+
+  useEffect(() => {
+    setSelectedGiftByPromotionKey((previousSelections) => {
+      const nextSelections: Record<string, string> = {};
+
+      requiredGiftSelections.forEach((entry) => {
+        const availableOptionIds = entry.promotion.rewardGifts
+          .map((gift) => String(gift.optionId ?? "").trim())
+          .filter(Boolean);
+        const optionSet = new Set(availableOptionIds);
+
+        const previousOptionId = previousSelections[entry.key];
+        if (previousOptionId && optionSet.has(previousOptionId)) {
+          nextSelections[entry.key] = previousOptionId;
+          return;
+        }
+
+        if (availableOptionIds.length === 1) {
+          nextSelections[entry.key] = availableOptionIds[0];
+        }
+      });
+
+      const previousKeys = Object.keys(previousSelections);
+      const nextKeys = Object.keys(nextSelections);
+
+      const hasChanged =
+        previousKeys.length !== nextKeys.length ||
+        nextKeys.some(
+          (promotionKey) =>
+            previousSelections[promotionKey] !== nextSelections[promotionKey],
+        );
+
+      return hasChanged ? nextSelections : previousSelections;
+    });
+  }, [requiredGiftSelections]);
+
+  const hasMissingGiftSelections = useMemo(
+    () =>
+      requiredGiftSelections.some(
+        (entry) => !selectedGiftByPromotionKey[entry.key],
+      ),
+    [requiredGiftSelections, selectedGiftByPromotionKey],
   );
 
   const customizationSummaries = useMemo(() => {
     const summaries = new Map<
       string,
-      Array<{ key: string; groupName: string; optionName: string; count: number }>
+      Array<{
+        key: string;
+        groupName: string;
+        optionName: string;
+        count: number;
+      }>
     >();
 
     selectedItems.forEach((item) => {
-      const counts = new Map<string, { key: string; groupName: string; optionName: string; count: number }>();
+      const counts = new Map<
+        string,
+        { key: string; groupName: string; optionName: string; count: number }
+      >();
 
       Object.values(item.legoSelections).forEach((slotSelections) => {
         Object.entries(slotSelections).forEach(([groupId, optionId]) => {
           const group = customGroupLookup.get(groupId);
-          const option = group?.options.find((candidate) => candidate.id === optionId);
+          const option = group?.options.find(
+            (candidate) => candidate.id === optionId,
+          );
           const key = `${groupId}-${optionId}`;
           const current = counts.get(key);
 
@@ -252,14 +422,19 @@ const CollectionOrderReview = () => {
   );
 
   const customerInfoEntryLookup = useMemo(
-    () => new Map(effectiveCustomerInfoEntries.map((entry) => [entry.key, entry])),
+    () =>
+      new Map(effectiveCustomerInfoEntries.map((entry) => [entry.key, entry])),
     [effectiveCustomerInfoEntries],
   );
 
   const requiredCustomerInfoErrors = useMemo(() => {
     return activeCustomerInfoFields
       .map((field, index) => {
-        const fieldKey = buildCustomerOrderFieldKey(index, field.label, field.fieldType);
+        const fieldKey = buildCustomerOrderFieldKey(
+          index,
+          field.label,
+          field.fieldType,
+        );
         const entry = customerInfoEntryLookup.get(fieldKey);
         const value = entry?.value;
 
@@ -277,7 +452,11 @@ const CollectionOrderReview = () => {
   const visibleCustomerInfoEntries = useMemo(
     () =>
       effectiveCustomerInfoEntries
-        .filter((entry) => !isCustomerOrderFieldValueEmpty(entry, entry.value) || entry.required)
+        .filter(
+          (entry) =>
+            !isCustomerOrderFieldValueEmpty(entry, entry.value) ||
+            entry.required,
+        )
         .sort((left, right) => left.sortOrder - right.sortOrder),
     [effectiveCustomerInfoEntries],
   );
@@ -285,27 +464,80 @@ const CollectionOrderReview = () => {
   const appliedGifts = useMemo(() => {
     const giftMap = new Map<string, number>();
 
-    [...pricing.itemResults.flatMap((result) => result.appliedPromotions), ...pricing.orderPromotions]
-      .filter((promotion) => promotion.rewardType === "gift")
-      .forEach((promotion) => {
-        promotion.rewardGifts.forEach((gift) => {
-          const optionId = String(gift.optionId ?? "").trim();
-          const quantity = Number(gift.quantity ?? 0);
+    const addGift = (gift: { optionId?: string; quantity?: number }) => {
+      const optionId = String(gift.optionId ?? "").trim();
+      const quantity = Number(gift.quantity ?? 0);
 
-          if (!optionId || !Number.isFinite(quantity) || quantity <= 0) {
-            return;
-          }
+      if (!optionId || !Number.isFinite(quantity) || quantity <= 0) {
+        return;
+      }
 
-          const normalizedQuantity = Math.max(1, Math.floor(quantity));
-          giftMap.set(optionId, (giftMap.get(optionId) ?? 0) + normalizedQuantity);
-        });
+      const normalizedQuantity = Math.max(1, Math.floor(quantity));
+      giftMap.set(optionId, (giftMap.get(optionId) ?? 0) + normalizedQuantity);
+    };
+
+    const collectPromotionGifts = (
+      promotion: AppliedPromotion,
+      promotionSelectionKey: string,
+    ) => {
+      if (promotion.rewardType !== "gift") {
+        return;
+      }
+
+      if (promotion.rewardGiftSelectionMode === "choose_one") {
+        const selectedOptionId = String(
+          selectedGiftByPromotionKey[promotionSelectionKey] ?? "",
+        ).trim();
+
+        if (!selectedOptionId) {
+          return;
+        }
+
+        const selectedGift = promotion.rewardGifts.find(
+          (gift) => String(gift.optionId ?? "").trim() === selectedOptionId,
+        );
+
+        if (selectedGift) {
+          addGift(selectedGift);
+        }
+
+        return;
+      }
+
+      promotion.rewardGifts.forEach((gift) => addGift(gift));
+    };
+
+    pricing.itemResults.forEach((result) => {
+      result.appliedPromotions.forEach((promotion, promotionIndex) => {
+        const promotionSelectionKey = buildItemPromotionSelectionKey(
+          result.item.id,
+          promotion.id,
+          promotionIndex,
+        );
+
+        collectPromotionGifts(promotion, promotionSelectionKey);
       });
+    });
+
+    pricing.orderPromotions.forEach((promotion, promotionIndex) => {
+      const promotionSelectionKey = buildOrderPromotionSelectionKey(
+        promotion.id,
+        promotion.eligibleItemIds,
+        promotionIndex,
+      );
+
+      collectPromotionGifts(promotion, promotionSelectionKey);
+    });
 
     return Array.from(giftMap.entries()).map(([optionId, quantity]) => ({
       optionId,
       quantity,
     }));
-  }, [pricing.itemResults, pricing.orderPromotions]);
+  }, [
+    pricing.itemResults,
+    pricing.orderPromotions,
+    selectedGiftByPromotionKey,
+  ]);
 
   const placeOrderMutation = useMutation({
     mutationFn: async () => {
@@ -314,11 +546,19 @@ const CollectionOrderReview = () => {
       }
 
       if (isCustomerInfoConfigLoading) {
-        throw new Error("Đang tải cấu hình thông tin khách hàng. Vui lòng thử lại.");
+        throw new Error(
+          "Đang tải cấu hình thông tin khách hàng. Vui lòng thử lại.",
+        );
       }
 
       if (hasMissingRequiredCustomerInfo) {
-        throw new Error("Vui lòng hoàn tất thông tin khách hàng trước khi đặt hàng.");
+        throw new Error(
+          "Vui lòng hoàn tất thông tin khách hàng trước khi đặt hàng.",
+        );
+      }
+
+      if (hasMissingGiftSelections) {
+        throw new Error("Vui lòng chọn quà tặng ưu đãi trước khi đặt hàng.");
       }
 
       return createPublicOrder({
@@ -355,7 +595,9 @@ const CollectionOrderReview = () => {
                 .filter(([, optionId]) => Boolean(optionId))
                 .map(([groupId, optionId]) => {
                   const group = customGroupLookup.get(groupId);
-                  const option = group?.options.find((candidate) => candidate.id === optionId);
+                  const option = group?.options.find(
+                    (candidate) => candidate.id === optionId,
+                  );
 
                   return {
                     groupName: group?.name ?? groupId,
@@ -382,7 +624,9 @@ const CollectionOrderReview = () => {
           finalTotal: pricing.finalTotal,
         },
         customerInfoEntries:
-          activeCustomerInfoFields.length > 0 ? effectiveCustomerInfoEntries : [],
+          activeCustomerInfoFields.length > 0
+            ? effectiveCustomerInfoEntries
+            : [],
         appliedGifts,
         note: customerNotePlainText.trim() || undefined,
       });
@@ -395,7 +639,9 @@ const CollectionOrderReview = () => {
         finalTotal: createdOrder.pricingSummary.finalTotal,
         createdAt: createdOrder.createdAt,
         savedAt: new Date().toISOString(),
-        productNames: createdOrder.items.map((item) => item.productName).filter(Boolean),
+        productNames: createdOrder.items
+          .map((item) => item.productName)
+          .filter(Boolean),
         collectionName: createdOrder.items[0]?.collectionName ?? "",
       });
       removeItems(selectedCartItemIds);
@@ -407,9 +653,14 @@ const CollectionOrderReview = () => {
       });
     },
     onError: (error) => {
-      const message = getErrorMessage(error, "Không thể đặt hàng. Vui lòng thử lại.");
+      const message = getErrorMessage(
+        error,
+        "Không thể đặt hàng. Vui lòng thử lại.",
+      );
       const isStockError =
-        message.includes("tồn kho") || message.includes("không đủ") || message.includes("không còn tồn tại");
+        message.includes("tồn kho") ||
+        message.includes("không đủ") ||
+        message.includes("không còn tồn tại");
       toast.error(message, { autoClose: isStockError ? 8000 : 4000 });
     },
   });
@@ -430,8 +681,8 @@ const CollectionOrderReview = () => {
             <FiShoppingBag size={42} />
             <h1>Chưa có sản phẩm nào được chọn</h1>
             <p>
-              Hãy thêm ít nhất một sản phẩm đã tùy chỉnh vào giỏ hàng hoặc chọn sản phẩm từ
-              giỏ để xem lại đơn hàng.
+              Hãy thêm ít nhất một sản phẩm đã tùy chỉnh vào giỏ hàng hoặc chọn
+              sản phẩm từ giỏ để xem lại đơn hàng.
             </p>
             <Link to="/bo-suu-tap" className="cor-btn">
               <FiArrowLeft size={16} /> Quay lại bộ sưu tập
@@ -465,11 +716,15 @@ const CollectionOrderReview = () => {
         <div className="container cor-layout">
           <section className="cor-items">
             <header className="cor-section-header">
-              <p className="cor-section-header__eyebrow">Xem lại trước khi đặt</p>
-              <h1 className="cor-section-header__title">Thông tin đơn hàng cuối cùng</h1>
+              <p className="cor-section-header__eyebrow">
+                Xem lại trước khi đặt
+              </p>
+              <h1 className="cor-section-header__title">
+                Thông tin đơn hàng cuối cùng
+              </h1>
               <p className="cor-section-header__desc">
-                Kiểm tra lại sản phẩm đã tùy chỉnh, nền đã chọn, option mua thêm và ưu đãi áp
-                dụng trước khi chuyển sang bước chốt đơn.
+                Kiểm tra lại sản phẩm đã tùy chỉnh, nền đã chọn, option mua thêm
+                và ưu đãi áp dụng trước khi chuyển sang bước chốt đơn.
               </p>
             </header>
 
@@ -477,7 +732,8 @@ const CollectionOrderReview = () => {
               const itemPricing = pricingByItemId.get(item.id);
               const additionalOptions = item.additionalOptions ?? [];
               const additionalOptionsTotal = getAdditionalOptionsPrice(item);
-              const customizationSummary = customizationSummaries.get(item.id) ?? [];
+              const customizationSummary =
+                customizationSummaries.get(item.id) ?? [];
               const itemImage = getStaticAssetUrl(item.product.image);
               const itemPromotions = itemPricing?.appliedPromotions ?? [];
 
@@ -490,19 +746,24 @@ const CollectionOrderReview = () => {
                           src={itemImage}
                           alt={item.product.name}
                           fallback={
-                          <div className="cor-card__thumb-placeholder">
-                            <FiShoppingBag size={24} />
-                          </div>
+                            <div className="cor-card__thumb-placeholder">
+                              <FiShoppingBag size={24} />
+                            </div>
                           }
                         />
                       </div>
 
                       <div className="cor-card__body">
-                        <span className="cor-card__collection">{item.collectionName}</span>
+                        <span className="cor-card__collection">
+                          {item.collectionName}
+                        </span>
                         <h2 className="cor-card__title">{item.product.name}</h2>
-                        <p className="cor-card__meta">Nền: {item.background.name}</p>
                         <p className="cor-card__meta">
-                          Tổng Lego: {item.totalLegoCount} | Lego thêm: {item.selectedAdditionalLegoCount}
+                          Nền: {item.background.name}
+                        </p>
+                        <p className="cor-card__meta">
+                          Tổng Lego: {item.totalLegoCount} | Lego thêm:{" "}
+                          {item.selectedAdditionalLegoCount}
                         </p>
                       </div>
                     </div>
@@ -521,7 +782,8 @@ const CollectionOrderReview = () => {
                       <div className="cor-block__title-row">
                         <h3 className="cor-block__title">Tùy chỉnh Lego</h3>
                         <span className="cor-chip cor-chip--theme">
-                          <FiTag size={12} /> {customizationSummary.length} lựa chọn
+                          <FiTag size={12} /> {customizationSummary.length} lựa
+                          chọn
                         </span>
                       </div>
 
@@ -529,26 +791,35 @@ const CollectionOrderReview = () => {
                         <div className="cor-chip-list">
                           {customizationSummary.map((entry) => (
                             <span key={entry.key} className="cor-chip">
-                              {entry.groupName}: {entry.optionName} x{entry.count}
+                              {entry.groupName}: {entry.optionName} x
+                              {entry.count}
                             </span>
                           ))}
                         </div>
                       ) : (
-                        <p className="cor-empty-text">Chưa có lựa chọn tùy chỉnh nào được ghi nhận.</p>
+                        <p className="cor-empty-text">
+                          Chưa có lựa chọn tùy chỉnh nào được ghi nhận.
+                        </p>
                       )}
                     </section>
 
                     <section className="cor-block">
                       <h3 className="cor-block__title">Option mua thêm</h3>
                       {additionalOptions.length === 0 ? (
-                        <p className="cor-empty-text">Không có option mua thêm nào được chọn.</p>
+                        <p className="cor-empty-text">
+                          Không có option mua thêm nào được chọn.
+                        </p>
                       ) : (
                         <div className="cor-addon-list">
                           {additionalOptions.map((option) => {
-                            const customFieldValues = option.customFieldValues ?? [];
+                            const customFieldValues =
+                              option.customFieldValues ?? [];
 
                             return (
-                              <article key={option.id} className="cor-addon-item">
+                              <article
+                                key={option.id}
+                                className="cor-addon-item"
+                              >
                                 <div className="cor-addon-item__head">
                                   <strong>{option.name}</strong>
                                   <span>{formatMoney(option.price)}</span>
@@ -568,7 +839,9 @@ const CollectionOrderReview = () => {
                                         key={`${option.id}-${index}`}
                                         className="cor-addon-item__field"
                                       >
-                                        <p className="cor-field-item__label">{field.label}</p>
+                                        <p className="cor-field-item__label">
+                                          {field.label}
+                                        </p>
                                         {field.fieldType === "image" ? (
                                           field.value.trim() ? (
                                             <ImageWithFallback
@@ -576,17 +849,25 @@ const CollectionOrderReview = () => {
                                               alt={field.label}
                                               className="cor-field-item__image"
                                               fallback={
-                                                <p className="cor-empty-text">Ảnh không còn khả dụng</p>
+                                                <p className="cor-empty-text">
+                                                  Ảnh không còn khả dụng
+                                                </p>
                                               }
                                             />
                                           ) : (
-                                            <p className="cor-empty-text">Chưa tải ảnh</p>
+                                            <p className="cor-empty-text">
+                                              Chưa tải ảnh
+                                            </p>
                                           )
                                         ) : field.fieldType === "text" ? (
                                           isRichTextEmpty(field.value) ? (
-                                            <p className="cor-empty-text">Chưa nhập nội dung</p>
+                                            <p className="cor-empty-text">
+                                              Chưa nhập nội dung
+                                            </p>
                                           ) : (
-                                            <RichTextContent value={field.value} />
+                                            <RichTextContent
+                                              value={field.value}
+                                            />
                                           )
                                         ) : field.value.trim() ? (
                                           <a
@@ -598,7 +879,9 @@ const CollectionOrderReview = () => {
                                             {field.value}
                                           </a>
                                         ) : (
-                                          <p className="cor-empty-text">Chưa nhập link</p>
+                                          <p className="cor-empty-text">
+                                            Chưa nhập link
+                                          </p>
                                         )}
                                       </div>
                                     ))}
@@ -648,12 +931,16 @@ const CollectionOrderReview = () => {
                     {(itemPricing?.discountTotal ?? 0) > 0 && (
                       <div className="cor-pricing__row cor-pricing__row--discount">
                         <span>Giảm theo sản phẩm</span>
-                        <strong>-{formatMoney(itemPricing?.discountTotal ?? 0)}</strong>
+                        <strong>
+                          -{formatMoney(itemPricing?.discountTotal ?? 0)}
+                        </strong>
                       </div>
                     )}
                     <div className="cor-pricing__row cor-pricing__row--total">
                       <span>Thành tiền</span>
-                      <strong>{formatMoney(itemPricing?.totalAfterDiscount ?? 0)}</strong>
+                      <strong>
+                        {formatMoney(itemPricing?.totalAfterDiscount ?? 0)}
+                      </strong>
                     </div>
                   </div>
                 </article>
@@ -677,7 +964,9 @@ const CollectionOrderReview = () => {
                 {hasProductDiscount && (
                   <div className="cor-summary__row cor-summary__row--discount">
                     <span>Giảm theo sản phẩm</span>
-                    <strong>-{formatMoney(pricing.productDiscountTotal)}</strong>
+                    <strong>
+                      -{formatMoney(pricing.productDiscountTotal)}
+                    </strong>
                   </div>
                 )}
                 {hasOrderDiscount && (
@@ -713,31 +1002,44 @@ const CollectionOrderReview = () => {
                   {visibleCustomerInfoEntries.length > 0 ? (
                     <div className="cor-summary__customer-info-list">
                       {visibleCustomerInfoEntries.map((entry) => (
-                        <div key={entry.key} className="cor-summary__customer-info-item">
+                        <div
+                          key={entry.key}
+                          className="cor-summary__customer-info-item"
+                        >
                           <span>{entry.label}</span>
                           {entry.fieldType === "image_upload" ? (
-                            typeof entry.value === "string" && entry.value.trim() ? (
+                            typeof entry.value === "string" &&
+                            entry.value.trim() ? (
                               <ImageWithFallback
                                 src={entry.value}
                                 alt={entry.label}
-                                fallback={<strong>Ảnh không còn khả dụng</strong>}
+                                fallback={
+                                  <strong>Ảnh không còn khả dụng</strong>
+                                }
                               />
                             ) : (
                               <strong>Chưa tải ảnh</strong>
                             )
                           ) : entry.fieldType === "long_text" ? (
                             <RichTextContent
-                              value={typeof entry.value === "string" ? entry.value : ""}
+                              value={
+                                typeof entry.value === "string"
+                                  ? entry.value
+                                  : ""
+                              }
                             />
                           ) : (
-                            <strong>{formatCustomerOrderFieldValue(entry)}</strong>
+                            <strong>
+                              {formatCustomerOrderFieldValue(entry)}
+                            </strong>
                           )}
                         </div>
                       ))}
                     </div>
                   ) : (
                     <p className="cor-summary__customer-info-empty">
-                      Chưa có thông tin khách hàng. Vui lòng bấm "Chỉnh sửa" để điền biểu mẫu.
+                      Chưa có thông tin khách hàng. Vui lòng bấm "Chỉnh sửa" để
+                      điền biểu mẫu.
                     </p>
                   )}
 
@@ -749,12 +1051,86 @@ const CollectionOrderReview = () => {
                 </div>
               )}
 
+              {requiredGiftSelections.length > 0 && (
+                <div className="cor-summary__gift-picker">
+                  <div className="cor-summary__gift-picker-header">
+                    <h3>
+                      <FiGift size={14} /> Chọn quà tặng ưu đãi
+                    </h3>
+                  </div>
+                  <p className="cor-summary__gift-picker-desc">
+                    Với ưu đãi có chế độ khách chọn quà, vui lòng chọn 1 món cho
+                    từng ưu đãi bên dưới trước khi đặt hàng.
+                  </p>
+
+                  <div className="cor-summary__gift-picker-list">
+                    {requiredGiftSelections.map((entry) => (
+                      <div
+                        key={entry.key}
+                        className="cor-summary__gift-picker-item"
+                      >
+                        <div className="cor-summary__gift-picker-item-title">
+                          <strong>{entry.promotion.name}</strong>
+                          <span>{entry.contextLabel}</span>
+                        </div>
+
+                        <div className="cor-summary__gift-picker-options">
+                          {entry.promotion.rewardGifts.map((gift) => {
+                            const optionId = String(gift.optionId ?? "").trim();
+                            const isSelected =
+                              selectedGiftByPromotionKey[entry.key] ===
+                              optionId;
+
+                            return (
+                              <label
+                                key={`${entry.key}-${optionId}`}
+                                className={`cor-summary__gift-picker-option${isSelected ? " is-selected" : ""}`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`gift-choice-${entry.key}`}
+                                  checked={isSelected}
+                                  onChange={() =>
+                                    setSelectedGiftByPromotionKey(
+                                      (previous) => ({
+                                        ...previous,
+                                        [entry.key]: optionId,
+                                      }),
+                                    )
+                                  }
+                                />
+                                <span>
+                                  {gift.optionName ||
+                                    gift.groupName ||
+                                    "Quà tặng"}
+                                  {` x${gift.quantity}`}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {hasMissingGiftSelections && (
+                    <div className="cor-summary__customer-info-error">
+                      Vui lòng chọn quà cho tất cả ưu đãi bắt buộc chọn quà.
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="cor-summary__note">
-                Giá cuối cùng sẽ được đội ngũ Soligant xác nhận lại trước khi chốt đơn và sản xuất.
+                Giá cuối cùng sẽ được đội ngũ Soligant xác nhận lại trước khi
+                chốt đơn và sản xuất.
               </div>
 
               <div className="cor-summary__field">
-                <label htmlFor="order-note" className="cor-summary__field-label">
+                <label
+                  htmlFor="order-note"
+                  className="cor-summary__field-label"
+                >
                   Ghi chú cho đơn hàng (không bắt buộc)
                 </label>
                 <RichTextEditor
@@ -763,7 +1139,9 @@ const CollectionOrderReview = () => {
                   placeholder="Ví dụ: Mình cần gói quà sinh nhật, giao trong giờ hành chính..."
                   minHeight={120}
                 />
-                <p className="cor-summary__field-counter">{customerNotePlainText.length}/2000</p>
+                <p className="cor-summary__field-counter">
+                  {customerNotePlainText.length}/2000
+                </p>
                 {isCustomerNoteTooLong && (
                   <div className="cor-summary__customer-info-error">
                     Ghi chú đơn hàng không được vượt quá 2000 ký tự.
@@ -775,7 +1153,10 @@ const CollectionOrderReview = () => {
                 <div className="cor-summary__customer-info-error cor-summary__order-error">
                   <strong>Đặt hàng không thành công</strong>
                   <br />
-                  {getErrorMessage(placeOrderMutation.error, "Vui lòng thử lại.")}
+                  {getErrorMessage(
+                    placeOrderMutation.error,
+                    "Vui lòng thử lại.",
+                  )}
                 </div>
               )}
 
@@ -789,13 +1170,20 @@ const CollectionOrderReview = () => {
                     isCustomerInfoConfigLoading ||
                     selectedItems.length === 0 ||
                     hasMissingRequiredCustomerInfo ||
+                    hasMissingGiftSelections ||
                     isCustomerNoteTooLong
                   }
                 >
-                  {placeOrderMutation.isPending ? "Đang đặt hàng..." : "Đặt hàng"}
+                  {placeOrderMutation.isPending
+                    ? "Đang đặt hàng..."
+                    : "Đặt hàng"}
                 </button>
                 <Link
-                  to={firstCollectionSlug ? `/bo-suu-tap/${firstCollectionSlug}` : "/bo-suu-tap"}
+                  to={
+                    firstCollectionSlug
+                      ? `/bo-suu-tap/${firstCollectionSlug}`
+                      : "/bo-suu-tap"
+                  }
                   className="cor-btn cor-btn--ghost"
                 >
                   <FiArrowLeft size={16} /> Tiếp tục chọn sản phẩm
@@ -821,7 +1209,8 @@ const CollectionOrderReview = () => {
                       )}
                       {promotion.rewardType === "gift" && (
                         <p className="cor-promo-item__gift-note">
-                          <FiGift size={13} /> Quà tặng sẽ được cộng theo điều kiện set đã đạt.
+                          <FiGift size={13} /> Quà tặng sẽ được cộng theo điều
+                          kiện set đã đạt.
                         </p>
                       )}
                     </div>

@@ -10,6 +10,7 @@ export interface AppliedPromotion {
   description: string;
   conditionType: PromotionRow["conditionType"];
   rewardType: PromotionRow["rewardType"];
+  rewardGiftSelectionMode: PromotionRow["rewardGiftSelectionMode"];
   rewardGiftQuantityMode: PromotionRow["rewardGiftQuantityMode"];
   rewardDiscountValue: number;
   rewardGifts: PromotionGift[];
@@ -50,9 +51,24 @@ const isPromotionWithinDateRange = (promotion: PromotionRow, now: Date) => {
   return promotion.isActive;
 };
 
-const matchesProductScope = (promotion: PromotionRow, productId: string) =>
-  promotion.applicableProductIds.length === 0 ||
-  promotion.applicableProductIds.includes(productId);
+const resolveCartItemProductType = (item: CustomizedCartItem) =>
+  item.product.productType === "bear" ? "bear" : "lego";
+
+const matchesProductScope = (
+  promotion: PromotionRow,
+  item: CustomizedCartItem,
+) => {
+  const productType = resolveCartItemProductType(item);
+
+  if (promotion.applicableProductType !== productType) {
+    return false;
+  }
+
+  return (
+    promotion.applicableProductIds.length === 0 ||
+    promotion.applicableProductIds.includes(item.product.id)
+  );
+};
 
 const calculateDiscountAmount = (promotion: PromotionRow, subtotal: number) => {
   if (promotion.rewardType === "discount_fixed") {
@@ -110,7 +126,7 @@ export const calculateCartPricing = (
       .filter(
         (promotion) =>
           promotion.conditionType === "lego_quantity" &&
-          matchesProductScope(promotion, item.product.id) &&
+          matchesProductScope(promotion, item) &&
           item.totalLegoCount >= promotion.conditionMinQuantity,
       )
       .map<AppliedPromotion>((promotion) => ({
@@ -119,6 +135,7 @@ export const calculateCartPricing = (
         description: promotion.description,
         conditionType: promotion.conditionType,
         rewardType: promotion.rewardType,
+        rewardGiftSelectionMode: promotion.rewardGiftSelectionMode ?? "all",
         rewardGiftQuantityMode: promotion.rewardGiftQuantityMode,
         rewardDiscountValue: promotion.rewardDiscountValue,
         rewardGifts: getScaledRewardGifts(promotion, item.totalLegoCount),
@@ -129,7 +146,10 @@ export const calculateCartPricing = (
 
     const discountTotal = Math.min(
       subtotal,
-      appliedPromotions.reduce((sum, promotion) => sum + promotion.discountAmount, 0),
+      appliedPromotions.reduce(
+        (sum, promotion) => sum + promotion.discountAmount,
+        0,
+      ),
     );
 
     return {
@@ -141,7 +161,10 @@ export const calculateCartPricing = (
     };
   });
 
-  const subtotal = itemResults.reduce((sum, result) => sum + result.subtotal, 0);
+  const subtotal = itemResults.reduce(
+    (sum, result) => sum + result.subtotal,
+    0,
+  );
   const productDiscountTotal = itemResults.reduce(
     (sum, result) => sum + result.discountTotal,
     0,
@@ -155,7 +178,7 @@ export const calculateCartPricing = (
     .filter((promotion) => promotion.conditionType === "set_quantity")
     .map<AppliedPromotion | null>((promotion) => {
       const eligibleItems = itemResults.filter((result) =>
-        matchesProductScope(promotion, result.item.product.id),
+        matchesProductScope(promotion, result.item),
       );
 
       if (eligibleItems.length < promotion.conditionMinQuantity) {
@@ -173,6 +196,7 @@ export const calculateCartPricing = (
         description: promotion.description,
         conditionType: promotion.conditionType,
         rewardType: promotion.rewardType,
+        rewardGiftSelectionMode: promotion.rewardGiftSelectionMode ?? "all",
         rewardGiftQuantityMode: promotion.rewardGiftQuantityMode,
         rewardDiscountValue: promotion.rewardDiscountValue,
         rewardGifts: getScaledRewardGifts(promotion, eligibleItems.length),
@@ -185,7 +209,10 @@ export const calculateCartPricing = (
 
   const orderDiscountTotal = Math.min(
     orderSubtotalAfterProductDiscounts,
-    orderPromotions.reduce((sum, promotion) => sum + promotion.discountAmount, 0),
+    orderPromotions.reduce(
+      (sum, promotion) => sum + promotion.discountAmount,
+      0,
+    ),
   );
 
   return {
@@ -194,6 +221,9 @@ export const calculateCartPricing = (
     productDiscountTotal,
     orderPromotions,
     orderDiscountTotal,
-    finalTotal: Math.max(0, orderSubtotalAfterProductDiscounts - orderDiscountTotal),
+    finalTotal: Math.max(
+      0,
+      orderSubtotalAfterProductDiscounts - orderDiscountTotal,
+    ),
   };
 };

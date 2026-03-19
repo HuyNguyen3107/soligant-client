@@ -95,21 +95,25 @@ const CollectionProductBackgroundPicker = () => {
     retry: false,
   });
 
+  const product = useMemo(
+    () => (payload?.products ?? []).find((p) => p.id === productId),
+    [payload, productId],
+  );
+
   const {
     data: backgrounds = [],
     isLoading: isBackgroundsLoading,
     isError: isBackgroundsError,
     error: backgroundsError,
   } = useQuery({
-    queryKey: ["public-backgrounds"],
-    queryFn: getPublicBackgrounds,
+    queryKey: ["public-backgrounds", product?.productType ?? "lego"],
+    queryFn: () =>
+      getPublicBackgrounds({
+        productType: product?.productType === "bear" ? "bear" : "lego",
+      }),
+    enabled: Boolean(product),
     retry: false,
   });
-
-  const product = useMemo(
-    () => (payload?.products ?? []).find((p) => p.id === productId),
-    [payload, productId],
-  );
 
   const collectionName = payload?.collection?.name ?? "";
 
@@ -153,7 +157,14 @@ const CollectionProductBackgroundPicker = () => {
     : null;
 
   useEffect(() => {
-    if (!selectedBackgroundId && backgrounds.length > 0) {
+    if (backgrounds.length === 0) {
+      if (selectedBackgroundId) {
+        setSelectedBackgroundId("");
+      }
+      return;
+    }
+
+    if (!backgrounds.some((bg) => bg.id === selectedBackgroundId)) {
       setSelectedBackgroundId(backgrounds[0].id);
     }
   }, [backgrounds, selectedBackgroundId]);
@@ -610,7 +621,7 @@ const CollectionProductBackgroundPicker = () => {
             <header className="cbp-editor__header">
               <p className="cbp-editor__eyebrow">Chọn nền cho sản phẩm</p>
               <h2 className="cbp-editor__title">
-                Chọn hình nền phù hợp cho khung tranh
+                Chọn hình nền phù hợp cho sản phẩm
               </h2>
               <p className="cbp-editor__desc">
                 Bấm vào một hình nền bên dưới để chọn. Bạn có thể thay đổi lựa

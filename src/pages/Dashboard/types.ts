@@ -191,6 +191,7 @@ export type InventoryStockStatus = "in_stock" | "low_stock" | "out_of_stock";
 
 export interface InventoryItemRow {
   id: string;
+  source: "lego" | "bear";
   groupId: string;
   groupName: string;
   optionName: string;
@@ -274,7 +275,10 @@ export interface BackgroundTheme {
   updatedAt: string;
 }
 
-export type BackgroundThemeFormState = Omit<BackgroundTheme, "id" | "updatedAt">;
+export type BackgroundThemeFormState = Omit<
+  BackgroundTheme,
+  "id" | "updatedAt"
+>;
 
 // ─── BACKGROUNDS TAB TYPES ────────────────────────────────────────────────────
 export type BackgroundFieldType =
@@ -309,6 +313,8 @@ export interface Background {
   image: string;
   fields: BackgroundField[];
   fieldCount: number;
+  applicableProductType?: "lego" | "bear";
+  applicableProductIds: string[];
   isActive: boolean;
   updatedAt: string;
 }
@@ -327,6 +333,8 @@ export interface BackgroundFormState {
   description: string;
   themeId: string;
   image: string;
+  applicableProductType: "lego" | "bear";
+  applicableProductIds: string[];
   fields: BackgroundFieldForm[];
   isActive: boolean;
 }
@@ -385,6 +393,7 @@ export interface PromotionGift {
 }
 
 export type PromotionGiftQuantityMode = "fixed" | "multiply_by_condition";
+export type PromotionGiftSelectionMode = "all" | "choose_one";
 
 export interface PromotionRow {
   id: string;
@@ -392,8 +401,10 @@ export interface PromotionRow {
   description: string;
   conditionType: "lego_quantity" | "set_quantity";
   conditionMinQuantity: number;
+  applicableProductType: "lego" | "bear";
   applicableProductIds: string[];
   rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardGiftSelectionMode: PromotionGiftSelectionMode;
   rewardGiftQuantityMode: PromotionGiftQuantityMode;
   rewardGifts: PromotionGift[];
   rewardDiscountValue: number;
@@ -415,8 +426,10 @@ export interface PromotionFormState {
   description: string;
   conditionType: "lego_quantity" | "set_quantity";
   conditionMinQuantity: string;
+  applicableProductType: "lego" | "bear";
   applicableProductIds: string[];
   rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardGiftSelectionMode: PromotionGiftSelectionMode;
   rewardGiftQuantityMode: PromotionGiftQuantityMode;
   rewardGifts: PromotionGiftForm[];
   rewardDiscountValue: string;
@@ -444,6 +457,7 @@ export interface AddonOptionRow {
   optionType: AddonOptionType;
   price: number;
   applicableProductIds: string[];
+  applicableProductType?: "lego" | "bear";
   fields: AddonOptionField[];
   isActive: boolean;
   createdAt: string;
@@ -463,6 +477,7 @@ export interface AddonOptionFormState {
   optionType: AddonOptionType;
   price: string;
   applicableProductIds: string[];
+  applicableProductType: "lego" | "bear";
   fields: AddonOptionFieldForm[];
   isActive: boolean;
 }
@@ -543,9 +558,15 @@ export interface BearVariant {
   variantSymbol: string;
   description: string;
   image: string;
+  bearQuantity: number;
+  allowVariableBearCount: boolean;
+  bearCountMin: number;
+  bearCountMax: number;
+  additionalBearPrice: number;
   price: number;
   stockQuantity: number;
   lowStockThreshold: number;
+  hasBackground: boolean;
   isActive: boolean;
   updatedAt: string;
 }
@@ -557,9 +578,15 @@ export interface BearVariantForm {
   variantSymbol: string;
   description: string;
   image: string;
+  bearQuantity: string;
+  allowVariableBearCount: boolean;
+  bearCountMin: string;
+  bearCountMax: string;
+  additionalBearPrice: string;
   price: string;
   stockQuantity: string;
   lowStockThreshold: string;
+  hasBackground: boolean;
   isActive: boolean;
 }
 
@@ -605,4 +632,3 @@ export interface BearCustomizationOptionForm {
   image: string;
   colorCode: string;
 }
-

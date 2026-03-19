@@ -507,6 +507,92 @@
     padding: 8px 10px;
 }
 
+.cor-summary__gift-picker {
+    margin-top: 14px;
+    border: 1px solid #eceff5;
+    border-radius: 12px;
+    background: #fbfcff;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+}
+
+.cor-summary__gift-picker-header h3 {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #1f2937;
+}
+
+.cor-summary__gift-picker-desc {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.cor-summary__gift-picker-list {
+    display: grid;
+    gap: 8px;
+}
+
+.cor-summary__gift-picker-item {
+    border-top: 1px dashed #dde3ee;
+    padding-top: 8px;
+    display: grid;
+    gap: 8px;
+}
+
+.cor-summary__gift-picker-item:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.cor-summary__gift-picker-item-title {
+    display: grid;
+    gap: 2px;
+}
+
+.cor-summary__gift-picker-item-title strong {
+    font-size: 13px;
+    color: #1f2937;
+}
+
+.cor-summary__gift-picker-item-title span {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.cor-summary__gift-picker-options {
+    display: grid;
+    gap: 6px;
+}
+
+.cor-summary__gift-picker-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #374151;
+    cursor: pointer;
+}
+
+.cor-summary__gift-picker-option input {
+    margin: 0;
+}
+
+.cor-summary__gift-picker-option.is-selected {
+    border-color: #d6b3b4;
+    background: #fff7f7;
+}
+
 .cor-summary__order-error {
     margin-top: 14px;
     font-size: 13px;

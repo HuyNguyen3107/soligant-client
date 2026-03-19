@@ -35,6 +35,8 @@ import {
   updateBackground,
 } from "../../../services/backgrounds.service";
 import { getBackgroundThemes } from "../../../services/background-themes.service";
+import { getLegoFrameVariants } from "../../../services/lego-frame-variants.service";
+import { getBearVariants } from "../../../services/bear-variants.service";
 import { hasPermission } from "../../../lib/permissions";
 import { useAuthStore } from "../../../store/auth.store";
 import { RichTextEditor } from "../../../components/common";
@@ -57,6 +59,20 @@ const FIELD_TYPE_MAP: Record<
   date: { label: "Ngày tháng", icon: <FiCalendar size={14} /> },
 };
 
+const PRODUCT_TYPE_LABELS: Record<"lego" | "bear", string> = {
+  lego: "Lego",
+  bear: "Gấu",
+};
+
+interface ApplicableBackgroundProduct {
+  id: string;
+  collectionId: string;
+  collectionName: string;
+  categoryName: string;
+  name: string;
+  price: number;
+}
+
 const EMPTY_FIELD: BackgroundFieldForm = {
   label: "",
   fieldType: "short_text",
@@ -70,9 +86,15 @@ const INITIAL_FORM: BackgroundFormState = {
   description: "",
   themeId: "",
   image: "",
+  applicableProductType: "lego",
+  applicableProductIds: [],
   fields: [],
   isActive: true,
 };
+
+const resolveApplicableProductType = (
+  value?: Background["applicableProductType"],
+): "lego" | "bear" => (value === "bear" ? "bear" : "lego");
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString("vi-VN", {
@@ -83,6 +105,8 @@ const formatDateTime = (iso: string) =>
     minute: "2-digit",
   });
 
+const formatMoney = (value: number) => `${value.toLocaleString("vi-VN")} đ`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 const BackgroundsTab = () => {
   const queryClient = useQueryClient();
@@ -92,6 +116,9 @@ const BackgroundsTab = () => {
   const canDelete = hasPermission(currentUser, "backgrounds.delete");
 
   const [search, setSearch] = useState("");
+  const [listProductType, setListProductType] = useState<
+    "all" | "lego" | "bear"
+  >("all");
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [editingItem, setEditingItem] = useState<Background | null>(null);
   const [deletingItem, setDeletingItem] = useState<Background | null>(null);
@@ -110,6 +137,16 @@ const BackgroundsTab = () => {
     queryFn: getBackgrounds,
   });
 
+  const { data: legoFrameVariants = [] } = useQuery({
+    queryKey: ["lego-frame-variants"],
+    queryFn: getLegoFrameVariants,
+  });
+
+  const { data: bearVariants = [] } = useQuery({
+    queryKey: ["bear-variants"],
+    queryFn: getBearVariants,
+  });
+
   // ── Mutations ───────────────────────────────────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: async (payload: {
@@ -122,9 +159,7 @@ const BackgroundsTab = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["backgrounds"] });
       toast.success(
-        variables.id
-          ? "Đã cập nhật background."
-          : "Đã thêm background mới.",
+        variables.id ? "Đã cập nhật background." : "Đã thêm background mới.",
       );
       closeModal();
     },
@@ -145,17 +180,158 @@ const BackgroundsTab = () => {
     },
   });
 
+  const backgroundCounts = useMemo(() => {
+    return backgrounds.reduce(
+      (acc, item) => {
+        const productType = resolveApplicableProductType(
+          item.applicableProductType,
+        );
+        acc[productType] += 1;
+        return acc;
+      },
+      { lego: 0, bear: 0 },
+    );
+  }, [backgrounds]);
+
+  const allProductsLookup = useMemo(() => {
+    const lookup = new Map<string, ApplicableBackgroundProduct>();
+
+    legoFrameVariants.forEach((variant) => {
+      lookup.set(variant.id, {
+        id: variant.id,
+        collectionId: variant.collectionId,
+        collectionName: variant.collectionName || "Chưa có bộ sưu tập",
+        categoryName: variant.categoryName || "Chưa phân loại",
+        name: variant.name,
+        price: variant.price,
+      });
+    });
+
+    bearVariants.forEach((variant) => {
+      lookup.set(variant.id, {
+        id: variant.id,
+        collectionId: variant.collectionId,
+        collectionName: variant.collectionName || "Chưa có bộ sưu tập",
+        categoryName: variant.categoryName || "Chưa phân loại",
+        name: variant.name,
+        price: variant.price,
+      });
+    });
+
+    return lookup;
+  }, [bearVariants, legoFrameVariants]);
+
+  const applicableProductsByType = useMemo<
+    Record<"lego" | "bear", ApplicableBackgroundProduct[]>
+  >(() => {
+    return {
+      lego: legoFrameVariants.map((variant) => ({
+        id: variant.id,
+        collectionId: variant.collectionId,
+        collectionName: variant.collectionName || "Chưa có bộ sưu tập",
+        categoryName: variant.categoryName || "Chưa phân loại",
+        name: variant.name,
+        price: variant.price,
+      })),
+      bear: bearVariants
+        .filter((variant) => variant.hasBackground)
+        .map((variant) => ({
+          id: variant.id,
+          collectionId: variant.collectionId,
+          collectionName: variant.collectionName || "Chưa có bộ sưu tập",
+          categoryName: variant.categoryName || "Chưa phân loại",
+          name: variant.name,
+          price: variant.price,
+        })),
+    };
+  }, [bearVariants, legoFrameVariants]);
+
+  const scopedApplicableProducts = useMemo(() => {
+    return applicableProductsByType[form.applicableProductType] ?? [];
+  }, [applicableProductsByType, form.applicableProductType]);
+
+  const scopedApplicableProductIds = useMemo(() => {
+    return new Set(scopedApplicableProducts.map((product) => product.id));
+  }, [scopedApplicableProducts]);
+
+  const applicableProductsByCollection = useMemo(() => {
+    const groups = new Map<
+      string,
+      {
+        collectionKey: string;
+        collectionName: string;
+        items: ApplicableBackgroundProduct[];
+      }
+    >();
+
+    scopedApplicableProducts.forEach((product) => {
+      const key = product.collectionId || product.collectionName || "default";
+      const current = groups.get(key);
+
+      if (current) {
+        current.items.push(product);
+        return;
+      }
+
+      groups.set(key, {
+        collectionKey: key,
+        collectionName: product.collectionName || "Chưa có bộ sưu tập",
+        items: [product],
+      });
+    });
+
+    return Array.from(groups.values()).map((group) => ({
+      ...group,
+      items: [...group.items].sort((left, right) => {
+        const leftLabel = `${left.categoryName} ${left.name}`.trim();
+        const rightLabel = `${right.categoryName} ${right.name}`.trim();
+        return leftLabel.localeCompare(rightLabel, "vi");
+      }),
+    }));
+  }, [scopedApplicableProducts]);
+
   // ── Filtered list ───────────────────────────────────────────────────────────
   const filteredList = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    if (!keyword) return backgrounds;
-    return backgrounds.filter(
-      (b) =>
-        b.name.toLowerCase().includes(keyword) ||
-        toRichTextPlainText(b.description).toLowerCase().includes(keyword) ||
-        b.themeName?.toLowerCase().includes(keyword),
+    return backgrounds.filter((b) => {
+      const productType = resolveApplicableProductType(b.applicableProductType);
+
+      if (listProductType !== "all" && productType !== listProductType) {
+        return false;
+      }
+
+      if (!keyword) {
+        return true;
+      }
+
+      const searchable = [
+        b.name,
+        toRichTextPlainText(b.description),
+        b.themeName,
+        PRODUCT_TYPE_LABELS[productType],
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchable.includes(keyword);
+    });
+  }, [backgrounds, listProductType, search]);
+
+  const groupedFilteredList = useMemo(() => {
+    return filteredList.reduce(
+      (acc, item) => {
+        const productType = resolveApplicableProductType(
+          item.applicableProductType,
+        );
+        acc[productType].push(item);
+        return acc;
+      },
+      { lego: [] as Background[], bear: [] as Background[] },
     );
-  }, [backgrounds, search]);
+  }, [filteredList]);
+
+  const sectionProductTypes: Array<"lego" | "bear"> =
+    listProductType === "all" ? ["lego", "bear"] : [listProductType];
 
   // ── Modal helpers ───────────────────────────────────────────────────────────
   const closeModal = () => {
@@ -170,10 +346,10 @@ const BackgroundsTab = () => {
       return;
     }
     setEditingItem(null);
-    setForm({ 
-      ...INITIAL_FORM, 
+    setForm({
+      ...INITIAL_FORM,
       themeId: themes.length > 0 ? themes[0].id : "",
-      fields: [] 
+      fields: [],
     });
     setModal("create");
   };
@@ -189,6 +365,10 @@ const BackgroundsTab = () => {
       description: bg.description,
       themeId: bg.themeId,
       image: bg.image,
+      applicableProductType: resolveApplicableProductType(
+        bg.applicableProductType,
+      ),
+      applicableProductIds: bg.applicableProductIds ?? [],
       fields: bg.fields.map((f) => ({
         label: f.label,
         fieldType: f.fieldType,
@@ -206,6 +386,56 @@ const BackgroundsTab = () => {
     key: K,
     value: BackgroundFormState[K],
   ) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleApplicableProductTypeChange = (nextType: "lego" | "bear") => {
+    const allowedIds = new Set(
+      (applicableProductsByType[nextType] ?? []).map((product) => product.id),
+    );
+
+    setForm((prev) => ({
+      ...prev,
+      applicableProductType: nextType,
+      applicableProductIds: prev.applicableProductIds.filter((id) =>
+        allowedIds.has(id),
+      ),
+    }));
+  };
+
+  const toggleApplicableProduct = (productId: string) => {
+    setForm((prev) => {
+      const exists = prev.applicableProductIds.includes(productId);
+
+      return {
+        ...prev,
+        applicableProductIds: exists
+          ? prev.applicableProductIds.filter((id) => id !== productId)
+          : [...prev.applicableProductIds, productId],
+      };
+    });
+  };
+
+  const getApplicableProductsLabel = (bg: Background) => {
+    const productType = resolveApplicableProductType(bg.applicableProductType);
+    const productIds = bg.applicableProductIds ?? [];
+
+    if (productIds.length === 0) {
+      return `Tất cả biến thể ${PRODUCT_TYPE_LABELS[productType]}`;
+    }
+
+    const productNames = productIds
+      .map((productId) => allProductsLookup.get(productId)?.name)
+      .filter((name): name is string => Boolean(name));
+
+    if (productNames.length === 0) {
+      return `${productIds.length} biến thể đã chọn`;
+    }
+
+    if (productNames.length <= 2) {
+      return productNames.join(", ");
+    }
+
+    return `${productNames.slice(0, 2).join(", ")} +${productNames.length - 2}`;
+  };
 
   // ── Image upload ────────────────────────────────────────────────────────────
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,7 +479,11 @@ const BackgroundsTab = () => {
       if (key === "fieldType" && value !== "select") {
         fields[index].options = [];
       }
-      if (key === "fieldType" && value === "select" && fields[index].options.length === 0) {
+      if (
+        key === "fieldType" &&
+        value === "select" &&
+        fields[index].options.length === 0
+      ) {
         fields[index].options = [{ label: "", value: "" }];
         fields[index].selectType = "dropdown";
       }
@@ -343,13 +577,19 @@ const BackgroundsTab = () => {
         return;
       }
       if (f.fieldType === "select") {
-        const validOptions = f.options.filter((o) => o.label.trim() && o.value.trim());
+        const validOptions = f.options.filter(
+          (o) => o.label.trim() && o.value.trim(),
+        );
         if (validOptions.length === 0) {
           toast.error(`Trường "${f.label}": Phải có ít nhất 1 lựa chọn.`);
           return;
         }
       }
     }
+
+    const applicableProductIds = form.applicableProductIds.filter((productId) =>
+      scopedApplicableProductIds.has(productId),
+    );
 
     await saveMutation.mutateAsync({
       id: editingItem?.id,
@@ -358,17 +598,24 @@ const BackgroundsTab = () => {
         description,
         themeId: form.themeId,
         image: form.image,
+        applicableProductType: form.applicableProductType,
+        applicableProductIds,
         fields: form.fields.map((f, index) => ({
           label: f.label.trim(),
           fieldType: f.fieldType,
           placeholder: f.placeholder.trim(),
           required: f.required,
-          options: f.fieldType === "select"
-            ? f.options
-                .filter((o) => o.label.trim() && o.value.trim())
-                .map((o) => ({ label: o.label.trim(), value: o.value.trim() }))
-            : [],
-          selectType: f.fieldType === "select" ? (f.selectType || "dropdown") : undefined,
+          options:
+            f.fieldType === "select"
+              ? f.options
+                  .filter((o) => o.label.trim() && o.value.trim())
+                  .map((o) => ({
+                    label: o.label.trim(),
+                    value: o.value.trim(),
+                  }))
+              : [],
+          selectType:
+            f.fieldType === "select" ? f.selectType || "dropdown" : undefined,
           sortOrder: index,
         })),
         isActive: form.isActive,
@@ -400,14 +647,36 @@ const BackgroundsTab = () => {
 
       <section className="lc-stats">
         <div className="lc-stat-card">
-          <span className="lc-stat-card__icon"><FiImage size={15} /></span>
+          <span className="lc-stat-card__icon">
+            <FiImage size={15} />
+          </span>
           <div>
             <strong>{backgrounds.length}</strong>
             <span>Tổng bối cảnh</span>
           </div>
         </div>
         <div className="lc-stat-card">
-          <span className="lc-stat-card__icon"><FiLayers size={15} /></span>
+          <span className="lc-stat-card__icon">
+            <FiImage size={15} />
+          </span>
+          <div>
+            <strong>{backgroundCounts.lego}</strong>
+            <span>Background Lego</span>
+          </div>
+        </div>
+        <div className="lc-stat-card">
+          <span className="lc-stat-card__icon">
+            <FiImage size={15} />
+          </span>
+          <div>
+            <strong>{backgroundCounts.bear}</strong>
+            <span>Background Gấu</span>
+          </div>
+        </div>
+        <div className="lc-stat-card">
+          <span className="lc-stat-card__icon">
+            <FiLayers size={15} />
+          </span>
           <div>
             <strong>{themes.length}</strong>
             <span>Chủ đề</span>
@@ -419,15 +688,57 @@ const BackgroundsTab = () => {
         <div className="tab-search-wrap">
           <input
             className="tab-search"
-            placeholder="Tìm theo tên hoặc chủ đề..."
+            placeholder="Tìm theo tên, chủ đề hoặc loại sản phẩm..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           {search && (
-            <button className="tab-search-clear" onClick={() => setSearch("")} title="Xóa tìm kiếm">
+            <button
+              className="tab-search-clear"
+              onClick={() => setSearch("")}
+              title="Xóa tìm kiếm"
+            >
               <FiX size={14} />
             </button>
           )}
+        </div>
+
+        <div
+          className="promo-radio-group"
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 12,
+            paddingTop: 8,
+          }}
+        >
+          <label className="promo-radio">
+            <input
+              type="radio"
+              name="background-list-product-type"
+              checked={listProductType === "all"}
+              onChange={() => setListProductType("all")}
+            />
+            <span>Tất cả</span>
+          </label>
+          <label className="promo-radio">
+            <input
+              type="radio"
+              name="background-list-product-type"
+              checked={listProductType === "lego"}
+              onChange={() => setListProductType("lego")}
+            />
+            <span>Background Lego</span>
+          </label>
+          <label className="promo-radio">
+            <input
+              type="radio"
+              name="background-list-product-type"
+              checked={listProductType === "bear"}
+              onChange={() => setListProductType("bear")}
+            />
+            <span>Background Gấu</span>
+          </label>
         </div>
       </section>
 
@@ -437,183 +748,443 @@ const BackgroundsTab = () => {
           <p>
             {backgrounds.length === 0
               ? "Chưa có bối cảnh nào. Hãy tạo bối cảnh đầu tiên."
-              : "Không tìm thấy bối cảnh phù hợp."}
+              : listProductType === "all"
+                ? "Không tìm thấy bối cảnh phù hợp."
+                : `Không tìm thấy background ${PRODUCT_TYPE_LABELS[listProductType]} phù hợp.`}
           </p>
         </div>
       ) : (
-        <div className="tab-table-wrap">
-          <table className="tab-table">
-            <thead>
-              <tr>
-                <th>Ảnh</th>
-                <th>Bối cảnh</th>
-                <th>Chủ đề</th>
-                <th>Trường dữ liệu</th>
-                <th>Trạng thái</th>
-                <th>Cập nhật</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredList.map((bg) => (
-                <tr key={bg.id}>
-                  <td>
-                    <ImageWithFallback
-                      src={getStaticAssetUrl(bg.image)}
-                      alt={bg.name}
-                      className="bgt-thumb"
-                      fallback={
-                      <div className="bgt-thumb bgt-thumb--empty"><FiImage size={16} /></div>
-                      }
-                    />
-                  </td>
-                  <td><strong>{bg.name}</strong></td>
-                  <td><span className="lc-name-chip">{bg.themeName || "ID lỗi"}</span></td>
-                  <td><span className="lc-name-chip" style={{ background: "#f1f5f9" }}>{bg.fieldCount} trường</span></td>
-                  <td>
+        <div className="bgt-list-sections">
+          {sectionProductTypes.map((productType) => {
+            const sectionItems = groupedFilteredList[productType];
+
+            return (
+              <section key={productType} className="bgt-list-section">
+                <header className="bgt-list-section__header">
+                  <div className="bgt-list-section__heading-row">
                     <span
-                      className="lc-name-chip"
-                      style={{
-                        background: bg.isActive ? "#e8f5e9" : "#fce4ec",
-                        color: bg.isActive ? "#2e7d32" : "#c62828",
-                      }}
+                      className={`bgt-type-pill bgt-type-pill--${productType}`}
                     >
-                      {bg.isActive ? "Hoạt động" : "Tạm dừng"}
+                      Background {PRODUCT_TYPE_LABELS[productType]}
                     </span>
-                  </td>
-                  <td className="text-muted">{formatDateTime(bg.updatedAt)}</td>
-                  <td>
-                    <div className="tab-actions">
-                      {canEdit && (
-                        <button className="btn-icon btn-edit" onClick={() => openEdit(bg)} title="Chỉnh sửa">
-                          <FiEdit2 size={14} />
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button className="btn-icon btn-del" onClick={() => setDeletingItem(bg)} title="Xóa">
-                          <FiTrash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <span className="bgt-list-section__count">
+                      {sectionItems.length} bối cảnh
+                    </span>
+                  </div>
+                  <p className="bgt-list-section__subtitle">
+                    {productType === "lego"
+                      ? "Danh sách bối cảnh dùng cho sản phẩm Lego."
+                      : "Danh sách bối cảnh dùng cho sản phẩm Gấu."}
+                  </p>
+                </header>
+
+                {sectionItems.length === 0 ? (
+                  <div className="bgt-list-section__empty">
+                    Chưa có background {PRODUCT_TYPE_LABELS[productType]} phù
+                    hợp.
+                  </div>
+                ) : (
+                  <div className="tab-table-wrap bgt-list-table-wrap">
+                    <table className="tab-table">
+                      <thead>
+                        <tr>
+                          <th>Ảnh</th>
+                          <th>Bối cảnh</th>
+                          <th>Chủ đề</th>
+                          <th>Áp dụng cho</th>
+                          <th>Trường dữ liệu</th>
+                          <th>Trạng thái</th>
+                          <th>Cập nhật</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sectionItems.map((bg) => (
+                          <tr
+                            key={bg.id}
+                            className={
+                              !bg.isActive ? "row--inactive" : undefined
+                            }
+                          >
+                            <td>
+                              <ImageWithFallback
+                                src={getStaticAssetUrl(bg.image)}
+                                alt={bg.name}
+                                className="bgt-thumb"
+                                fallback={
+                                  <div className="bgt-thumb bgt-thumb--empty">
+                                    <FiImage size={16} />
+                                  </div>
+                                }
+                              />
+                            </td>
+                            <td>
+                              <strong>{bg.name}</strong>
+                            </td>
+                            <td>
+                              <span className="lc-name-chip">
+                                {bg.themeName || "ID lỗi"}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="lc-name-chip bgt-scope-chip">
+                                {getApplicableProductsLabel(bg)}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="lc-name-chip bgt-field-count-chip">
+                                {bg.fieldCount} trường
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className={`lc-name-chip ${
+                                  bg.isActive
+                                    ? "bgt-status-chip bgt-status-chip--active"
+                                    : "bgt-status-chip bgt-status-chip--inactive"
+                                }`}
+                              >
+                                {bg.isActive ? "Hoạt động" : "Tạm dừng"}
+                              </span>
+                            </td>
+                            <td className="text-muted">
+                              {formatDateTime(bg.updatedAt)}
+                            </td>
+                            <td>
+                              <div className="tab-actions">
+                                {canEdit && (
+                                  <button
+                                    className="btn-icon btn-edit"
+                                    onClick={() => openEdit(bg)}
+                                    title="Chỉnh sửa"
+                                  >
+                                    <FiEdit2 size={14} />
+                                  </button>
+                                )}
+                                {canDelete && (
+                                  <button
+                                    className="btn-icon btn-del"
+                                    onClick={() => setDeletingItem(bg)}
+                                    title="Xóa"
+                                  >
+                                    <FiTrash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
 
       {modal && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-box bgt-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-box bgt-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
-              <h3 className="modal-title">{modal === "create" ? "Thêm Background" : "Sửa Background"}</h3>
-              <button className="modal-close" onClick={closeModal}><FiX size={16} /></button>
+              <h3 className="modal-title">
+                {modal === "create" ? "Thêm Background" : "Sửa Background"}
+              </h3>
+              <button className="modal-close" onClick={closeModal}>
+                <FiX size={16} />
+              </button>
             </div>
 
-            <form className="modal-body" onSubmit={handleSave} style={{ maxHeight: "75vh", overflowY: "auto" }}>
-              <div className="bgt-field-row">
-                <div className="form-group" style={{ flex: 2 }}>
-                  <label className="form-label">Tên background *</label>
-                  <input
-                    className="form-input"
-                    value={form.name}
-                    onChange={(e) => updateField("name", e.target.value)}
-                    placeholder="VD: Background Mẫu 1"
-                    autoFocus
-                  />
+            <form className="modal-body bgt-modal-body" onSubmit={handleSave}>
+              <section className="bgt-modal-section">
+                <div className="bgt-modal-section__head">
+                  <h4 className="bgt-modal-section__title">Thông tin cơ bản</h4>
+                  <p className="bgt-modal-section__subtitle">
+                    Cấu hình nhanh loại sản phẩm và chủ đề cho background.
+                  </p>
                 </div>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label className="form-label">Thuộc chủ đề *</label>
-                  <select
-                    className="form-input"
-                    value={form.themeId}
-                    onChange={(e) => updateField("themeId", e.target.value)}
-                    required
-                  >
-                    {!form.themeId && <option value="" disabled>-- Chọn chủ đề --</option>}
-                    {themes.map((t) => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">Mô tả background *</label>
-                <RichTextEditor
-                  value={form.description}
-                  onChange={(nextValue) => updateField("description", nextValue)}
-                  placeholder="Nhập mô tả background cho người dùng..."
-                  minHeight={140}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Ảnh nền</label>
-                {form.image ? (
-                  <div className="bgt-image-preview">
-                    <ImageWithFallback
-                      src={getStaticAssetUrl(form.image)}
-                      alt="Background"
-                      fallback={
-                        <div
-                          style={{
-                            width: 200,
-                            minHeight: 140,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#94a3b8",
-                            borderRadius: 10,
-                            border: "1px solid #e2e8f0",
-                            background: "#f8fafc",
-                          }}
-                        >
-                          <FiImage size={20} />
-                        </div>
-                      }
+                <div className="bgt-basic-grid">
+                  <div className="form-group bgt-basic-grid__name">
+                    <label className="form-label">Tên background *</label>
+                    <input
+                      className="form-input"
+                      value={form.name}
+                      onChange={(e) => updateField("name", e.target.value)}
+                      placeholder="VD: Background Mẫu 1"
+                      autoFocus
                     />
-                    <button
-                      type="button"
-                      className="bgt-image-remove"
-                      onClick={() => updateField("image", "")}
-                      title="Xóa ảnh"
-                    >
-                      <FiX size={14} />
-                    </button>
                   </div>
-                ) : (
-                  <div className="bgt-image-dropzone" onClick={() => fileInputRef.current?.click()}>
-                    {uploading ? (
-                      <><span className="btn-spinner" /> Đang tải...</>
+                  <div className="form-group">
+                    <label className="form-label">Thuộc chủ đề *</label>
+                    <select
+                      className="form-input"
+                      value={form.themeId}
+                      onChange={(e) => updateField("themeId", e.target.value)}
+                      required
+                    >
+                      {!form.themeId && (
+                        <option value="" disabled>
+                          -- Chọn chủ đề --
+                        </option>
+                      )}
+                      {themes.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Loại sản phẩm áp dụng *</label>
+                  <div className="bgt-product-type-grid">
+                    <label
+                      className={`bgt-product-type-option ${
+                        form.applicableProductType === "lego" ? "is-active" : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="background-applicable-product-type"
+                        value="lego"
+                        checked={form.applicableProductType === "lego"}
+                        onChange={() =>
+                          handleApplicableProductTypeChange("lego")
+                        }
+                      />
+                      <span className="bgt-product-type-option__title">
+                        Sản phẩm Lego
+                      </span>
+                      <span className="bgt-product-type-option__desc">
+                        Dùng cho khung tranh Lego.
+                      </span>
+                    </label>
+
+                    <label
+                      className={`bgt-product-type-option ${
+                        form.applicableProductType === "bear" ? "is-active" : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="background-applicable-product-type"
+                        value="bear"
+                        checked={form.applicableProductType === "bear"}
+                        onChange={() =>
+                          handleApplicableProductTypeChange("bear")
+                        }
+                      />
+                      <span className="bgt-product-type-option__title">
+                        Sản phẩm Gấu
+                      </span>
+                      <span className="bgt-product-type-option__desc">
+                        Dùng cho dòng sản phẩm gấu trang trí.
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <div className="bgt-scope-header">
+                    <label className="form-label" style={{ marginBottom: 0 }}>
+                      Biến thể áp dụng
+                    </label>
+                    <div className="bgt-scope-header__actions">
+                      <span className="bgt-scope-selected-count">
+                        {form.applicableProductIds.length > 0
+                          ? `${form.applicableProductIds.length} biến thể đã chọn`
+                          : "Mặc định: Tất cả biến thể"}
+                      </span>
+                      {form.applicableProductIds.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() =>
+                            updateField("applicableProductIds", [])
+                          }
+                          style={{ padding: "6px 10px", fontSize: "12px" }}
+                        >
+                          Mặc định tất cả
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="bgt-scope-hint">
+                    {form.applicableProductType === "bear"
+                      ? "Chỉ hiển thị các biến thể gấu đã bật background."
+                      : "Không chọn biến thể nào nghĩa là background áp dụng cho toàn bộ biến thể Lego."}
+                  </p>
+
+                  <div className="bgt-scope-list">
+                    {applicableProductsByCollection.length === 0 ? (
+                      <p className="bgt-scope-empty">
+                        {form.applicableProductType === "bear"
+                          ? "Chưa có biến thể gấu nào bật background để chọn."
+                          : "Chưa có biến thể Lego nào để chọn phạm vi áp dụng."}
+                      </p>
                     ) : (
-                      <><FiUpload size={20} /><span>Nhấn để tải ảnh lên</span></>
+                      applicableProductsByCollection.map((group) => (
+                        <div
+                          key={group.collectionKey}
+                          className="bgt-scope-group"
+                        >
+                          <strong className="bgt-scope-group__title">
+                            {group.collectionName}
+                          </strong>
+
+                          <div className="bgt-scope-group__items">
+                            {group.items.map((product) => {
+                              const checked =
+                                form.applicableProductIds.includes(product.id);
+
+                              return (
+                                <label
+                                  key={product.id}
+                                  className={`bgt-scope-item${checked ? " is-active" : ""}`}
+                                >
+                                  <span className="bgt-scope-item__main">
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() =>
+                                        toggleApplicableProduct(product.id)
+                                      }
+                                    />
+                                    <span className="bgt-scope-item__text">
+                                      <strong>{product.name}</strong>
+                                      <small>{product.categoryName}</small>
+                                    </span>
+                                  </span>
+                                  <small className="bgt-scope-item__price">
+                                    {formatMoney(product.price)}
+                                  </small>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))
                     )}
                   </div>
-                )}
-                <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleImageUpload} />
-              </div>
+                </div>
 
-              <div className="form-group">
-                <label className="promo-radio" style={{ cursor: "pointer" }}>
+                <label className="form-toggle bgt-active-toggle">
                   <input
                     type="checkbox"
                     checked={form.isActive}
                     onChange={(e) => updateField("isActive", e.target.checked)}
                   />
-                  <span>Hoạt động</span>
+                  <span className="form-toggle__track" />
+                  <span className="form-toggle__label">
+                    Hiển thị background
+                  </span>
                 </label>
-              </div>
+              </section>
+
+              <section className="bgt-modal-section">
+                <div className="bgt-modal-section__head">
+                  <h4 className="bgt-modal-section__title">
+                    Nội dung hiển thị
+                  </h4>
+                  <p className="bgt-modal-section__subtitle">
+                    Mô tả giúp khách hiểu rõ ý nghĩa và cách dùng background.
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Mô tả background *</label>
+                  <RichTextEditor
+                    value={form.description}
+                    onChange={(nextValue) =>
+                      updateField("description", nextValue)
+                    }
+                    placeholder="Nhập mô tả background cho người dùng..."
+                    minHeight={140}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Ảnh nền</label>
+                  {form.image ? (
+                    <div className="bgt-image-preview">
+                      <ImageWithFallback
+                        src={getStaticAssetUrl(form.image)}
+                        alt="Background"
+                        fallback={
+                          <div
+                            style={{
+                              width: 200,
+                              minHeight: 140,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#94a3b8",
+                              borderRadius: 10,
+                              border: "1px solid #e2e8f0",
+                              background: "#f8fafc",
+                            }}
+                          >
+                            <FiImage size={20} />
+                          </div>
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="bgt-image-remove"
+                        onClick={() => updateField("image", "")}
+                        title="Xóa ảnh"
+                      >
+                        <FiX size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className="bgt-image-dropzone"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {uploading ? (
+                        <>
+                          <span className="btn-spinner" /> Đang tải...
+                        </>
+                      ) : (
+                        <>
+                          <FiUpload size={20} />
+                          <span>Nhấn để tải ảnh lên</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={handleImageUpload}
+                  />
+                </div>
+              </section>
 
               {/* ════════ Dynamic Fields Builder ════════ */}
               <div className="bgt-fields-section">
                 <div className="bgt-fields-header">
                   <h4 className="bgt-fields-title">
                     Trường thông tin tùy chỉnh
-                    <span className="bgt-fields-count">{form.fields.length} trường</span>
+                    <span className="bgt-fields-count">
+                      {form.fields.length} trường
+                    </span>
                   </h4>
-                  <button type="button" className="btn-secondary" onClick={addFormField}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={addFormField}
+                  >
                     <FiPlus size={14} /> Thêm trường
                   </button>
                 </div>
@@ -672,7 +1243,9 @@ const BackgroundsTab = () => {
                           <input
                             className="form-input"
                             value={field.label}
-                            onChange={(e) => updateFormField(idx, "label", e.target.value)}
+                            onChange={(e) =>
+                              updateFormField(idx, "label", e.target.value)
+                            }
                             placeholder="VD: Họ và tên"
                           />
                         </div>
@@ -681,11 +1254,17 @@ const BackgroundsTab = () => {
                           <select
                             className="form-input"
                             value={field.fieldType}
-                            onChange={(e) => updateFormField(idx, "fieldType", e.target.value)}
+                            onChange={(e) =>
+                              updateFormField(idx, "fieldType", e.target.value)
+                            }
                           >
-                            {Object.entries(FIELD_TYPE_MAP).map(([value, { label }]) => (
-                              <option key={value} value={value}>{label}</option>
-                            ))}
+                            {Object.entries(FIELD_TYPE_MAP).map(
+                              ([value, { label }]) => (
+                                <option key={value} value={value}>
+                                  {label}
+                                </option>
+                              ),
+                            )}
                           </select>
                         </div>
                       </div>
@@ -696,17 +1275,35 @@ const BackgroundsTab = () => {
                           <input
                             className="form-input"
                             value={field.placeholder}
-                            onChange={(e) => updateFormField(idx, "placeholder", e.target.value)}
+                            onChange={(e) =>
+                              updateFormField(
+                                idx,
+                                "placeholder",
+                                e.target.value,
+                              )
+                            }
                             placeholder="Gợi ý cho người dùng..."
                           />
                         </div>
-                        <div className="form-group" style={{ flex: 0, minWidth: "fit-content" }}>
+                        <div
+                          className="form-group"
+                          style={{ flex: 0, minWidth: "fit-content" }}
+                        >
                           <label className="form-label">&nbsp;</label>
-                          <label className="promo-radio" style={{ padding: "8px 0" }}>
+                          <label
+                            className="promo-radio"
+                            style={{ padding: "8px 0" }}
+                          >
                             <input
                               type="checkbox"
                               checked={field.required}
-                              onChange={(e) => updateFormField(idx, "required", e.target.checked)}
+                              onChange={(e) =>
+                                updateFormField(
+                                  idx,
+                                  "required",
+                                  e.target.checked,
+                                )
+                              }
                             />
                             <span>Bắt buộc</span>
                           </label>
@@ -715,20 +1312,38 @@ const BackgroundsTab = () => {
 
                       {field.fieldType === "select" && (
                         <div className="bgt-options-section">
-                          <div className="bgt-field-row" style={{ marginBottom: 16 }}>
+                          <div
+                            className="bgt-field-row"
+                            style={{ marginBottom: 16 }}
+                          >
                             <div className="form-group" style={{ flex: 1 }}>
-                              <label className="form-label">Kiểu hiển thị *</label>
+                              <label className="form-label">
+                                Kiểu hiển thị *
+                              </label>
                               <select
                                 className="form-input"
                                 value={field.selectType || "dropdown"}
-                                onChange={(e) => updateFormField(idx, "selectType", e.target.value)}
+                                onChange={(e) =>
+                                  updateFormField(
+                                    idx,
+                                    "selectType",
+                                    e.target.value,
+                                  )
+                                }
                               >
-                                <option value="dropdown">Dropdown (Chọn 1)</option>
+                                <option value="dropdown">
+                                  Dropdown (Chọn 1)
+                                </option>
                                 <option value="radio">Radio (Chọn 1)</option>
-                                <option value="checkbox">Checkbox (Chọn nhiều)</option>
+                                <option value="checkbox">
+                                  Checkbox (Chọn nhiều)
+                                </option>
                               </select>
                             </div>
-                            <div className="form-group" style={{ flex: 2 }}></div>
+                            <div
+                              className="form-group"
+                              style={{ flex: 2 }}
+                            ></div>
                           </div>
 
                           <label className="form-label">Các lựa chọn *</label>
@@ -737,13 +1352,17 @@ const BackgroundsTab = () => {
                               <input
                                 className="form-input"
                                 value={opt.label}
-                                onChange={(e) => updateOption(idx, oi, "label", e.target.value)}
+                                onChange={(e) =>
+                                  updateOption(idx, oi, "label", e.target.value)
+                                }
                                 placeholder={`Lựa chọn ${oi + 1}`}
                               />
                               <input
                                 className="form-input"
                                 value={opt.value}
-                                onChange={(e) => updateOption(idx, oi, "value", e.target.value)}
+                                onChange={(e) =>
+                                  updateOption(idx, oi, "value", e.target.value)
+                                }
                                 placeholder="Giá trị"
                                 style={{ maxWidth: 150 }}
                               />
@@ -775,9 +1394,27 @@ const BackgroundsTab = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={closeModal}>Hủy</button>
-                <button type="submit" className="btn-primary" disabled={saveMutation.isPending}>
-                  {saveMutation.isPending ? <><span className="btn-spinner" /> Đang lưu...</> : <><FiSave size={14} /> Lưu background</>}
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closeModal}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={saveMutation.isPending}
+                >
+                  {saveMutation.isPending ? (
+                    <>
+                      <span className="btn-spinner" /> Đang lưu...
+                    </>
+                  ) : (
+                    <>
+                      <FiSave size={14} /> Lưu background
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -787,19 +1424,38 @@ const BackgroundsTab = () => {
 
       {deletingItem && (
         <div className="modal-overlay" onClick={() => setDeletingItem(null)}>
-          <div className="modal-box modal-box--sm" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-box modal-box--sm"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3 className="modal-title modal-title--danger">Xóa bối cảnh</h3>
-              <button className="modal-close" onClick={() => setDeletingItem(null)}><FiX size={16} /></button>
+              <button
+                className="modal-close"
+                onClick={() => setDeletingItem(null)}
+              >
+                <FiX size={16} />
+              </button>
             </div>
             <div className="modal-body">
               <div className="confirm-body">
                 <FiAlertTriangle className="confirm-icon" />
-                <p>Bạn có chắc muốn xóa <strong>{deletingItem.name}</strong>?</p>
+                <p>
+                  Bạn có chắc muốn xóa <strong>{deletingItem.name}</strong>?
+                </p>
               </div>
               <div className="modal-footer">
-                <button className="btn-secondary" onClick={() => setDeletingItem(null)}>Hủy</button>
-                <button className="btn-danger" onClick={handleDelete} disabled={deleteMutation.isPending}>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setDeletingItem(null)}
+                >
+                  Hủy
+                </button>
+                <button
+                  className="btn-danger"
+                  onClick={handleDelete}
+                  disabled={deleteMutation.isPending}
+                >
                   <FiTrash2 size={14} /> Xóa
                 </button>
               </div>

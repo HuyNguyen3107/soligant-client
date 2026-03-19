@@ -18,10 +18,9 @@ import {
   getInventoryItems,
   updateInventoryItem,
 } from "../../../services/inventory.service";
-import type {
-  InventoryItemRow,
-  InventoryStockStatus,
-} from "../types";
+import type { InventoryItemRow, InventoryStockStatus } from "../types";
+
+type InventorySource = InventoryItemRow["source"];
 
 const STOCK_STATUS_LABELS: Record<InventoryStockStatus, string> = {
   in_stock: "Còn hàng",
@@ -38,10 +37,21 @@ const STOCK_STATUS_STYLES: Record<
   out_of_stock: { background: "#fee2e2", color: "#991b1b" },
 };
 
-const OPTION_VISUAL_LABELS: Record<InventoryItemRow["optionVisualType"], string> = {
+const OPTION_VISUAL_LABELS: Record<
+  InventoryItemRow["optionVisualType"],
+  string
+> = {
   image: "Ảnh",
   color: "Màu",
 };
+
+const INVENTORY_SOURCE_LABELS: Record<InventorySource, string> = {
+  lego: "Lego",
+  bear: "Gấu",
+};
+
+const resolveItemSource = (item: InventoryItemRow): InventorySource =>
+  item.source === "bear" ? "bear" : "lego";
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString("vi-VN", {
@@ -65,8 +75,12 @@ const InventoryTab = () => {
   const canEditInventory = hasPermission(currentUser, "inventory.edit");
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<InventoryStockStatus | "all">("all");
-  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    InventoryStockStatus | "all"
+  >("all");
+  const [activeFilter, setActiveFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [editingItem, setEditingItem] = useState<InventoryItemRow | null>(null);
   const [editForm, setEditForm] = useState<InventoryEditFormState>({
     mode: "set",
@@ -95,20 +109,37 @@ const InventoryTab = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
       queryClient.invalidateQueries({ queryKey: ["lego-customizations"] });
-      queryClient.invalidateQueries({ queryKey: ["public-lego-customizations"] });
+      queryClient.invalidateQueries({ queryKey: ["bear-customizations"] });
+      queryClient.invalidateQueries({
+        queryKey: ["public-lego-customizations"],
+      });
       toast.success("Đã cập nhật tồn kho.");
     },
     onError: (mutationError) => {
-      toast.error(getErrorMessage(mutationError, "Không thể cập nhật tồn kho."));
+      toast.error(
+        getErrorMessage(mutationError, "Không thể cập nhật tồn kho."),
+      );
     },
   });
 
   const stats = useMemo(() => {
-    const lowStockCount = items.filter((item) => item.stockStatus === "low_stock").length;
-    const outOfStockCount = items.filter((item) => item.stockStatus === "out_of_stock").length;
+    const legoCount = items.filter(
+      (item) => resolveItemSource(item) === "lego",
+    ).length;
+    const bearCount = items.filter(
+      (item) => resolveItemSource(item) === "bear",
+    ).length;
+    const lowStockCount = items.filter(
+      (item) => item.stockStatus === "low_stock",
+    ).length;
+    const outOfStockCount = items.filter(
+      (item) => item.stockStatus === "out_of_stock",
+    ).length;
 
     return {
       total: items.length,
+      legoCount,
+      bearCount,
       lowStockCount,
       outOfStockCount,
     };
@@ -134,6 +165,16 @@ const InventoryTab = () => {
       return matchesKeyword && matchesStatus && matchesActive;
     });
   }, [activeFilter, items, search, statusFilter]);
+
+  const legoFilteredItems = useMemo(
+    () => filteredItems.filter((item) => resolveItemSource(item) === "lego"),
+    [filteredItems],
+  );
+
+  const bearFilteredItems = useMemo(
+    () => filteredItems.filter((item) => resolveItemSource(item) === "bear"),
+    [filteredItems],
+  );
 
   const openEdit = (item: InventoryItemRow) => {
     if (!canEditInventory) {
@@ -224,7 +265,8 @@ const InventoryTab = () => {
         <div>
           <h2 className="tab-title">Quản lý kho</h2>
           <p className="tab-subtitle">
-            Theo dõi tồn kho cho từng lựa chọn tùy chỉnh và cập nhật nhập/xuất kho ngay trên dashboard.
+            Theo dõi tồn kho cho từng lựa chọn tùy chỉnh và cập nhật nhập/xuất
+            kho ngay trên dashboard.
           </p>
         </div>
         <button
@@ -249,6 +291,20 @@ const InventoryTab = () => {
         </div>
         <div className="lc-stat-card">
           <span className="lc-stat-card__icon">L</span>
+          <div>
+            <strong>{stats.legoCount}</strong>
+            <span>Lựa chọn Lego</span>
+          </div>
+        </div>
+        <div className="lc-stat-card">
+          <span className="lc-stat-card__icon">G</span>
+          <div>
+            <strong>{stats.bearCount}</strong>
+            <span>Lựa chọn Gấu</span>
+          </div>
+        </div>
+        <div className="lc-stat-card">
+          <span className="lc-stat-card__icon">!</span>
           <div>
             <strong>{stats.lowStockCount}</strong>
             <span>Tồn thấp</span>
@@ -330,107 +386,172 @@ const InventoryTab = () => {
           </p>
         </div>
       ) : (
-        <div className="tab-table-wrap">
-          <table className="tab-table">
-            <thead>
-              <tr>
-                <th>Lựa chọn</th>
-                <th>Nhóm tùy chỉnh</th>
-                <th>Kiểu hiển thị</th>
-                <th>Tồn kho</th>
-                <th>Ngưỡng thấp</th>
-                <th>Trạng thái kho</th>
-                <th>Cập nhật</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredItems.map((item) => {
-                const statusStyles = STOCK_STATUS_STYLES[item.stockStatus];
+        <div style={{ display: "grid", gap: 18 }}>
+          {[
+            { source: "lego" as const, sourceItems: legoFilteredItems },
+            { source: "bear" as const, sourceItems: bearFilteredItems },
+          ].map(({ source, sourceItems }) => (
+            <section key={source}>
+              <div
+                className="tab-toolbar"
+                style={{ marginBottom: 8, padding: "10px 12px" }}
+              >
+                <div>
+                  <strong>
+                    Kho lựa chọn {INVENTORY_SOURCE_LABELS[source]}
+                  </strong>
+                  <p
+                    className="text-muted"
+                    style={{ margin: "2px 0 0", fontSize: 12 }}
+                  >
+                    {sourceItems.length} lựa chọn
+                  </p>
+                </div>
+                <span className="lc-name-chip">
+                  {INVENTORY_SOURCE_LABELS[source]}
+                </span>
+              </div>
 
-                return (
-                  <tr key={item.id} className={item.isActive ? "" : "row--inactive"}>
-                    <td>
-                      <strong>{item.optionName}</strong>
-                    </td>
-                    <td>{item.groupName || "-"}</td>
-                    <td>
-                      <span className="lc-name-chip">{OPTION_VISUAL_LABELS[item.optionVisualType]}</span>
-                    </td>
-                    <td>
-                      <span
-                        className={`lf-stock${item.stockStatus === "low_stock" ? " low" : ""}${item.stockStatus === "out_of_stock" ? " is-out" : ""}`}
-                      >
-                        {item.stockQuantity}
-                      </span>
-                    </td>
-                    <td>{item.lowStockThreshold}</td>
-                    <td>
-                      <span
-                        className="lc-name-chip"
-                        style={{
-                          background: statusStyles.background,
-                          color: statusStyles.color,
-                        }}
-                      >
-                        {STOCK_STATUS_LABELS[item.stockStatus]}
-                      </span>
-                    </td>
-                    <td className="text-muted">{formatDateTime(item.updatedAt)}</td>
-                    <td>
-                      <div className="tab-actions" style={{ flexWrap: "wrap" }}>
-                        {canEditInventory && (
-                          <>
-                            <button
-                              type="button"
-                              className="btn-icon"
-                              title="Giảm 1"
-                              style={{ background: "#fef2f2", color: "#b91c1c" }}
-                              onClick={() => applyQuickDelta(item, -1)}
-                              disabled={updateMutation.isPending || item.stockQuantity <= 0}
-                            >
-                              <FiMinus size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-icon"
-                              title="Tăng 1"
-                              style={{ background: "#ecfdf5", color: "#166534" }}
-                              onClick={() => applyQuickDelta(item, 1)}
-                              disabled={updateMutation.isPending}
-                            >
-                              <FiPlus size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-icon btn-edit"
-                              title="Chỉnh sửa chi tiết tồn kho"
-                              onClick={() => openEdit(item)}
-                              disabled={updateMutation.isPending}
-                            >
-                              <FiEdit2 size={13} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+              {sourceItems.length === 0 ? (
+                <div className="tab-empty" style={{ padding: "18px 12px" }}>
+                  <p>
+                    Không có lựa chọn{" "}
+                    {INVENTORY_SOURCE_LABELS[source].toLowerCase()} khớp điều
+                    kiện lọc.
+                  </p>
+                </div>
+              ) : (
+                <div className="tab-table-wrap">
+                  <table className="tab-table">
+                    <thead>
+                      <tr>
+                        <th>Lựa chọn</th>
+                        <th>Nhóm tùy chỉnh</th>
+                        <th>Kiểu hiển thị</th>
+                        <th>Tồn kho</th>
+                        <th>Ngưỡng thấp</th>
+                        <th>Trạng thái kho</th>
+                        <th>Cập nhật</th>
+                        <th>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sourceItems.map((item) => {
+                        const statusStyles =
+                          STOCK_STATUS_STYLES[item.stockStatus];
+
+                        return (
+                          <tr
+                            key={`${resolveItemSource(item)}-${item.id}`}
+                            className={item.isActive ? "" : "row--inactive"}
+                          >
+                            <td>
+                              <strong>{item.optionName}</strong>
+                            </td>
+                            <td>{item.groupName || "-"}</td>
+                            <td>
+                              <span className="lc-name-chip">
+                                {OPTION_VISUAL_LABELS[item.optionVisualType]}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className={`lf-stock${item.stockStatus === "low_stock" ? " low" : ""}${item.stockStatus === "out_of_stock" ? " is-out" : ""}`}
+                              >
+                                {item.stockQuantity}
+                              </span>
+                            </td>
+                            <td>{item.lowStockThreshold}</td>
+                            <td>
+                              <span
+                                className="lc-name-chip"
+                                style={{
+                                  background: statusStyles.background,
+                                  color: statusStyles.color,
+                                }}
+                              >
+                                {STOCK_STATUS_LABELS[item.stockStatus]}
+                              </span>
+                            </td>
+                            <td className="text-muted">
+                              {formatDateTime(item.updatedAt)}
+                            </td>
+                            <td>
+                              <div
+                                className="tab-actions"
+                                style={{ flexWrap: "wrap" }}
+                              >
+                                {canEditInventory && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="btn-icon"
+                                      title="Giảm 1"
+                                      style={{
+                                        background: "#fef2f2",
+                                        color: "#b91c1c",
+                                      }}
+                                      onClick={() => applyQuickDelta(item, -1)}
+                                      disabled={
+                                        updateMutation.isPending ||
+                                        item.stockQuantity <= 0
+                                      }
+                                    >
+                                      <FiMinus size={13} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn-icon"
+                                      title="Tăng 1"
+                                      style={{
+                                        background: "#ecfdf5",
+                                        color: "#166534",
+                                      }}
+                                      onClick={() => applyQuickDelta(item, 1)}
+                                      disabled={updateMutation.isPending}
+                                    >
+                                      <FiPlus size={13} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn-icon btn-edit"
+                                      title="Chỉnh sửa chi tiết tồn kho"
+                                      onClick={() => openEdit(item)}
+                                      disabled={updateMutation.isPending}
+                                    >
+                                      <FiEdit2 size={13} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          ))}
         </div>
       )}
 
       <p className="lf-summary">
         Hiển thị {filteredItems.length}/{items.length} lựa chọn trong kho
+        {` (Lego: ${legoFilteredItems.length}/${stats.legoCount}, Gấu: ${bearFilteredItems.length}/${stats.bearCount})`}
       </p>
 
       {editingItem && (
         <div className="modal-overlay" onClick={closeEditModal}>
-          <div className="modal-box modal-box--sm" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="modal-box modal-box--sm"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="modal-header">
-              <h3 className="modal-title">Cập nhật kho: {editingItem.optionName}</h3>
+              <h3 className="modal-title">
+                Cập nhật kho: {editingItem.optionName}
+              </h3>
               <button className="modal-close" onClick={closeEditModal}>
                 <FiX size={16} />
               </button>
@@ -438,13 +559,32 @@ const InventoryTab = () => {
 
             <form className="modal-body" onSubmit={handleSave}>
               <div className="form-group">
+                <label className="form-label">Nguồn kho</label>
+                <input
+                  className="form-input"
+                  value={
+                    INVENTORY_SOURCE_LABELS[resolveItemSource(editingItem)]
+                  }
+                  disabled
+                />
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Lựa chọn tùy chỉnh</label>
-                <input className="form-input" value={editingItem.optionName} disabled />
+                <input
+                  className="form-input"
+                  value={editingItem.optionName}
+                  disabled
+                />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Nhóm</label>
-                <input className="form-input" value={editingItem.groupName} disabled />
+                <input
+                  className="form-input"
+                  value={editingItem.groupName}
+                  disabled
+                />
               </div>
 
               <div className="form-group">
@@ -456,7 +596,9 @@ const InventoryTab = () => {
                       name="inventory-mode"
                       value="set"
                       checked={editForm.mode === "set"}
-                      onChange={() => setEditForm((prev) => ({ ...prev, mode: "set" }))}
+                      onChange={() =>
+                        setEditForm((prev) => ({ ...prev, mode: "set" }))
+                      }
                     />
                     <span>Đặt số lượng tồn kho</span>
                   </label>
@@ -466,7 +608,9 @@ const InventoryTab = () => {
                       name="inventory-mode"
                       value="adjust"
                       checked={editForm.mode === "adjust"}
-                      onChange={() => setEditForm((prev) => ({ ...prev, mode: "adjust" }))}
+                      onChange={() =>
+                        setEditForm((prev) => ({ ...prev, mode: "adjust" }))
+                      }
                     />
                     <span>Điều chỉnh nhập/xuất (+/-)</span>
                   </label>
@@ -493,7 +637,9 @@ const InventoryTab = () => {
                 </div>
               ) : (
                 <div className="form-group">
-                  <label className="form-label">Điều chỉnh tồn kho (+/-) *</label>
+                  <label className="form-label">
+                    Điều chỉnh tồn kho (+/-) *
+                  </label>
                   <input
                     className="form-input"
                     type="number"
@@ -511,7 +657,9 @@ const InventoryTab = () => {
               )}
 
               <div className="form-group">
-                <label className="form-label">Ngưỡng cảnh báo tồn kho thấp *</label>
+                <label className="form-label">
+                  Ngưỡng cảnh báo tồn kho thấp *
+                </label>
                 <input
                   className="form-input"
                   type="number"
@@ -528,10 +676,18 @@ const InventoryTab = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={closeEditModal}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closeEditModal}
+                >
                   Hủy
                 </button>
-                <button type="submit" className="btn-primary" disabled={updateMutation.isPending}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={updateMutation.isPending}
+                >
                   {updateMutation.isPending ? (
                     <>
                       <span className="btn-spinner" /> Đang lưu...

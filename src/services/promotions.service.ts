@@ -12,8 +12,10 @@ export interface PromotionPayload {
   description: string;
   conditionType: "lego_quantity" | "set_quantity";
   conditionMinQuantity: number;
+  applicableProductType: "lego" | "bear";
   applicableProductIds?: string[];
   rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardGiftSelectionMode?: "all" | "choose_one";
   rewardGiftQuantityMode?: "fixed" | "multiply_by_condition";
   rewardGifts?: PromotionGiftPayload[];
   rewardDiscountValue?: number;
@@ -41,10 +43,7 @@ export const updatePromotion = async (
   id: string,
   payload: PromotionPayload,
 ) => {
-  const { data } = await http.patch<PromotionRow>(
-    `/promotions/${id}`,
-    payload,
-  );
+  const { data } = await http.patch<PromotionRow>(`/promotions/${id}`, payload);
   return data;
 };
 
