@@ -43,10 +43,36 @@ export interface CollectionProduct {
   updatedAt: string;
 }
 
+export interface BearCollectionProduct {
+  id: string;
+  productType: "bear";
+  collectionId: string;
+  categoryId: string;
+  categoryName: string;
+  name: string;
+  variantSymbol: string;
+  description: string;
+  image: string;
+  bearQuantity: number;
+  allowVariableBearCount: boolean;
+  bearCountMin: number;
+  bearCountMax: number;
+  additionalBearPrice: number;
+  price: number;
+  hasBackground: boolean;
+  updatedAt: string;
+}
+
 export interface PublicCollectionProductsPayload {
   collection: Collection;
   categories: CollectionProductCategory[];
   products: CollectionProduct[];
+}
+
+export interface PublicBearCollectionProductsPayload {
+  collection: Collection;
+  categories: CollectionProductCategory[];
+  products: BearCollectionProduct[];
 }
 
 export const getPublicCollections = async () => {
@@ -72,6 +98,19 @@ export const getPublicCollectionProducts = async (
 ) => {
   const { data } = await http.get<PublicCollectionProductsPayload>(
     `/public/collections/${slug}/products`,
+    {
+      params: categoryId ? { categoryId } : undefined,
+    },
+  );
+  return data;
+};
+
+export const getPublicBearCollectionProducts = async (
+  slug: string,
+  categoryId?: string,
+) => {
+  const { data } = await http.get<PublicBearCollectionProductsPayload>(
+    `/public/collections/${slug}/bear-products`,
     {
       params: categoryId ? { categoryId } : undefined,
     },

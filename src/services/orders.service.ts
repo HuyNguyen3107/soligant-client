@@ -1,10 +1,9 @@
 import { http } from "../lib/http";
-import type {
-  OrderRow,
-  OrderStatus,
-} from "../pages/Dashboard/types";
+import type { OrderRow, OrderStatus } from "../pages/Dashboard/types";
 import type { CustomizedCartItem } from "../lib/custom-cart";
 import type { CustomerOrderFieldEntry } from "../lib/customer-order-fields";
+
+export type OrderShippingPayer = "customer" | "shop";
 
 export interface PlaceOrderPricingSummaryPayload {
   subtotal: number;
@@ -27,6 +26,9 @@ export interface PlaceOrderItemPayload {
   };
   totalLegoCount: number;
   selectedAdditionalLegoCount: number;
+  // Bear-specific (optional)
+  totalBearCount?: number;
+  selectedAdditionalBearCount?: number;
   pricingSummary: {
     total: number;
   };
@@ -37,6 +39,15 @@ export interface PlaceOrderItemPayload {
     count: number;
   }>;
   legoSlotDetails?: Array<{
+    slot: number;
+    selections: Array<{
+      groupName: string;
+      optionId?: string;
+      optionName: string;
+      colorCode: string;
+    }>;
+  }>;
+  bearSlotDetails?: Array<{
     slot: number;
     selections: Array<{
       groupName: string;
@@ -62,6 +73,7 @@ export interface PlaceOrderItemPayload {
 export interface PlaceOrderPayload {
   selectedItemIds: string[];
   items: PlaceOrderItemPayload[];
+  shippingPayer: OrderShippingPayer;
   customerInfoEntries?: CustomerOrderFieldEntry[];
   pricingSummary: PlaceOrderPricingSummaryPayload;
   appliedGifts?: Array<{ optionId: string; quantity: number }>;
@@ -74,7 +86,9 @@ export const getOrders = async () => {
 };
 
 export const updateOrderStatus = async (id: string, status: OrderStatus) => {
-  const { data } = await http.patch<OrderRow>(`/orders/${id}/status`, { status });
+  const { data } = await http.patch<OrderRow>(`/orders/${id}/status`, {
+    status,
+  });
   return data;
 };
 
@@ -82,7 +96,10 @@ export const updateOrderShippingFee = async (
   id: string,
   payload: { shippingName?: string; shippingFee: number },
 ) => {
-  const { data } = await http.patch<OrderRow>(`/orders/${id}/shipping-fee`, payload);
+  const { data } = await http.patch<OrderRow>(
+    `/orders/${id}/shipping-fee`,
+    payload,
+  );
   return data;
 };
 

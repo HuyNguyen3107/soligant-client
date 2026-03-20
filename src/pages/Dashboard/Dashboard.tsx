@@ -26,6 +26,7 @@ import {
   LegoCustomizationsTab,
   PromotionsTab,
   OrdersTab,
+  FeedbacksTab,
   AddonOptionsTab,
   CustomerOrderFieldsTab,
   BackgroundThemesTab,
@@ -38,8 +39,13 @@ import { useAuthStore } from "../../store/auth.store";
 import { hasPermission } from "../../lib/permissions";
 import { http } from "../../lib/http";
 import {
+  appendStoredOrderNotification,
   createOrdersSocket,
+  ORDER_NOTIFICATIONS_STORAGE_KEY,
+  readStoredOrderNotifications,
   type OrderCreatedSocketPayload,
+  type StoredOrderNotification,
+  writeStoredOrderNotifications,
 } from "../../lib/orders-socket";
 import type { AuthUser } from "../../store/auth.store";
 import "./Dashboard.css";
@@ -58,21 +64,12 @@ const tabMap: Record<string, React.ReactNode> = {
   "bear-customizations": <BearCustomizationsTab />,
   promotions: <PromotionsTab />,
   orders: <OrdersTab />,
+  feedbacks: <FeedbacksTab />,
   "addon-options": <AddonOptionsTab />,
   "customer-order-fields": <CustomerOrderFieldsTab />,
   "background-themes": <BackgroundThemesTab />,
   backgrounds: <BackgroundsTab />, // Added backgrounds tab
 };
-
-interface DashboardOrderNotification {
-  id: string;
-  orderId: string;
-  orderCode: string;
-  itemsCount: number;
-  finalTotal: number;
-  createdAt: string;
-  isRead: boolean;
-}
 
 const formatNotificationMoney = (value: number) =>
   `${new Intl.NumberFormat("vi-VN").format(Math.max(0, Math.floor(value)))} đ`;
@@ -107,8 +104,8 @@ const Dashboard = () => {
     () => localStorage.getItem("db-theme") === "dark",
   );
   const [orderNotifications, setOrderNotifications] = useState<
-    DashboardOrderNotification[]
-  >([]);
+    StoredOrderNotification[]
+  >(() => readStoredOrderNotifications());
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   // Whether the initial /auth/me refresh has completed
@@ -155,9 +152,27 @@ const Dashboard = () => {
   const canViewOrders = hasPermission(user, "orders.view");
 
   const unreadNotificationCount = useMemo(
-    () => orderNotifications.filter((notification) => !notification.isRead).length,
+    () =>
+      orderNotifications.filter((notification) => !notification.isRead).length,
     [orderNotifications],
   );
+
+  useEffect(() => {
+    writeStoredOrderNotifications(orderNotifications);
+  }, [orderNotifications]);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key && event.key !== ORDER_NOTIFICATIONS_STORAGE_KEY) {
+        return;
+      }
+
+      setOrderNotifications(readStoredOrderNotifications());
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   // ── Refresh user permissions from server once on mount ─────────────────────
   useEffect(() => {
@@ -182,7 +197,7 @@ const Dashboard = () => {
         }
       })
       .finally(() => setMeLoaded(true));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHydrated]);
 
   const toggleDark = () => {
@@ -206,9 +221,19 @@ const Dashboard = () => {
     }
 
     setLoading(false);
-  }, [accessToken, activeTab, availableTabs, isHydrated, meLoaded, navigate, user]);
+  }, [
+    accessToken,
+    activeTab,
+    availableTabs,
+    isHydrated,
+    meLoaded,
+    navigate,
+    user,
+  ]);
 
   const handleLogout = () => {
+    setOrderNotifications([]);
+    writeStoredOrderNotifications([]);
     clearSession();
     navigate("/login");
   };
@@ -255,18 +280,8 @@ const Dashboard = () => {
     const socket = createOrdersSocket();
 
     const onOrderCreated = (payload: OrderCreatedSocketPayload) => {
-      setOrderNotifications((prev) => [
-        {
-          id: `${payload.id}-${payload.createdAt}`,
-          orderId: payload.id,
-          orderCode: payload.orderCode,
-          itemsCount: payload.itemsCount,
-          finalTotal: payload.finalTotal,
-          createdAt: payload.createdAt,
-          isRead: false,
-        },
-        ...prev,
-      ].slice(0, 50));
+      const nextNotifications = appendStoredOrderNotification(payload);
+      setOrderNotifications(nextNotifications);
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     };
 
@@ -276,14 +291,7 @@ const Dashboard = () => {
       socket.off("orders:new", onOrderCreated);
       socket.disconnect();
     };
-  }, [
-    accessToken,
-    canViewOrders,
-    isHydrated,
-    meLoaded,
-    queryClient,
-    user,
-  ]);
+  }, [accessToken, canViewOrders, isHydrated, meLoaded, queryClient, user]);
 
   useEffect(() => {
     if (activeTab === "orders") {
@@ -300,9 +308,7 @@ const Dashboard = () => {
   const markAllNotificationsAsRead = () => {
     setOrderNotifications((prev) =>
       prev.map((notification) =>
-        notification.isRead
-          ? notification
-          : { ...notification, isRead: true },
+        notification.isRead ? notification : { ...notification, isRead: true },
       ),
     );
   };
@@ -510,7 +516,9 @@ const Dashboard = () => {
                 <FiBell size={17} />
                 {canViewOrders && unreadNotificationCount > 0 && (
                   <span className="db-header__notif-badge">
-                    {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                    {unreadNotificationCount > 99
+                      ? "99+"
+                      : unreadNotificationCount}
                   </span>
                 )}
                 {canViewOrders && unreadNotificationCount === 0 && (
@@ -546,10 +554,13 @@ const Dashboard = () => {
                         >
                           <div className="db-header__notif-item-row">
                             <strong>{notification.orderCode}</strong>
-                            <span>{formatNotificationMoney(notification.finalTotal)}</span>
+                            <span>
+                              {formatNotificationMoney(notification.finalTotal)}
+                            </span>
                           </div>
                           <p>
-                            {notification.itemsCount} sản phẩm • {formatNotificationDateTime(notification.createdAt)}
+                            {notification.itemsCount} sản phẩm •{" "}
+                            {formatNotificationDateTime(notification.createdAt)}
                           </p>
                         </button>
                       ))}
@@ -589,11 +600,26 @@ const Dashboard = () => {
             <h1 className="db-content__title">{activeLabel}</h1>
           </div>
           {noPermissions ? (
-            <div className="ut-empty" style={{ textAlign: "center", padding: "60px 20px" }}>
-              <h2 style={{ fontSize: "28px", marginBottom: "16px", color: "#333" }}>
+            <div
+              className="ut-empty"
+              style={{ textAlign: "center", padding: "60px 20px" }}
+            >
+              <h2
+                style={{
+                  fontSize: "28px",
+                  marginBottom: "16px",
+                  color: "#333",
+                }}
+              >
                 Xin chào, {user?.name || "người dùng"}!
               </h2>
-              <p style={{ fontSize: "16px", color: "#666", marginBottom: "24px" }}>
+              <p
+                style={{
+                  fontSize: "16px",
+                  color: "#666",
+                  marginBottom: "24px",
+                }}
+              >
                 Bạn chưa được cấp quyền truy cập vào các chức năng Dashboard.
               </p>
               <p style={{ fontSize: "14px", color: "#999" }}>

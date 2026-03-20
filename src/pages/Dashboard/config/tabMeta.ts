@@ -88,6 +88,14 @@ export const TAB_META: Record<string, TabMeta> = {
     keywords: "đơn hàng, order management, mã đơn, Soligant",
     path: "/dashboard/orders",
   },
+  feedbacks: {
+    title: "Quản lý feedback",
+    description:
+      "Quản lý phản hồi từ khách hàng, cập nhật trạng thái xử lý và kiểm soát feedback hiển thị public.",
+    keywords:
+      "feedback, góp ý khách hàng, đánh giá, quản lý feedback, Soligant",
+    path: "/dashboard/feedbacks",
+  },
   "addon-options": {
     title: "Option mua thêm",
     description:

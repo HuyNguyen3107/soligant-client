@@ -1,4 +1,20 @@
-import { FiHome, FiGrid, FiUsers, FiKey, FiLayers, FiBox, FiTag, FiSliders, FiGift, FiImage, FiShoppingBag, FiClipboard, FiFileText, FiArchive } from "react-icons/fi";
+import {
+  FiHome,
+  FiGrid,
+  FiUsers,
+  FiKey,
+  FiLayers,
+  FiBox,
+  FiTag,
+  FiSliders,
+  FiGift,
+  FiImage,
+  FiShoppingBag,
+  FiClipboard,
+  FiFileText,
+  FiArchive,
+  FiMessageCircle,
+} from "react-icons/fi";
 import type { SidebarSection } from "../types";
 
 export const sidebarSections: SidebarSection[] = [
@@ -70,6 +86,12 @@ export const sidebarSections: SidebarSection[] = [
         label: "Đơn hàng",
         icon: FiClipboard,
         permission: "orders.view",
+      },
+      {
+        id: "feedbacks",
+        label: "Feedback",
+        icon: FiMessageCircle,
+        permission: "feedbacks.view",
       },
       {
         id: "addon-options",

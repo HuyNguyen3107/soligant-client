@@ -311,6 +311,83 @@
     gap: 10px;
 }
 
+.home-page__feedbacks {
+    padding: 0 0 84px;
+    background: #fff;
+}
+
+.home-page__feedback-state {
+    margin: 0;
+    border: 1px solid #efd8ca;
+    border-radius: 14px;
+    background: #fff8f2;
+    padding: 14px 16px;
+    color: #6a4c46;
+}
+
+.home-page__feedback-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.home-page__feedback-card {
+    border: 1px solid #efd8ca;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 14px 26px rgba(78, 42, 30, 0.08);
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+}
+
+.home-page__feedback-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.home-page__feedback-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #f0d6cb;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.home-page__feedback-avatar--placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #7a1d1e;
+    background: #ffe7d2;
+}
+
+.home-page__feedback-head h3 {
+    margin: 0;
+    color: #5b1215;
+    font-size: 1rem;
+}
+
+.home-page__feedback-head p {
+    margin: 4px 0 0;
+    color: #7d5e57;
+    font-size: 0.84rem;
+}
+
+.home-page__feedback-message {
+    margin: 0;
+    color: #5e6872;
+    line-height: 1.75;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 .home-page__cta {
     padding: 0 0 86px;
     background: #fff;
@@ -362,6 +439,10 @@
         min-height: 220px;
     }
 
+    .home-page__feedback-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .home-page__cta-box {
         flex-direction: column;
         align-items: flex-start;
@@ -382,7 +463,15 @@
         padding: 56px 0;
     }
 
+    .home-page__feedbacks {
+        padding: 0 0 56px;
+    }
+
     .home-page__story-media {
+        grid-template-columns: 1fr;
+    }
+
+    .home-page__feedback-grid {
         grid-template-columns: 1fr;
     }
 

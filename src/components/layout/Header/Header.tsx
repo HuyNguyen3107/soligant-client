@@ -14,6 +14,12 @@ import { ImageWithFallback } from "../../../components/common";
 import { getStaticAssetUrl } from "../../../lib/http";
 import { hasAnyPermission } from "../../../lib/permissions";
 import { getCustomizedCartItemSubtotal } from "../../../lib/custom-cart";
+import {
+  appendStoredOrderNotification,
+  createOrdersSocket,
+  type OrderCreatedSocketPayload,
+  writeStoredOrderNotifications,
+} from "../../../lib/orders-socket";
 import { useCustomCartStore } from "../../../store/custom-cart.store";
 import "./Header.css";
 
@@ -67,12 +73,18 @@ const Header = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const cartItems = useCustomCartStore((state) => state.items);
-  const storedSelectedItemIds = useCustomCartStore((state) => state.selectedItemIds);
+  const storedSelectedItemIds = useCustomCartStore(
+    (state) => state.selectedItemIds,
+  );
   const isDrawerOpen = useCustomCartStore((state) => state.isDrawerOpen);
   const toggleDrawer = useCustomCartStore((state) => state.toggleDrawer);
   const closeDrawer = useCustomCartStore((state) => state.closeDrawer);
-  const toggleItemSelection = useCustomCartStore((state) => state.toggleItemSelection);
-  const setSelectedItemIds = useCustomCartStore((state) => state.setSelectedItemIds);
+  const toggleItemSelection = useCustomCartStore(
+    (state) => state.toggleItemSelection,
+  );
+  const setSelectedItemIds = useCustomCartStore(
+    (state) => state.setSelectedItemIds,
+  );
   const removeItem = useCustomCartStore((state) => state.removeItem);
 
   const selectedItemIds = storedSelectedItemIds.filter((itemId) =>
@@ -127,15 +139,37 @@ const Header = () => {
     };
   }, [isDrawerOpen, mobileNavOpen]);
 
+  const canViewOrders = hasAnyPermission(user, ["orders.view"]);
+
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
+    writeStoredOrderNotifications([]);
     setUser(null);
     setDropdownOpen(false);
     setMobileNavOpen(false);
     navigate("/");
   };
+
+  useEffect(() => {
+    if (!user || !canViewOrders) {
+      return;
+    }
+
+    const socket = createOrdersSocket();
+
+    const onOrderCreated = (payload: OrderCreatedSocketPayload) => {
+      appendStoredOrderNotification(payload);
+    };
+
+    socket.on("orders:new", onOrderCreated);
+
+    return () => {
+      socket.off("orders:new", onOrderCreated);
+      socket.disconnect();
+    };
+  }, [canViewOrders, user]);
 
   const handleGoToReview = () => {
     if (selectedItemIds.length === 0) {
@@ -182,7 +216,11 @@ const Header = () => {
             <ul className="header__nav-list">
               {navLinks.map((link) => (
                 <li key={link.href} className="header__nav-item">
-                  <NavLink to={link.href} end={link.end} className={getNavLinkClassName}>
+                  <NavLink
+                    to={link.href}
+                    end={link.end}
+                    className={getNavLinkClassName}
+                  >
                     {link.label}
                   </NavLink>
                 </li>
@@ -234,7 +272,9 @@ const Header = () => {
                   <div className="header__dropdown">
                     <div className="header__dropdown-info">
                       <span className="header__dropdown-name">{user.name}</span>
-                      <span className="header__dropdown-email">{user.email}</span>
+                      <span className="header__dropdown-email">
+                        {user.email}
+                      </span>
                     </div>
                     <div className="header__dropdown-divider" />
                     {canAccessDashboard && (
@@ -318,7 +358,11 @@ const Header = () => {
                   <span>Trang quản trị</span>
                 </Link>
               )}
-              <button type="button" className="header__mobile-action" onClick={handleLogout}>
+              <button
+                type="button"
+                className="header__mobile-action"
+                onClick={handleLogout}
+              >
                 <FiLogOut size={16} />
                 <span>Đăng xuất</span>
               </button>
@@ -365,18 +409,26 @@ const Header = () => {
           <div className="header__drawer-empty">
             <FiShoppingBag size={34} />
             <p>Chưa có sản phẩm nào trong giỏ hàng.</p>
-            <Link to="/bo-suu-tap" className="header__drawer-link" onClick={closeDrawer}>
+            <Link
+              to="/bo-suu-tap"
+              className="header__drawer-link"
+              onClick={closeDrawer}
+            >
               Khám phá bộ sưu tập
             </Link>
           </div>
         ) : (
           <>
             <div className="header__drawer-toolbar">
-              <span>{selectedCount}/{cartItems.length} sản phẩm được chọn</span>
+              <span>
+                {selectedCount}/{cartItems.length} sản phẩm được chọn
+              </span>
               <div className="header__drawer-toolbar-actions">
                 <button
                   type="button"
-                  onClick={() => setSelectedItemIds(cartItems.map((item) => item.id))}
+                  onClick={() =>
+                    setSelectedItemIds(cartItems.map((item) => item.id))
+                  }
                 >
                   Chọn tất cả
                 </button>
@@ -388,12 +440,19 @@ const Header = () => {
 
             <div className="header__drawer-list">
               {cartItems.map((item) => {
-                const imageUrl = getStaticAssetUrl(item.product.image);
+                const productName =
+                  item.product?.name?.trim() || "Sản phẩm tùy chỉnh";
+                const imageUrl = getStaticAssetUrl(item.product?.image ?? "");
                 const isSelected = selectedItemIds.includes(item.id);
                 const selectedAddonCount = item.additionalOptions?.length ?? 0;
+                const collectionName =
+                  item.collectionName?.trim() || "Bộ sưu tập";
 
                 return (
-                  <article key={item.id} className={`header__drawer-item${isSelected ? " is-selected" : ""}`}>
+                  <article
+                    key={item.id}
+                    className={`header__drawer-item${isSelected ? " is-selected" : ""}`}
+                  >
                     <label className="header__drawer-check">
                       <input
                         type="checkbox"
@@ -405,24 +464,28 @@ const Header = () => {
                     <div className="header__drawer-thumb">
                       <ImageWithFallback
                         src={imageUrl}
-                        alt={item.product.name}
+                        alt={productName}
                         fallback={
-                        <div className="header__drawer-thumb-placeholder">
-                          <FiShoppingBag size={20} />
-                        </div>
+                          <div className="header__drawer-thumb-placeholder">
+                            <FiShoppingBag size={20} />
+                          </div>
                         }
                       />
                     </div>
 
                     <div className="header__drawer-item-body">
-                      <strong>{item.product.name}</strong>
-                      <span>{item.collectionName}</span>
-                      <span>Nền: {item.background.name}</span>
+                      <strong>{productName}</strong>
+                      <span>{collectionName}</span>
+                      <span>Nền: {item.background?.name ?? "Chưa chọn"}</span>
                       {selectedAddonCount > 0 && (
                         <span>Mua thêm: {selectedAddonCount} option</span>
                       )}
                       <span>
-                        Tạm tính: {getCustomizedCartItemSubtotal(item).toLocaleString("vi-VN")} đ
+                        Tạm tính:{" "}
+                        {getCustomizedCartItemSubtotal(item).toLocaleString(
+                          "vi-VN",
+                        )}{" "}
+                        đ
                       </span>
                     </div>
 
@@ -430,7 +493,7 @@ const Header = () => {
                       type="button"
                       className="header__drawer-remove"
                       onClick={() => removeItem(item.id)}
-                      aria-label={`Xóa ${item.product.name} khỏi giỏ hàng`}
+                      aria-label={`Xóa ${productName} khỏi giỏ hàng`}
                     >
                       <FiTrash2 size={16} />
                     </button>

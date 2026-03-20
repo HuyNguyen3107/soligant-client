@@ -14,6 +14,9 @@ import {
   CollectionProductCustomizer,
   CollectionProductBackgroundPicker,
   CollectionProductAddons,
+  CollectionBearCustomizer,
+  CollectionBearBackgroundPicker,
+  CollectionBearAddons,
   CollectionCustomerInfo,
   CollectionOrderReview,
   CollectionOrderPlaced,
@@ -73,6 +76,18 @@ function App() {
         <Route
           path="/bo-suu-tap/:slug/san-pham/:productId/mua-them"
           element={<StorefrontLayout><CollectionProductAddons /></StorefrontLayout>}
+        />
+        <Route
+          path="/bo-suu-tap/:slug/san-pham/:productId/tuy-chinh-gau"
+          element={<StorefrontLayout><CollectionBearCustomizer /></StorefrontLayout>}
+        />
+        <Route
+          path="/bo-suu-tap/:slug/san-pham/:productId/chon-nen-gau"
+          element={<StorefrontLayout><CollectionBearBackgroundPicker /></StorefrontLayout>}
+        />
+        <Route
+          path="/bo-suu-tap/:slug/san-pham/:productId/mua-them-gau"
+          element={<StorefrontLayout><CollectionBearAddons /></StorefrontLayout>}
         />
         <Route
           path="/thong-tin-khach-hang"

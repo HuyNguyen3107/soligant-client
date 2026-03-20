@@ -267,6 +267,36 @@ export interface GoalItem {
   color: string;
 }
 
+// ─── FEEDBACKS TAB TYPES ────────────────────────────────────────────────────
+export type FeedbackStatus = "new" | "processing" | "resolved";
+
+export interface FeedbackRow {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+  image: string;
+  status: FeedbackStatus;
+  isPublic: boolean;
+  adminNote: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FeedbackFormState {
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+  image: string;
+  status: FeedbackStatus;
+  isPublic: boolean;
+  adminNote: string;
+}
+
 // ─── BACKGROUND THEMES TAB TYPES ──────────────────────────────────────────────
 export interface BackgroundTheme {
   id: string;
@@ -490,6 +520,8 @@ export type OrderStatus =
   | "completed"
   | "cancelled";
 
+export type OrderShippingPayer = "customer" | "shop";
+
 export interface OrderPricingSummary {
   subtotal: number;
   productDiscountTotal: number;
@@ -538,6 +570,7 @@ export interface OrderRow {
   dateKey: string;
   variantSymbol: string;
   status: OrderStatus;
+  shippingPayer: OrderShippingPayer;
   itemsCount: number;
   pricingSummary: OrderPricingSummary;
   items: OrderItemRow[];

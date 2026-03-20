@@ -593,6 +593,57 @@
     background: #fff7f7;
 }
 
+.cor-summary__shipping-payer {
+    margin-top: 14px;
+    border: 1px solid #eceff5;
+    border-radius: 12px;
+    background: #fbfcff;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+}
+
+.cor-summary__shipping-payer-header h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: #1f2937;
+}
+
+.cor-summary__shipping-payer-desc {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.cor-summary__shipping-payer-options {
+    display: grid;
+    gap: 8px;
+}
+
+.cor-summary__shipping-payer-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #374151;
+    cursor: pointer;
+}
+
+.cor-summary__shipping-payer-option input {
+    margin: 0;
+}
+
+.cor-summary__shipping-payer-option.is-selected {
+    border-color: #d6b3b4;
+    background: #fff7f7;
+}
+
 .cor-summary__order-error {
     margin-top: 14px;
     font-size: 13px;

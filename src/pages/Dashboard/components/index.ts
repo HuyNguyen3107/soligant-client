@@ -10,6 +10,7 @@ export { default as LegoCustomizationsTab } from "./LegoCustomizationsTab";
 export { default as BearCustomizationsTab } from "./BearCustomizationsTab";
 export { default as PromotionsTab } from "./PromotionsTab";
 export { default as OrdersTab } from "./OrdersTab";
+export { default as FeedbacksTab } from "./FeedbacksTab";
 export { default as AddonOptionsTab } from "./AddonOptionsTab";
 export { default as CustomerOrderFieldsTab } from "./CustomerOrderFieldsTab";
 export { default as BackgroundThemesTab } from "./BackgroundThemesTab";

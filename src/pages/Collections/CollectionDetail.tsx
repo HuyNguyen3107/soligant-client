@@ -12,8 +12,15 @@ import {
 import { getErrorMessage } from "../../lib/error";
 import { getStaticAssetUrl } from "../../lib/http";
 import { toRichTextPlainText } from "../../lib/rich-text";
-import { getPublicCollectionProducts } from "../../services/collections.service";
+import {
+  getPublicCollectionProducts,
+  getPublicBearCollectionProducts,
+  type CollectionProduct,
+  type BearCollectionProduct,
+} from "../../services/collections.service";
 import "./CollectionDetail.css";
+
+type AnyProduct = (CollectionProduct & { productType: "lego" }) | BearCollectionProduct;
 
 export const CollectionDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -23,10 +30,10 @@ export const CollectionDetail = () => {
     selectedCategoryId === "all" ? undefined : selectedCategoryId;
 
   const {
-    data: payload,
-    isLoading,
-    isError,
-    error,
+    data: legoPayload,
+    isLoading: isLegoLoading,
+    isError: isLegoError,
+    error: legoError,
   } = useQuery({
     queryKey: ["public-collection-products", slug, selectedCategory],
     queryFn: () =>
@@ -35,9 +42,50 @@ export const CollectionDetail = () => {
     retry: false,
   });
 
+  const {
+    data: bearPayload,
+    isLoading: isBearLoading,
+  } = useQuery({
+    queryKey: ["public-bear-collection-products", slug, selectedCategory],
+    queryFn: () =>
+      getPublicBearCollectionProducts(slug as string, selectedCategory),
+    enabled: Boolean(slug),
+    retry: false,
+  });
+
+  const payload = legoPayload;
   const collection = payload?.collection;
-  const categories = useMemo(() => payload?.categories ?? [], [payload?.categories]);
-  const products = useMemo(() => payload?.products ?? [], [payload?.products]);
+
+  // Merge LEGO and bear categories
+  const categories = useMemo(() => {
+    const legoCategories = legoPayload?.categories ?? [];
+    const bearCategories = bearPayload?.categories ?? [];
+    const categoryMap = new Map(legoCategories.map((c) => [c.id, { ...c }]));
+
+    bearCategories.forEach((bc) => {
+      if (categoryMap.has(bc.id)) {
+        categoryMap.get(bc.id)!.productCount += bc.productCount;
+      } else {
+        categoryMap.set(bc.id, { ...bc });
+      }
+    });
+
+    return Array.from(categoryMap.values());
+  }, [legoPayload?.categories, bearPayload?.categories]);
+
+  // Merge LEGO and bear products into a single list
+  const products = useMemo((): AnyProduct[] => {
+    const legoProducts = (legoPayload?.products ?? []).map(
+      (p): AnyProduct => ({ ...p, productType: "lego" as const }),
+    );
+    const bearProducts = (bearPayload?.products ?? []) as AnyProduct[];
+
+    // Filter by selected category
+    const filter = (p: AnyProduct) =>
+      !selectedCategory || p.categoryId === selectedCategory;
+
+    return [...legoProducts.filter(filter), ...bearProducts.filter(filter)];
+  }, [legoPayload?.products, bearPayload?.products, selectedCategory]);
 
   const totalProductsInCollection = useMemo(
     () => categories.reduce((sum, category) => sum + category.productCount, 0),
@@ -48,6 +96,10 @@ export const CollectionDetail = () => {
     () => categories.find((item) => item.id === selectedCategoryId)?.name,
     [categories, selectedCategoryId],
   );
+
+  const isLoading = isLegoLoading || isBearLoading;
+  const error = legoError;
+  const isError = isLegoError;
 
   useEffect(() => {
     if (!slug) {
@@ -221,7 +273,10 @@ export const CollectionDetail = () => {
               <div className="cd-products__grid">
                 {products.map((product) => {
                   const productImage = getStaticAssetUrl(product.image);
-                  const customPath = `/bo-suu-tap/${slug}/san-pham/${product.id}/custom`;
+                  const isBear = product.productType === "bear";
+                  const customPath = isBear
+                    ? `/bo-suu-tap/${slug}/san-pham/${product.id}/tuy-chinh-gau`
+                    : `/bo-suu-tap/${slug}/san-pham/${product.id}/custom`;
 
                   return (
                     <Link
@@ -262,10 +317,17 @@ export const CollectionDetail = () => {
                           )}
 
                           <ul className="cd-product-card__meta">
-                            <li>Kích thước: {product.size}</li>
-                            <li>
-                              Số lượng Lego: {product.legoQuantity.toLocaleString("vi-VN")}
-                            </li>
+                            {isBear ? (
+                              <>
+                                <li>Loại: Gấu nhồi bông</li>
+                                <li>Số Gấu: {(product as BearCollectionProduct).bearQuantity.toLocaleString("vi-VN")}</li>
+                              </>
+                            ) : (
+                              <>
+                                <li>Kích thước: {(product as CollectionProduct).size}</li>
+                                <li>Số lượng Lego: {(product as CollectionProduct).legoQuantity.toLocaleString("vi-VN")}</li>
+                              </>
+                            )}
                           </ul>
 
                           <p className="cd-product-card__price">

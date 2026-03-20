@@ -35,7 +35,11 @@ import {
 import { isRichTextEmpty, toRichTextPlainText } from "../../lib/rich-text";
 import { getPublicCustomerOrderFieldsConfig } from "../../services/customer-order-fields.service";
 import { getPublicLegoCustomizations } from "../../services/lego-customizations.service";
-import { createPublicOrder } from "../../services/orders.service";
+import { getPublicBearCustomizations } from "../../services/bear-customizations.service";
+import {
+  createPublicOrder,
+  type OrderShippingPayer,
+} from "../../services/orders.service";
 import { getPublicPromotions } from "../../services/promotions.service";
 import { useCustomCartStore } from "../../store/custom-cart.store";
 import { useOrderHistoryStore } from "../../store/order-history.store";
@@ -134,6 +138,8 @@ const CollectionOrderReview = () => {
 
   const locationState = location.state as ReviewLocationState | null;
   const [customerNote, setCustomerNote] = useState("");
+  const [shippingPayer, setShippingPayer] =
+    useState<OrderShippingPayer>("customer");
   const [selectedGiftByPromotionKey, setSelectedGiftByPromotionKey] = useState<
     Record<string, string>
   >({});
@@ -224,6 +230,12 @@ const CollectionOrderReview = () => {
     enabled: selectedItems.length > 0,
   });
 
+  const { data: bearCustomGroups = [] } = useQuery({
+    queryKey: ["public-bear-customizations"],
+    queryFn: getPublicBearCustomizations,
+    enabled: selectedItems.length > 0,
+  });
+
   const { data: customerInfoConfig, isLoading: isCustomerInfoConfigLoading } =
     useQuery({
       queryKey: ["public-customer-order-fields-config"],
@@ -234,6 +246,11 @@ const CollectionOrderReview = () => {
   const customGroupLookup = useMemo(
     () => new Map(customGroups.map((group) => [group.id, group])),
     [customGroups],
+  );
+
+  const bearCustomGroupLookup = useMemo(
+    () => new Map(bearCustomGroups.map((group) => [group.id, group])),
+    [bearCustomGroups],
   );
 
   const pricing = useMemo(
@@ -271,7 +288,7 @@ const CollectionOrderReview = () => {
             promotionIndex,
           ),
           promotion,
-          contextLabel: `Theo sản phẩm: ${result.item.product.name}`,
+          contextLabel: `Theo sản phẩm: ${result.item.product?.name ?? "Sản phẩm tùy chỉnh"}`,
         });
       });
     });
@@ -286,7 +303,7 @@ const CollectionOrderReview = () => {
       }
 
       const eligibleItemNames = promotion.eligibleItemIds
-        .map((itemId) => itemLookup.get(itemId)?.product.name)
+        .map((itemId) => itemLookup.get(itemId)?.product?.name)
         .filter((name): name is string => Boolean(name));
 
       const scopeLabel =
@@ -365,14 +382,20 @@ const CollectionOrderReview = () => {
     >();
 
     selectedItems.forEach((item) => {
+      const isBear = item.product.productType === "bear";
+      const selections = isBear
+        ? (item.bearSelections ?? {})
+        : item.legoSelections;
+      const groupLookup = isBear ? bearCustomGroupLookup : customGroupLookup;
+
       const counts = new Map<
         string,
         { key: string; groupName: string; optionName: string; count: number }
       >();
 
-      Object.values(item.legoSelections).forEach((slotSelections) => {
+      Object.values(selections).forEach((slotSelections) => {
         Object.entries(slotSelections).forEach(([groupId, optionId]) => {
-          const group = customGroupLookup.get(groupId);
+          const group = groupLookup.get(groupId);
           const option = group?.options.find(
             (candidate) => candidate.id === optionId,
           );
@@ -404,7 +427,7 @@ const CollectionOrderReview = () => {
     });
 
     return summaries;
-  }, [customGroupLookup, selectedItems]);
+  }, [bearCustomGroupLookup, customGroupLookup, selectedItems]);
 
   const selectedCartItemIds = useMemo(
     () => selectedItems.map((item) => item.id),
@@ -561,6 +584,36 @@ const CollectionOrderReview = () => {
         throw new Error("Vui lòng chọn quà tặng ưu đãi trước khi đặt hàng.");
       }
 
+      const hasInvalidSelectedItems = selectedItems.some((item) => {
+        if (!item.product?.name?.trim()) {
+          return true;
+        }
+
+        // Some product types (e.g. certain bear variants) do not require background.
+        const productType = item.product?.productType;
+        const hasBackgroundFlag = (
+          item.product as {
+            hasBackground?: boolean;
+          }
+        ).hasBackground;
+        const requiresBackground =
+          productType === "bear"
+            ? hasBackgroundFlag === true
+            : hasBackgroundFlag !== false;
+
+        if (!requiresBackground) {
+          return false;
+        }
+
+        return !item.background?.name?.trim();
+      });
+
+      if (hasInvalidSelectedItems) {
+        throw new Error(
+          "Có sản phẩm chưa đủ thông tin (sản phẩm hoặc nền). Vui lòng kiểm tra lại giỏ hàng.",
+        );
+      }
+
       return createPublicOrder({
         selectedItemIds: selectedCartItemIds,
         items: selectedItems.map((item) => ({
@@ -576,8 +629,8 @@ const CollectionOrderReview = () => {
             variantSymbol: item.product.variantSymbol,
           },
           background: {
-            name: item.background.name,
-            fields: [...(item.background.fields ?? [])].sort(
+            name: item.background?.name?.trim() || "Chưa chọn nền",
+            fields: [...(item.background?.fields ?? [])].sort(
               (a, b) => a.sortOrder - b.sortOrder,
             ),
           },
@@ -587,27 +640,56 @@ const CollectionOrderReview = () => {
             total: item.pricingSummary.total,
           },
           customizationSummary: customizationSummaries.get(item.id) ?? [],
-          legoSlotDetails: Object.entries(item.legoSelections)
-            .sort(([a], [b]) => Number(a) - Number(b))
-            .map(([slotIndex, slotSelections]) => ({
-              slot: Number(slotIndex),
-              selections: Object.entries(slotSelections)
-                .filter(([, optionId]) => Boolean(optionId))
-                .map(([groupId, optionId]) => {
-                  const group = customGroupLookup.get(groupId);
-                  const option = group?.options.find(
-                    (candidate) => candidate.id === optionId,
-                  );
-
-                  return {
-                    groupName: group?.name ?? groupId,
-                    optionId,
-                    optionName: option?.name ?? optionId,
-                    colorCode: option?.colorCode ?? "",
-                  };
-                }),
-            }))
-            .filter((slotDetail) => slotDetail.selections.length > 0),
+          legoSlotDetails: (() => {
+            const isBear = item.product.productType === "bear";
+            if (isBear) return [];
+            return Object.entries(item.legoSelections)
+              .sort(([a], [b]) => Number(a) - Number(b))
+              .map(([slotIndex, slotSelections]) => ({
+                slot: Number(slotIndex),
+                selections: Object.entries(slotSelections)
+                  .filter(([, optionId]) => Boolean(optionId))
+                  .map(([groupId, optionId]) => {
+                    const group = customGroupLookup.get(groupId);
+                    const option = group?.options.find(
+                      (candidate) => candidate.id === optionId,
+                    );
+                    return {
+                      groupName: group?.name ?? groupId,
+                      optionId,
+                      optionName: option?.name ?? optionId,
+                      colorCode: option?.colorCode ?? "",
+                    };
+                  }),
+              }))
+              .filter((slotDetail) => slotDetail.selections.length > 0);
+          })(),
+          bearSlotDetails: (() => {
+            const isBear = item.product.productType === "bear";
+            if (!isBear) return undefined;
+            return Object.entries(item.bearSelections ?? {})
+              .sort(([a], [b]) => Number(a) - Number(b))
+              .map(([slotIndex, slotSelections]) => ({
+                slot: Number(slotIndex),
+                selections: Object.entries(slotSelections)
+                  .filter(([, optionId]) => Boolean(optionId))
+                  .map(([groupId, optionId]) => {
+                    const group = bearCustomGroupLookup.get(groupId);
+                    const option = group?.options.find(
+                      (candidate) => candidate.id === optionId,
+                    );
+                    return {
+                      groupName: group?.name ?? groupId,
+                      optionId,
+                      optionName: option?.name ?? optionId,
+                      colorCode: option?.colorCode ?? "",
+                    };
+                  }),
+              }))
+              .filter((slotDetail) => slotDetail.selections.length > 0);
+          })(),
+          totalBearCount: item.totalBearCount,
+          selectedAdditionalBearCount: item.selectedAdditionalBearCount,
           backgroundFieldValues: item.backgroundFieldValues,
           additionalOptions: (item.additionalOptions ?? []).map((option) => ({
             id: option.id,
@@ -617,6 +699,7 @@ const CollectionOrderReview = () => {
             customFieldValues: option.customFieldValues,
           })),
         })),
+        shippingPayer,
         pricingSummary: {
           subtotal: pricing.subtotal,
           productDiscountTotal: pricing.productDiscountTotal,
@@ -734,7 +817,11 @@ const CollectionOrderReview = () => {
               const additionalOptionsTotal = getAdditionalOptionsPrice(item);
               const customizationSummary =
                 customizationSummaries.get(item.id) ?? [];
-              const itemImage = getStaticAssetUrl(item.product.image);
+              const productName =
+                item.product?.name?.trim() || "Sản phẩm tùy chỉnh";
+              const itemImage = getStaticAssetUrl(item.product?.image ?? "");
+              const backgroundName =
+                item.background?.name?.trim() || "Chưa chọn nền";
               const itemPromotions = itemPricing?.appliedPromotions ?? [];
 
               return (
@@ -744,7 +831,7 @@ const CollectionOrderReview = () => {
                       <div className="cor-card__thumb">
                         <ImageWithFallback
                           src={itemImage}
-                          alt={item.product.name}
+                          alt={productName}
                           fallback={
                             <div className="cor-card__thumb-placeholder">
                               <FiShoppingBag size={24} />
@@ -757,10 +844,8 @@ const CollectionOrderReview = () => {
                         <span className="cor-card__collection">
                           {item.collectionName}
                         </span>
-                        <h2 className="cor-card__title">{item.product.name}</h2>
-                        <p className="cor-card__meta">
-                          Nền: {item.background.name}
-                        </p>
+                        <h2 className="cor-card__title">{productName}</h2>
+                        <p className="cor-card__meta">Nền: {backgroundName}</p>
                         <p className="cor-card__meta">
                           Tổng Lego: {item.totalLegoCount} | Lego thêm:{" "}
                           {item.selectedAdditionalLegoCount}
@@ -1120,6 +1205,39 @@ const CollectionOrderReview = () => {
                   )}
                 </div>
               )}
+
+              <div className="cor-summary__shipping-payer">
+                <div className="cor-summary__shipping-payer-header">
+                  <h3>Người trả phí vận chuyển</h3>
+                </div>
+                <p className="cor-summary__shipping-payer-desc">
+                  Chọn phương án thanh toán phí ship cho đơn hàng này.
+                </p>
+                <div className="cor-summary__shipping-payer-options">
+                  <label
+                    className={`cor-summary__shipping-payer-option${shippingPayer === "customer" ? " is-selected" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="shipping-payer"
+                      checked={shippingPayer === "customer"}
+                      onChange={() => setShippingPayer("customer")}
+                    />
+                    <span>Khách hàng tự trả phí ship</span>
+                  </label>
+                  <label
+                    className={`cor-summary__shipping-payer-option${shippingPayer === "shop" ? " is-selected" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="shipping-payer"
+                      checked={shippingPayer === "shop"}
+                      onChange={() => setShippingPayer("shop")}
+                    />
+                    <span>Shop trả phí ship</span>
+                  </label>
+                </div>
+              </div>
 
               <div className="cor-summary__note">
                 Giá cuối cùng sẽ được đội ngũ Soligant xác nhận lại trước khi

@@ -3,6 +3,7 @@ import type { CollectionProduct } from "../services/collections.service";
 import type { CustomerOrderFieldEntry } from "./customer-order-fields";
 
 export type LegoSelections = Record<string, Record<string, string>>;
+export type BearSelections = Record<string, Record<string, string>>;
 export type BackgroundFieldValue = string | string[];
 export type AddonCustomFieldType = "image" | "link" | "text";
 
@@ -20,7 +21,19 @@ export interface CustomizerNavigationState {
   totalLegoCount: number;
 }
 
+export interface BearCustomizerNavigationState {
+  bearSelections: BearSelections;
+  pricingSummary: CartPricingSummary;
+  selectedAdditionalBearCount: number;
+  totalBearCount: number;
+}
+
 export interface AdditionalOptionsNavigationState extends CustomizerNavigationState {
+  selectedBackground: PublicBackground;
+  backgroundFieldValues: Record<string, BackgroundFieldValue>;
+}
+
+export interface BearAdditionalOptionsNavigationState extends BearCustomizerNavigationState {
   selectedBackground: PublicBackground;
   backgroundFieldValues: Record<string, BackgroundFieldValue>;
 }
@@ -59,6 +72,10 @@ export interface CustomizedCartItem {
   pricingSummary: CartPricingSummary;
   backgroundFieldValues: Record<string, BackgroundFieldValue>;
   additionalOptions?: SelectedAddonOption[];
+  // Bear-specific (optional, present when productType === "bear")
+  bearSelections?: BearSelections;
+  totalBearCount?: number;
+  selectedAdditionalBearCount?: number;
 }
 
 export const buildBackgroundFieldKey = (

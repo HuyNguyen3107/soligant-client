@@ -1,4 +1,22 @@
 import { http } from "../lib/http";
+
+export interface PublicBearCustomizationOption {
+  id: string;
+  stockQuantity: number;
+  name: string;
+  description: string;
+  price: number;
+  allowImageUpload: boolean;
+  image: string;
+  colorCode: string;
+}
+
+export interface PublicBearCustomizationGroup {
+  id: string;
+  name: string;
+  helper: string;
+  options: PublicBearCustomizationOption[];
+}
 import type {
   BearCustomizationGroup,
   BearCustomizationOption,
@@ -80,4 +98,11 @@ export const updateBearCustomizationOption = async (
 
 export const deleteBearCustomizationOption = async (id: string) => {
   await http.delete(`/bear-customizations/options/${id}`);
+};
+
+export const getPublicBearCustomizations = async () => {
+  const { data } = await http.get<PublicBearCustomizationGroup[]>(
+    "/public/bear-customizations",
+  );
+  return data;
 };
