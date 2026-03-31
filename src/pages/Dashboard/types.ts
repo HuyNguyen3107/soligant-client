@@ -113,12 +113,20 @@ export interface TabMeta {
 }
 
 // ─── COLLECTIONS TAB TYPES ────────────────────────────────────────────────────
+export interface ThumbnailTransform {
+  x: number;     // pan offset as fraction of container width (-1 to 1)
+  y: number;     // pan offset as fraction of container height (-1 to 1)
+  scale: number; // extra zoom factor (1 to 4)
+  aspect: number; // natural image width/height ratio
+}
+
 export interface CollectionRow {
   _id: string;
   name: string;
   slug: string;
   description?: string;
   thumbnail?: string;
+  thumbnailTransform?: ThumbnailTransform;
   isActive: boolean;
   isFeatured: boolean;
   productsCount?: number;
@@ -131,6 +139,7 @@ export interface CollectionFormState {
   thumbnail: string;
   isActive: boolean;
   isFeatured: boolean;
+  thumbnailTransform?: ThumbnailTransform;
 }
 
 // ─── LEGO FRAME TAB TYPES ────────────────────────────────────────────────────

@@ -1120,15 +1120,12 @@ const BackgroundsTab = () => {
                         fallback={
                           <div
                             style={{
-                              width: 200,
-                              minHeight: 140,
+                              position: "absolute",
+                              inset: 0,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                               color: "#94a3b8",
-                              borderRadius: 10,
-                              border: "1px solid #e2e8f0",
-                              background: "#f8fafc",
                             }}
                           >
                             <FiImage size={20} />

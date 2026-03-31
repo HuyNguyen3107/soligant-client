@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { toast } from "react-toastify";
 import {
   FiSearch,
@@ -17,8 +17,9 @@ import {
   FiPackage,
   FiUpload,
   FiLink,
+  FiRotateCcw,
 } from "react-icons/fi";
-import type { CollectionRow, CollectionFormState } from "../types";
+import type { CollectionRow, CollectionFormState, ThumbnailTransform } from "../types";
 import {
   ImageWithFallback,
   RichTextContent,
@@ -51,6 +52,59 @@ const EMPTY_FORM: CollectionFormState = {
   isActive: true,
   isFeatured: false,
 };
+
+const CONTAINER_AR = 16 / 9;
+const EMPTY_TRANSFORM: ThumbnailTransform = { x: 0, y: 0, scale: 1, aspect: CONTAINER_AR };
+
+function computeCover(aspect: number) {
+  if (aspect >= CONTAINER_AR) {
+    return { w: (aspect / CONTAINER_AR) * 100, h: 100 };
+  }
+  return { w: 100, h: (CONTAINER_AR / aspect) * 100 };
+}
+
+function getMaxPan(aspect: number, scale: number) {
+  const { w, h } = computeCover(aspect);
+  return {
+    maxX: (w * scale - 100) / 200,
+    maxY: (h * scale - 100) / 200,
+  };
+}
+
+function clampTransform(
+  x: number,
+  y: number,
+  scale: number,
+  aspect: number,
+): ThumbnailTransform {
+  const { maxX, maxY } = getMaxPan(aspect, scale);
+  return {
+    x: Math.max(-maxX, Math.min(maxX, x)),
+    y: Math.max(-maxY, Math.min(maxY, y)),
+    scale,
+    aspect,
+  };
+}
+
+function imgPositionStyle(
+  t: ThumbnailTransform,
+): React.CSSProperties {
+  const { x, y, scale, aspect } = t;
+  const { w, h } = computeCover(aspect);
+  const finalW = w * scale;
+  const finalH = h * scale;
+  return {
+    position: "absolute",
+    width: `${finalW}%`,
+    height: `${finalH}%`,
+    left: `${(100 - finalW) / 2 + x * 100}%`,
+    top: `${(100 - finalH) / 2 + y * 100}%`,
+    objectFit: "fill",
+    display: "block",
+    userSelect: "none",
+    pointerEvents: "none",
+  };
+}
 
 // Tạo slug từ tên
 function toSlug(str: string) {
@@ -90,6 +144,11 @@ const CollectionsTab = () => {
   const canCreateCollection = hasPermission(currentUser, "collections.create");
   const canEditCollection = hasPermission(currentUser, "collections.edit");
   const canDeleteCollection = hasPermission(currentUser, "collections.delete");
+
+  const [imgTransform, setImgTransform] = useState<ThumbnailTransform>(EMPTY_TRANSFORM);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ mouseX: 0, mouseY: 0, transformX: 0, transformY: 0 });
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const thumbInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -156,6 +215,7 @@ const CollectionsTab = () => {
     originalThumbRef.current = "";
     currentUploadRef.current = "";
     setModal("create");
+    setImgTransform(EMPTY_TRANSFORM);
   };
 
   const openEdit = (c: CollectionRow) => {
@@ -177,6 +237,7 @@ const CollectionsTab = () => {
     originalThumbRef.current = c.thumbnail ?? "";
     currentUploadRef.current = "";
     setModal("edit");
+    setImgTransform(c.thumbnailTransform ?? EMPTY_TRANSFORM);
   };
 
   /** Xóa file đã upload trên server (chỉ khi là local upload) */
@@ -218,6 +279,7 @@ const CollectionsTab = () => {
     const preview = URL.createObjectURL(file);
     if (localPreview) URL.revokeObjectURL(localPreview); // giải phóng preview cũ
     setLocalPreview(preview);
+    setImgTransform(EMPTY_TRANSFORM);
     setUploading(true);
 
     try {
@@ -287,6 +349,9 @@ const CollectionsTab = () => {
         thumbnail: form.thumbnail.trim() || undefined,
         isActive: form.isActive,
         isFeatured: form.isFeatured,
+        thumbnailTransform: form.thumbnail
+          ? { x: imgTransform.x, y: imgTransform.y, scale: imgTransform.scale, aspect: imgTransform.aspect }
+          : null,
       };
 
       const url =
@@ -407,6 +472,53 @@ const CollectionsTab = () => {
       setDeleting(false);
     }
   };
+
+  // ── Drag/Zoom handlers ────────────────────────────────────────────────────
+  const handlePreviewMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    dragStart.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      transformX: imgTransform.x,
+      transformY: imgTransform.y,
+    };
+  }, [imgTransform.x, imgTransform.y]);
+
+  const handlePreviewMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging || !previewRef.current) return;
+    const rect = previewRef.current.getBoundingClientRect();
+    const dx = (e.clientX - dragStart.current.mouseX) / rect.width;
+    const dy = (e.clientY - dragStart.current.mouseY) / rect.height;
+    setImgTransform(prev =>
+      clampTransform(
+        dragStart.current.transformX + dx,
+        dragStart.current.transformY + dy,
+        prev.scale,
+        prev.aspect,
+      )
+    );
+  }, [isDragging]);
+
+  const handlePreviewMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handlePreviewWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.12 : -0.12;
+    setImgTransform(prev => {
+      const newScale = Math.max(1, Math.min(4, prev.scale + delta));
+      return clampTransform(prev.x, prev.y, newScale, prev.aspect);
+    });
+  }, []);
+
+  const handlePreviewImgLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    if (!naturalWidth || !naturalHeight) return;
+    const aspect = naturalWidth / naturalHeight;
+    setImgTransform(prev => clampTransform(prev.x, prev.y, prev.scale, aspect));
+  }, []);
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const totalCollections = collections.length;
@@ -543,6 +655,7 @@ const CollectionsTab = () => {
                 <ImageWithFallback
                   src={getStaticAssetUrl(c.thumbnail)}
                   alt={c.name}
+                  style={c.thumbnailTransform ? imgPositionStyle(c.thumbnailTransform) : { width: "100%", height: "100%", objectFit: "cover" }}
                   fallback={
                     <div className="coll-card__no-thumb">
                       <FiImage size={32} />
@@ -800,9 +913,10 @@ const CollectionsTab = () => {
                       <button
                         type="button"
                         className="coll-thumb-clear"
-                        onClick={() =>
-                          setForm((p) => ({ ...p, thumbnail: "" }))
-                        }
+                        onClick={() => {
+                          setForm((p) => ({ ...p, thumbnail: "" }));
+                          setImgTransform(EMPTY_TRANSFORM);
+                        }}
                       >
                         <FiX size={14} />
                       </button>
@@ -820,73 +934,8 @@ const CollectionsTab = () => {
                       disabled={uploading}
                     />
 
-                    {/* Khi đã có ảnh (preview cục bộ hoặc đã upload) */}
-                    {localPreview || form.thumbnail ? (
-                      <div className="coll-upload-preview-wrap">
-                        <ImageWithFallback
-                          src={getStaticAssetUrl(
-                            localPreview ?? form.thumbnail,
-                          )}
-                          alt="preview"
-                          className="coll-upload-preview-img"
-                          fallback={
-                            <div
-                              className="coll-upload-preview-img"
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                minHeight: 120,
-                                color: "#cbd5e1",
-                              }}
-                            >
-                              <FiImage size={28} />
-                            </div>
-                          }
-                        />
-
-                        {/* Overlay khi đang upload */}
-                        {uploading && (
-                          <div className="coll-upload-overlay">
-                            <div className="btn-spinner coll-upload-spinner" />
-                            <span>Đang upload...</span>
-                          </div>
-                        )}
-
-                        {/* Nút hành động khi đã có ảnh */}
-                        {!uploading && (
-                          <div className="coll-upload-actions">
-                            <label
-                              htmlFor="thumb-file-input"
-                              className="coll-upload-action-btn coll-upload-action-btn--change"
-                              title="Đổi ảnh"
-                            >
-                              <FiUpload size={14} /> Đổi ảnh
-                            </label>
-                            <button
-                              type="button"
-                              className="coll-upload-action-btn coll-upload-action-btn--remove"
-                              title="Xóa ảnh"
-                              onClick={() => {
-                                // Xóa file upload phiên này khỏi server nếu có
-                                if (currentUploadRef.current) {
-                                  deleteServerUpload(currentUploadRef.current);
-                                  currentUploadRef.current = "";
-                                }
-                                if (localPreview) {
-                                  URL.revokeObjectURL(localPreview);
-                                  setLocalPreview(null);
-                                }
-                                setForm((p) => ({ ...p, thumbnail: "" }));
-                              }}
-                            >
-                              <FiTrash2 size={14} /> Xóa
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      /* Chưa có ảnh – hiển thị vùng chọn file */
+                    {/* Khi chưa có ảnh – vùng chọn file */}
+                    {!localPreview && !form.thumbnail && (
                       <label
                         htmlFor="thumb-file-input"
                         className="coll-upload-label"
@@ -899,40 +948,104 @@ const CollectionsTab = () => {
                   </div>
                 )}
 
-                {/* Preview cho URL mode */}
-                {thumbMode === "url" && form.thumbnail && (
-                  <div className="coll-thumb-preview">
+                {/* Interactive crop frame – hiển thị khi có ảnh (cả URL lẫn upload) */}
+                {(localPreview || form.thumbnail) && (
+                  <div
+                    ref={previewRef}
+                    className={`coll-img-frame${isDragging ? " coll-img-frame--dragging" : ""}`}
+                    onMouseDown={handlePreviewMouseDown}
+                    onMouseMove={handlePreviewMouseMove}
+                    onMouseUp={handlePreviewMouseUp}
+                    onMouseLeave={handlePreviewMouseUp}
+                    onWheel={handlePreviewWheel}
+                  >
                     <ImageWithFallback
-                      src={getStaticAssetUrl(form.thumbnail)}
+                      src={getStaticAssetUrl(localPreview ?? form.thumbnail)}
                       alt="preview"
-                      style={{
-                        width: "100%",
-                        maxHeight: "150px",
-                        objectFit: "cover",
-                        display: "block",
-                      }}
+                      style={imgPositionStyle(imgTransform)}
+                      onLoad={handlePreviewImgLoad}
+                      draggable={false}
                       fallback={
                         <div
                           style={{
-                            minHeight: 150,
+                            position: "absolute",
+                            inset: 0,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            color: "#94a3b8",
+                            color: "#cbd5e1",
                           }}
                         >
-                          Ảnh không còn khả dụng
+                          <FiImage size={28} />
                         </div>
                       }
                     />
-                    <button
-                      type="button"
-                      className="coll-thumb-preview-clear"
-                      onClick={() => setForm((p) => ({ ...p, thumbnail: "" }))}
-                      title="Xóa ảnh"
-                    >
-                      <FiX size={13} />
-                    </button>
+
+                    {/* Uploading overlay */}
+                    {uploading && (
+                      <div className="coll-upload-overlay">
+                        <div className="btn-spinner coll-upload-spinner" />
+                        <span>Đang upload...</span>
+                      </div>
+                    )}
+
+                    {/* Hint */}
+                    {!uploading && (
+                      <div className="coll-img-frame__hint">
+                        Kéo để di chuyển · Cuộn để zoom ({Math.round(imgTransform.scale * 100)}%)
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    {!uploading && (
+                      <div className="coll-upload-actions">
+                        {imgTransform.scale !== 1 || imgTransform.x !== 0 || imgTransform.y !== 0 ? (
+                          <button
+                            type="button"
+                            className="coll-upload-action-btn coll-upload-action-btn--change"
+                            title="Reset vị trí"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setImgTransform(prev => clampTransform(0, 0, 1, prev.aspect));
+                            }}
+                          >
+                            <FiRotateCcw size={13} /> Reset
+                          </button>
+                        ) : null}
+                        {thumbMode === "upload" && (
+                          <label
+                            htmlFor="thumb-file-input"
+                            className="coll-upload-action-btn coll-upload-action-btn--change"
+                            title="Đổi ảnh"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <FiUpload size={14} /> Đổi ảnh
+                          </label>
+                        )}
+                        <button
+                          type="button"
+                          className="coll-upload-action-btn coll-upload-action-btn--remove"
+                          title="Xóa ảnh"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (thumbMode === "upload") {
+                              if (currentUploadRef.current) {
+                                deleteServerUpload(currentUploadRef.current);
+                                currentUploadRef.current = "";
+                              }
+                              if (localPreview) {
+                                URL.revokeObjectURL(localPreview);
+                                setLocalPreview(null);
+                              }
+                            }
+                            setForm((p) => ({ ...p, thumbnail: "" }));
+                            setImgTransform(EMPTY_TRANSFORM);
+                          }}
+                        >
+                          <FiTrash2 size={14} /> Xóa
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
