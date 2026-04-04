@@ -199,24 +199,84 @@
     letter-spacing: 0.02em;
 }
 
-.myo-status.is-pending {
+.myo-status.is-received {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.myo-status.is-consulting {
     background: #fef3c7;
     color: #92400e;
 }
 
-.myo-status.is-confirmed {
-    background: #dbeafe;
-    color: #1e40af;
+.myo-status.is-waiting-demo {
+    background: #fef9c3;
+    color: #854d0e;
 }
 
-.myo-status.is-processing {
+.myo-status.is-waiting-demo-confirm {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.myo-status.is-waiting-payment {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.myo-status.is-paid {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.myo-status.is-designing {
     background: #ede9fe;
-    color: #5b21b6;
+    color: #6d28d9;
+}
+
+.myo-status.is-waiting-design-approval {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.myo-status.is-producing {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.myo-status.is-shipped {
+    background: #cffafe;
+    color: #0e7490;
+}
+
+.myo-status.is-delivering {
+    background: #ccfbf1;
+    color: #0f766e;
 }
 
 .myo-status.is-completed {
     background: #dcfce7;
     color: #166534;
+}
+
+.myo-status.is-complaint {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.myo-status.is-handling-complaint {
+    background: #fecaca;
+    color: #b91c1c;
+}
+
+.myo-status.is-complaint-closed {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.myo-status.is-closed {
+    background: #f3f4f6;
+    color: #374151;
 }
 
 .myo-status.is-cancelled {

@@ -546,10 +546,12 @@ const AddonOptionsTab = () => {
               {filteredOptions.map((option) => (
                 <tr key={option.id}>
                   <td>
-                    <div>
-                      <strong>{option.name}</strong>
+                    <div className="ao-option-name">
+                      <strong className="ao-option-name__title">
+                        {option.name}
+                      </strong>
                       {option.description && (
-                        <div style={{ fontSize: "12px", margin: "2px 0 0" }}>
+                        <div className="ao-option-name__desc">
                           <RichTextContent
                             value={option.description}
                             className="text-muted"

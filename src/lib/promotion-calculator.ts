@@ -1,4 +1,4 @@
-import type { PromotionGift, PromotionRow } from "../pages/Dashboard/types";
+import type { PromotionGift, PromotionRewardType, PromotionRow } from "../pages/Dashboard/types";
 import {
   getCustomizedCartItemSubtotal,
   type CustomizedCartItem,
@@ -9,13 +9,14 @@ export interface AppliedPromotion {
   name: string;
   description: string;
   conditionType: PromotionRow["conditionType"];
-  rewardType: PromotionRow["rewardType"];
+  rewardTypes: PromotionRewardType[];
   rewardGiftSelectionMode: PromotionRow["rewardGiftSelectionMode"];
   rewardGiftQuantityMode: PromotionRow["rewardGiftQuantityMode"];
   rewardDiscountValue: number;
   rewardGifts: PromotionGift[];
   applicableProductIds: string[];
   discountAmount: number;
+  hasFreeship: boolean;
   eligibleItemIds: string[];
 }
 
@@ -33,6 +34,7 @@ export interface EvaluatedCartPricing {
   productDiscountTotal: number;
   orderPromotions: AppliedPromotion[];
   orderDiscountTotal: number;
+  hasFreeship: boolean;
   finalTotal: number;
 }
 
@@ -71,11 +73,11 @@ const matchesProductScope = (
 };
 
 const calculateDiscountAmount = (promotion: PromotionRow, subtotal: number) => {
-  if (promotion.rewardType === "discount_fixed") {
+  if (promotion.rewardTypes.includes("discount_fixed")) {
     return Math.min(subtotal, promotion.rewardDiscountValue);
   }
 
-  if (promotion.rewardType === "discount_percent") {
+  if (promotion.rewardTypes.includes("discount_percent")) {
     return subtotal * (promotion.rewardDiscountValue / 100);
   }
 
@@ -86,7 +88,7 @@ const getScaledRewardGifts = (
   promotion: PromotionRow,
   multiplier: number,
 ): PromotionGift[] => {
-  if (promotion.rewardType !== "gift") {
+  if (!promotion.rewardTypes.includes("gift")) {
     return [];
   }
 
@@ -111,6 +113,27 @@ const getScaledRewardGifts = (
   });
 };
 
+const buildAppliedPromotion = (
+  promotion: PromotionRow,
+  subtotal: number,
+  multiplier: number,
+  eligibleItemIds: string[],
+): AppliedPromotion => ({
+  id: promotion.id,
+  name: promotion.name,
+  description: promotion.description,
+  conditionType: promotion.conditionType,
+  rewardTypes: promotion.rewardTypes,
+  rewardGiftSelectionMode: promotion.rewardGiftSelectionMode ?? "all",
+  rewardGiftQuantityMode: promotion.rewardGiftQuantityMode,
+  rewardDiscountValue: promotion.rewardDiscountValue,
+  rewardGifts: getScaledRewardGifts(promotion, multiplier),
+  applicableProductIds: promotion.applicableProductIds,
+  discountAmount: calculateDiscountAmount(promotion, subtotal),
+  hasFreeship: promotion.rewardTypes.includes("freeship"),
+  eligibleItemIds,
+});
+
 export const calculateCartPricing = (
   items: CustomizedCartItem[],
   promotions: PromotionRow[],
@@ -127,22 +150,15 @@ export const calculateCartPricing = (
         (promotion) =>
           promotion.conditionType === "lego_quantity" &&
           matchesProductScope(promotion, item) &&
-          item.totalLegoCount >= promotion.conditionMinQuantity,
+          item.totalLegoCount >= promotion.conditionMinQuantity &&
+          (promotion.conditionMaxQuantity == null ||
+            item.totalLegoCount <= promotion.conditionMaxQuantity),
       )
-      .map<AppliedPromotion>((promotion) => ({
-        id: promotion.id,
-        name: promotion.name,
-        description: promotion.description,
-        conditionType: promotion.conditionType,
-        rewardType: promotion.rewardType,
-        rewardGiftSelectionMode: promotion.rewardGiftSelectionMode ?? "all",
-        rewardGiftQuantityMode: promotion.rewardGiftQuantityMode,
-        rewardDiscountValue: promotion.rewardDiscountValue,
-        rewardGifts: getScaledRewardGifts(promotion, item.totalLegoCount),
-        applicableProductIds: promotion.applicableProductIds,
-        discountAmount: calculateDiscountAmount(promotion, subtotal),
-        eligibleItemIds: [item.id],
-      }));
+      .map<AppliedPromotion>((promotion) =>
+        buildAppliedPromotion(promotion, subtotal, item.totalLegoCount, [
+          item.id,
+        ]),
+      );
 
     const discountTotal = Math.min(
       subtotal,
@@ -185,25 +201,24 @@ export const calculateCartPricing = (
         return null;
       }
 
+      if (
+        promotion.conditionMaxQuantity != null &&
+        eligibleItems.length > promotion.conditionMaxQuantity
+      ) {
+        return null;
+      }
+
       const eligibleSubtotal = eligibleItems.reduce(
         (sum, result) => sum + result.totalAfterDiscount,
         0,
       );
 
-      return {
-        id: promotion.id,
-        name: promotion.name,
-        description: promotion.description,
-        conditionType: promotion.conditionType,
-        rewardType: promotion.rewardType,
-        rewardGiftSelectionMode: promotion.rewardGiftSelectionMode ?? "all",
-        rewardGiftQuantityMode: promotion.rewardGiftQuantityMode,
-        rewardDiscountValue: promotion.rewardDiscountValue,
-        rewardGifts: getScaledRewardGifts(promotion, eligibleItems.length),
-        applicableProductIds: promotion.applicableProductIds,
-        discountAmount: calculateDiscountAmount(promotion, eligibleSubtotal),
-        eligibleItemIds: eligibleItems.map((result) => result.item.id),
-      };
+      return buildAppliedPromotion(
+        promotion,
+        eligibleSubtotal,
+        eligibleItems.length,
+        eligibleItems.map((result) => result.item.id),
+      );
     })
     .filter((promotion): promotion is AppliedPromotion => promotion !== null);
 
@@ -215,12 +230,19 @@ export const calculateCartPricing = (
     ),
   );
 
+  // Check if any applied promotion (product-level or order-level) has freeship
+  const hasFreeship =
+    itemResults.some((r) =>
+      r.appliedPromotions.some((p) => p.hasFreeship),
+    ) || orderPromotions.some((p) => p.hasFreeship);
+
   return {
     itemResults,
     subtotal,
     productDiscountTotal,
     orderPromotions,
     orderDiscountTotal,
+    hasFreeship,
     finalTotal: Math.max(
       0,
       orderSubtotalAfterProductDiscounts - orderDiscountTotal,

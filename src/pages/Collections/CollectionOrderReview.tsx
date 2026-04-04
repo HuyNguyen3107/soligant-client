@@ -51,38 +51,48 @@ const formatMoney = (value: number) =>
   `${new Intl.NumberFormat("vi-VN").format(Math.max(0, Math.round(value)))} đ`;
 
 const getRewardSummary = (promotion: AppliedPromotion) => {
-  if (promotion.rewardType === "gift") {
+  const parts: string[] = [];
+
+  if (promotion.rewardTypes.includes("gift")) {
     if (promotion.rewardGifts.length === 0) {
-      return "Tặng quà theo cấu hình ưu đãi";
+      parts.push("Tặng quà theo cấu hình ưu đãi");
+    } else {
+      const modeLabel =
+        promotion.rewardGiftQuantityMode === "multiply_by_condition"
+          ? promotion.conditionType === "lego_quantity"
+            ? "(nhân theo số lượng tùy chỉnh)"
+            : "(nhân theo số set)"
+          : "";
+
+      const giftSummary = promotion.rewardGifts
+        .map(
+          (gift) =>
+            `${gift.optionName || gift.groupName || "Quà tặng"} x${gift.quantity}`,
+        )
+        .join(", ");
+
+      const selectionPrefix =
+        promotion.rewardGiftSelectionMode === "choose_one" ? "Chọn 1: " : "";
+
+      parts.push(
+        modeLabel
+          ? `${selectionPrefix}${giftSummary} ${modeLabel}`
+          : `${selectionPrefix}${giftSummary}`,
+      );
     }
-
-    const modeLabel =
-      promotion.rewardGiftQuantityMode === "multiply_by_condition"
-        ? promotion.conditionType === "lego_quantity"
-          ? "(nhân theo số lượng tùy chỉnh)"
-          : "(nhân theo số set)"
-        : "";
-
-    const giftSummary = promotion.rewardGifts
-      .map(
-        (gift) =>
-          `${gift.optionName || gift.groupName || "Quà tặng"} x${gift.quantity}`,
-      )
-      .join(", ");
-
-    const selectionPrefix =
-      promotion.rewardGiftSelectionMode === "choose_one" ? "Chọn 1: " : "";
-
-    return modeLabel
-      ? `${selectionPrefix}${giftSummary} ${modeLabel}`
-      : `${selectionPrefix}${giftSummary}`;
   }
 
-  if (promotion.rewardType === "discount_fixed") {
-    return `Giảm ${formatMoney(promotion.rewardDiscountValue)}`;
+  if (promotion.rewardTypes.includes("discount_fixed")) {
+    parts.push(`Giảm ${formatMoney(promotion.rewardDiscountValue)}`);
+  } else if (promotion.rewardTypes.includes("discount_percent")) {
+    parts.push(`Giảm ${promotion.rewardDiscountValue}%`);
   }
 
-  return `Giảm ${promotion.rewardDiscountValue}%`;
+  if (promotion.rewardTypes.includes("freeship")) {
+    parts.push("Miễn phí vận chuyển");
+  }
+
+  return parts.join(" + ") || "—";
 };
 
 interface GiftSelectionEntry {
@@ -274,7 +284,7 @@ const CollectionOrderReview = () => {
     pricing.itemResults.forEach((result) => {
       result.appliedPromotions.forEach((promotion, promotionIndex) => {
         if (
-          promotion.rewardType !== "gift" ||
+          !promotion.rewardTypes.includes("gift") ||
           promotion.rewardGiftSelectionMode !== "choose_one" ||
           promotion.rewardGifts.length === 0
         ) {
@@ -295,7 +305,7 @@ const CollectionOrderReview = () => {
 
     pricing.orderPromotions.forEach((promotion, promotionIndex) => {
       if (
-        promotion.rewardType !== "gift" ||
+        !promotion.rewardTypes.includes("gift") ||
         promotion.rewardGiftSelectionMode !== "choose_one" ||
         promotion.rewardGifts.length === 0
       ) {
@@ -503,7 +513,7 @@ const CollectionOrderReview = () => {
       promotion: AppliedPromotion,
       promotionSelectionKey: string,
     ) => {
-      if (promotion.rewardType !== "gift") {
+      if (!promotion.rewardTypes.includes("gift")) {
         return;
       }
 
@@ -699,7 +709,7 @@ const CollectionOrderReview = () => {
             customFieldValues: option.customFieldValues,
           })),
         })),
-        shippingPayer,
+        shippingPayer: pricing.hasFreeship ? "shop" : shippingPayer,
         pricingSummary: {
           subtotal: pricing.subtotal,
           productDiscountTotal: pricing.productDiscountTotal,
@@ -1210,33 +1220,44 @@ const CollectionOrderReview = () => {
                 <div className="cor-summary__shipping-payer-header">
                   <h3>Người trả phí vận chuyển</h3>
                 </div>
-                <p className="cor-summary__shipping-payer-desc">
-                  Chọn phương án thanh toán phí ship cho đơn hàng này.
-                </p>
-                <div className="cor-summary__shipping-payer-options">
-                  <label
-                    className={`cor-summary__shipping-payer-option${shippingPayer === "customer" ? " is-selected" : ""}`}
+                {pricing.hasFreeship ? (
+                  <p
+                    className="cor-summary__shipping-payer-desc"
+                    style={{ color: "#2e7d32", fontWeight: 600 }}
                   >
-                    <input
-                      type="radio"
-                      name="shipping-payer"
-                      checked={shippingPayer === "customer"}
-                      onChange={() => setShippingPayer("customer")}
-                    />
-                    <span>Khách hàng tự trả phí ship</span>
-                  </label>
-                  <label
-                    className={`cor-summary__shipping-payer-option${shippingPayer === "shop" ? " is-selected" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name="shipping-payer"
-                      checked={shippingPayer === "shop"}
-                      onChange={() => setShippingPayer("shop")}
-                    />
-                    <span>Shop trả phí ship</span>
-                  </label>
-                </div>
+                    Miễn phí vận chuyển (áp dụng ưu đãi Freeship)
+                  </p>
+                ) : (
+                  <>
+                    <p className="cor-summary__shipping-payer-desc">
+                      Chọn phương án thanh toán phí ship cho đơn hàng này.
+                    </p>
+                    <div className="cor-summary__shipping-payer-options">
+                      <label
+                        className={`cor-summary__shipping-payer-option${shippingPayer === "customer" ? " is-selected" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="shipping-payer"
+                          checked={shippingPayer === "customer"}
+                          onChange={() => setShippingPayer("customer")}
+                        />
+                        <span>Khách hàng tự trả phí ship</span>
+                      </label>
+                      <label
+                        className={`cor-summary__shipping-payer-option${shippingPayer === "shop" ? " is-selected" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="shipping-payer"
+                          checked={shippingPayer === "shop"}
+                          onChange={() => setShippingPayer("shop")}
+                        />
+                        <span>Shop trả phí ship</span>
+                      </label>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="cor-summary__note">
@@ -1325,7 +1346,7 @@ const CollectionOrderReview = () => {
                           className="cor-promo-item__desc"
                         />
                       )}
-                      {promotion.rewardType === "gift" && (
+                      {promotion.rewardTypes.includes("gift") && (
                         <p className="cor-promo-item__gift-note">
                           <FiGift size={13} /> Quà tặng sẽ được cộng theo điều
                           kiện set đã đạt.

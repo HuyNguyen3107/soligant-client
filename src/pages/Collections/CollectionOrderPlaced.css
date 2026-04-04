@@ -175,24 +175,84 @@
     font-size: 13px;
 }
 
-.cop-status.is-pending {
+.cop-status.is-received {
     background: #fef3c7;
     color: #92400e;
 }
 
-.cop-status.is-confirmed {
+.cop-status.is-consulting {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.cop-status.is-waiting-demo {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.cop-status.is-waiting-demo-confirm {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.cop-status.is-waiting-payment {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.cop-status.is-paid {
     background: #dbeafe;
     color: #1d4ed8;
 }
 
-.cop-status.is-processing {
+.cop-status.is-designing {
     background: #ede9fe;
     color: #6d28d9;
+}
+
+.cop-status.is-waiting-design-approval {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.cop-status.is-producing {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.cop-status.is-shipped {
+    background: #cffafe;
+    color: #0e7490;
+}
+
+.cop-status.is-delivering {
+    background: #ccfbf1;
+    color: #0f766e;
 }
 
 .cop-status.is-completed {
     background: #dcfce7;
     color: #166534;
+}
+
+.cop-status.is-complaint {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.cop-status.is-handling-complaint {
+    background: #fecaca;
+    color: #b91c1c;
+}
+
+.cop-status.is-complaint-closed {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.cop-status.is-closed {
+    background: #f3f4f6;
+    color: #374151;
 }
 
 .cop-status.is-cancelled {
@@ -206,6 +266,57 @@
     border-radius: 12px;
     background: #fcfcfd;
     padding: 14px;
+}
+
+.cop-progress-images {
+    margin-top: 18px;
+    border: 1px solid #e8edf5;
+    border-radius: 12px;
+    background: #fcfcfd;
+    padding: 14px;
+}
+
+.cop-progress-images h2 {
+    margin: 0 0 10px;
+    font-size: 15px;
+    color: #111827;
+}
+
+.cop-progress-images__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.cop-progress-images__item {
+    margin: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    padding: 8px;
+    display: grid;
+    gap: 6px;
+}
+
+.cop-progress-images__item img {
+    width: 100%;
+    max-height: 220px;
+    min-height: 140px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    object-fit: contain;
+    background: #f8fafc;
+}
+
+.cop-image-link {
+    display: block;
+    text-decoration: none;
+    cursor: zoom-in;
+}
+
+.cop-progress-images__item figcaption {
+    font-size: 12px;
+    color: #475569;
 }
 
 .cop-customer-note h2 {
@@ -267,10 +378,11 @@
 
 .cop-customer-info__item img {
     width: 100%;
-    max-height: 200px;
+    max-height: 420px;
     border-radius: 10px;
     border: 1px solid #e2e8f0;
-    object-fit: cover;
+    object-fit: contain;
+    background: #f8fafc;
 }
 
 .cop-actions {
@@ -324,6 +436,10 @@
     }
 
     .cop-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cop-progress-images__grid {
         grid-template-columns: 1fr;
     }
 

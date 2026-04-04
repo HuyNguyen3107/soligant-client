@@ -29,6 +29,7 @@ import { getLegoFrameVariants } from "../../../services/lego-frame-variants.serv
 import type {
   PromotionFormState,
   PromotionGiftForm,
+  PromotionRewardType,
   PromotionRow,
 } from "../types";
 import {
@@ -46,6 +47,7 @@ const REWARD_LABELS: Record<string, string> = {
   gift: "Tặng quà",
   discount_fixed: "Giảm giá cố định",
   discount_percent: "Giảm giá %",
+  freeship: "Freeship",
 };
 
 const PRODUCT_TYPE_LABELS: Record<"lego" | "bear", string> = {
@@ -74,9 +76,10 @@ const INITIAL_FORM: PromotionFormState = {
   description: "",
   conditionType: "lego_quantity",
   conditionMinQuantity: "3",
+  conditionMaxQuantity: "",
   applicableProductType: "lego",
   applicableProductIds: [],
-  rewardType: "gift",
+  rewardTypes: ["gift"],
   rewardGiftSelectionMode: "all",
   rewardGiftQuantityMode: "fixed",
   rewardGifts: [{ ...EMPTY_GIFT }],
@@ -317,9 +320,13 @@ const PromotionsTab = () => {
       description: promo.description,
       conditionType: promo.conditionType,
       conditionMinQuantity: String(promo.conditionMinQuantity),
+      conditionMaxQuantity:
+        promo.conditionMaxQuantity != null
+          ? String(promo.conditionMaxQuantity)
+          : "",
       applicableProductType: promo.applicableProductType ?? "lego",
       applicableProductIds: promo.applicableProductIds ?? [],
-      rewardType: promo.rewardType,
+      rewardTypes: promo.rewardTypes ?? ["gift"],
       rewardGiftSelectionMode: promo.rewardGiftSelectionMode ?? "all",
       rewardGiftQuantityMode: promo.rewardGiftQuantityMode ?? "fixed",
       rewardGifts:
@@ -357,7 +364,7 @@ const PromotionsTab = () => {
       );
 
       const nextRewardGifts =
-        prev.rewardType === "gift"
+        prev.rewardTypes.includes("gift")
           ? (prev.rewardGifts.length > 0
               ? prev.rewardGifts
               : [{ ...EMPTY_GIFT }]
@@ -450,13 +457,39 @@ const PromotionsTab = () => {
       return;
     }
 
+    const conditionMaxQuantity = form.conditionMaxQuantity.trim()
+      ? parseInt(form.conditionMaxQuantity, 10)
+      : null;
+    if (conditionMaxQuantity !== null) {
+      if (isNaN(conditionMaxQuantity) || conditionMaxQuantity < 1) {
+        toast.error("Số lượng tối đa phải từ 1 trở lên.");
+        return;
+      }
+      if (conditionMaxQuantity < conditionMinQuantity) {
+        toast.error(
+          "Số lượng tối đa phải lớn hơn hoặc bằng số lượng tối thiểu.",
+        );
+        return;
+      }
+    }
+
     const applicableProductIds = form.applicableProductIds.filter(
       (productId) =>
         productLookup.get(productId)?.productType ===
         form.applicableProductType,
     );
 
-    if (form.rewardType === "gift") {
+    if (form.rewardTypes.length === 0) {
+      toast.error("Phải chọn ít nhất 1 loại phần thưởng.");
+      return;
+    }
+
+    const hasGift = form.rewardTypes.includes("gift");
+    const hasDiscount = form.rewardTypes.some((t) =>
+      ["discount_fixed", "discount_percent"].includes(t),
+    );
+
+    if (hasGift) {
       const validGifts = form.rewardGifts.filter(
         (g) => g.groupId && g.optionId,
       );
@@ -466,13 +499,13 @@ const PromotionsTab = () => {
       }
     }
 
-    if (form.rewardType !== "gift") {
+    if (hasDiscount) {
       const val = parseFloat(form.rewardDiscountValue);
       if (isNaN(val) || val < 0) {
         toast.error("Giá trị giảm giá không hợp lệ.");
         return;
       }
-      if (form.rewardType === "discount_percent" && val > 100) {
+      if (form.rewardTypes.includes("discount_percent") && val > 100) {
         toast.error("Phần trăm giảm giá không được vượt quá 100%.");
         return;
       }
@@ -492,27 +525,28 @@ const PromotionsTab = () => {
         description: normalizeRichTextForStorage(form.description),
         conditionType: form.conditionType,
         conditionMinQuantity,
+        conditionMaxQuantity,
         applicableProductType: form.applicableProductType,
         applicableProductIds,
-        rewardType: form.rewardType,
-        rewardGiftSelectionMode:
-          form.rewardType === "gift" ? form.rewardGiftSelectionMode : undefined,
-        rewardGiftQuantityMode:
-          form.rewardType === "gift" ? form.rewardGiftQuantityMode : undefined,
-        rewardGifts:
-          form.rewardType === "gift"
-            ? form.rewardGifts
-                .filter((g) => g.groupId && g.optionId)
-                .map((g) => ({
-                  groupId: g.groupId,
-                  optionId: g.optionId,
-                  quantity: parseInt(g.quantity, 10) || 1,
-                }))
-            : undefined,
-        rewardDiscountValue:
-          form.rewardType !== "gift"
-            ? parseFloat(form.rewardDiscountValue) || 0
-            : undefined,
+        rewardTypes: form.rewardTypes,
+        rewardGiftSelectionMode: hasGift
+          ? form.rewardGiftSelectionMode
+          : undefined,
+        rewardGiftQuantityMode: hasGift
+          ? form.rewardGiftQuantityMode
+          : undefined,
+        rewardGifts: hasGift
+          ? form.rewardGifts
+              .filter((g) => g.groupId && g.optionId)
+              .map((g) => ({
+                groupId: g.groupId,
+                optionId: g.optionId,
+                quantity: parseInt(g.quantity, 10) || 1,
+              }))
+          : undefined,
+        rewardDiscountValue: hasDiscount
+          ? parseFloat(form.rewardDiscountValue) || 0
+          : undefined,
         startDate: form.startDate || null,
         endDate: form.endDate || null,
         isActive: form.isActive,
@@ -531,7 +565,9 @@ const PromotionsTab = () => {
 
   // ── Render helpers ──────────────────────────────────────────────────────────
   const renderRewardSummary = (promo: PromotionRow) => {
-    if (promo.rewardType === "gift") {
+    const parts: string[] = [];
+
+    if (promo.rewardTypes.includes("gift")) {
       const giftSummary = promo.rewardGifts
         .map((g) => `${g.optionName || "?"} x${g.quantity}`)
         .join(", ");
@@ -551,16 +587,24 @@ const PromotionsTab = () => {
         );
       }
 
-      if (rewardNotes.length > 0) {
-        return `${safeGiftSummary} (${rewardNotes.join(", ")})`;
-      }
+      parts.push(
+        rewardNotes.length > 0
+          ? `${safeGiftSummary} (${rewardNotes.join(", ")})`
+          : safeGiftSummary,
+      );
+    }
 
-      return safeGiftSummary;
+    if (promo.rewardTypes.includes("discount_fixed")) {
+      parts.push(`Giảm ${formatMoney(promo.rewardDiscountValue)}`);
+    } else if (promo.rewardTypes.includes("discount_percent")) {
+      parts.push(`Giảm ${promo.rewardDiscountValue}%`);
     }
-    if (promo.rewardType === "discount_fixed") {
-      return `Giảm ${formatMoney(promo.rewardDiscountValue)}`;
+
+    if (promo.rewardTypes.includes("freeship")) {
+      parts.push("Miễn phí vận chuyển");
     }
-    return `Giảm ${promo.rewardDiscountValue}%`;
+
+    return parts.join(" + ") || "—";
   };
 
   const renderDateRange = (promo: PromotionRow) => {
@@ -702,8 +746,10 @@ const PromotionsTab = () => {
                   </td>
                   <td>
                     <span className="lc-name-chip">
-                      {CONDITION_LABELS[promo.conditionType]} ≥{" "}
-                      {promo.conditionMinQuantity}
+                      {CONDITION_LABELS[promo.conditionType]}{" "}
+                      {promo.conditionMaxQuantity != null
+                        ? `${promo.conditionMinQuantity} – ${promo.conditionMaxQuantity}`
+                        : `≥ ${promo.conditionMinQuantity}`}
                     </span>
                   </td>
                   <td>
@@ -715,9 +761,15 @@ const PromotionsTab = () => {
                     </p>
                   </td>
                   <td>
-                    <span className="lc-name-chip">
-                      {REWARD_LABELS[promo.rewardType]}
-                    </span>
+                    {promo.rewardTypes.map((rt) => (
+                      <span
+                        key={rt}
+                        className="lc-name-chip"
+                        style={{ marginRight: "4px", marginBottom: "2px" }}
+                      >
+                        {REWARD_LABELS[rt] ?? rt}
+                      </span>
+                    ))}
                     <p
                       className="text-muted"
                       style={{ fontSize: "12px", margin: "2px 0 0" }}
@@ -852,21 +904,38 @@ const PromotionsTab = () => {
                 </div>
               </div>
 
-              {/* Min Quantity */}
-              <div className="form-group">
-                <label className="form-label">
-                  Số lượng tối thiểu để áp dụng *
-                </label>
-                <input
-                  className="form-input"
-                  type="number"
-                  min="1"
-                  value={form.conditionMinQuantity}
-                  onChange={(e) =>
-                    updateField("conditionMinQuantity", e.target.value)
-                  }
-                  placeholder="VD: 3"
-                />
+              {/* Min / Max Quantity */}
+              <div style={{ display: "flex", gap: "12px" }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">
+                    Số lượng tối thiểu *
+                  </label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="1"
+                    value={form.conditionMinQuantity}
+                    onChange={(e) =>
+                      updateField("conditionMinQuantity", e.target.value)
+                    }
+                    placeholder="VD: 1"
+                  />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">
+                    Số lượng tối đa
+                  </label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="1"
+                    value={form.conditionMaxQuantity}
+                    onChange={(e) =>
+                      updateField("conditionMaxQuantity", e.target.value)
+                    }
+                    placeholder="Để trống = không giới hạn"
+                  />
+                </div>
               </div>
 
               <div className="form-group">
@@ -1026,51 +1095,48 @@ const PromotionsTab = () => {
                 </div>
               </div>
 
-              {/* Reward Type */}
+              {/* Reward Types */}
               <div className="form-group">
-                <label className="form-label">Loại phần thưởng *</label>
+                <label className="form-label">Loại phần thưởng * (chọn nhiều)</label>
                 <div className="promo-radio-group">
-                  <label className="promo-radio">
-                    <input
-                      type="radio"
-                      name="rewardType"
-                      value="gift"
-                      checked={form.rewardType === "gift"}
-                      onChange={() => updateField("rewardType", "gift")}
-                    />
-                    <FiGift size={14} />
-                    <span>Tặng quà</span>
-                  </label>
-                  <label className="promo-radio">
-                    <input
-                      type="radio"
-                      name="rewardType"
-                      value="discount_fixed"
-                      checked={form.rewardType === "discount_fixed"}
-                      onChange={() =>
-                        updateField("rewardType", "discount_fixed")
-                      }
-                    />
-                    <span>Giảm giá cố định (VNĐ)</span>
-                  </label>
-                  <label className="promo-radio">
-                    <input
-                      type="radio"
-                      name="rewardType"
-                      value="discount_percent"
-                      checked={form.rewardType === "discount_percent"}
-                      onChange={() =>
-                        updateField("rewardType", "discount_percent")
-                      }
-                    />
-                    <FiPercent size={14} />
-                    <span>Giảm giá theo %</span>
-                  </label>
+                  {(
+                    [
+                      { value: "gift", icon: <FiGift size={14} />, label: "Tặng quà" },
+                      { value: "discount_fixed", icon: null, label: "Giảm giá cố định (VNĐ)" },
+                      { value: "discount_percent", icon: <FiPercent size={14} />, label: "Giảm giá theo %" },
+                      { value: "freeship", icon: null, label: "Miễn phí vận chuyển (Freeship)" },
+                    ] as const
+                  ).map((opt) => (
+                    <label key={opt.value} className="promo-radio">
+                      <input
+                        type="checkbox"
+                        checked={form.rewardTypes.includes(opt.value)}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...form.rewardTypes, opt.value]
+                            : form.rewardTypes.filter((t) => t !== opt.value);
+                          // discount_fixed and discount_percent are mutually exclusive
+                          const cleaned =
+                            e.target.checked &&
+                            (opt.value === "discount_fixed" || opt.value === "discount_percent")
+                              ? next.filter(
+                                  (t) =>
+                                    t === opt.value ||
+                                    (t !== "discount_fixed" && t !== "discount_percent"),
+                                )
+                              : next;
+                          updateField("rewardTypes", cleaned as PromotionRewardType[]);
+                        }}
+                      />
+                      {opt.icon}
+                      <span>{opt.label}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
               {/* ── Gift selection ── */}
-              {form.rewardType === "gift" && (
+              {form.rewardTypes.includes("gift") && (
                 <div className="form-group">
                   <label className="form-label">Cách nhận quà *</label>
                   <div
@@ -1240,10 +1306,12 @@ const PromotionsTab = () => {
               )}
 
               {/* ── Discount value ── */}
-              {form.rewardType !== "gift" && (
+              {form.rewardTypes.some((t) =>
+                ["discount_fixed", "discount_percent"].includes(t),
+              ) && (
                 <div className="form-group">
                   <label className="form-label">
-                    {form.rewardType === "discount_fixed"
+                    {form.rewardTypes.includes("discount_fixed")
                       ? "Số tiền giảm (VNĐ) *"
                       : "Phần trăm giảm (%) *"}
                   </label>
@@ -1252,17 +1320,21 @@ const PromotionsTab = () => {
                     type="number"
                     min="0"
                     max={
-                      form.rewardType === "discount_percent" ? "100" : undefined
+                      form.rewardTypes.includes("discount_percent")
+                        ? "100"
+                        : undefined
                     }
                     step={
-                      form.rewardType === "discount_percent" ? "0.1" : "1000"
+                      form.rewardTypes.includes("discount_percent")
+                        ? "0.1"
+                        : "1000"
                     }
                     value={form.rewardDiscountValue}
                     onChange={(e) =>
                       updateField("rewardDiscountValue", e.target.value)
                     }
                     placeholder={
-                      form.rewardType === "discount_fixed"
+                      form.rewardTypes.includes("discount_fixed")
                         ? "VD: 50000"
                         : "VD: 10"
                     }

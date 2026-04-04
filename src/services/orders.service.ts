@@ -1,7 +1,22 @@
 import { http } from "../lib/http";
-import type { OrderRow, OrderStatus } from "../pages/Dashboard/types";
+import type { OrderRow, OrderStatus, UserRow } from "../pages/Dashboard/types";
 import type { CustomizedCartItem } from "../lib/custom-cart";
 import type { CustomerOrderFieldEntry } from "../lib/customer-order-fields";
+
+export const getSystemUsers = async (): Promise<UserRow[]> => {
+  const { data } = await http.get<UserRow[]>("/users");
+  return data;
+};
+
+export const assignOrder = async (
+  id: string,
+  assignedTo: string,
+): Promise<OrderRow> => {
+  const { data } = await http.patch<OrderRow>(`/orders/${id}/assign`, {
+    assignedTo,
+  });
+  return data;
+};
 
 export type OrderShippingPayer = "customer" | "shop";
 
@@ -85,10 +100,16 @@ export const getOrders = async () => {
   return data;
 };
 
-export const updateOrderStatus = async (id: string, status: OrderStatus) => {
-  const { data } = await http.patch<OrderRow>(`/orders/${id}/status`, {
-    status,
-  });
+export const updateOrderStatus = async (
+  id: string,
+  status: OrderStatus,
+  assignedTo?: string,
+) => {
+  const payload: { status: OrderStatus; assignedTo?: string } = { status };
+  if (assignedTo !== undefined) {
+    payload.assignedTo = assignedTo;
+  }
+  const { data } = await http.patch<OrderRow>(`/orders/${id}/status`, payload);
   return data;
 };
 
@@ -98,6 +119,47 @@ export const updateOrderShippingFee = async (
 ) => {
   const { data } = await http.patch<OrderRow>(
     `/orders/${id}/shipping-fee`,
+    payload,
+  );
+  return data;
+};
+
+interface UploadImageResponse {
+  url?: string;
+}
+
+export const uploadOrderProgressImage = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const { data } = await http.post<UploadImageResponse>(
+    "/upload/image",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  const url = typeof data?.url === "string" ? data.url.trim() : "";
+  if (!url) {
+    throw new Error("Tải ảnh lên thất bại.");
+  }
+
+  return url;
+};
+
+export const updateOrderProgressImages = async (
+  id: string,
+  payload: {
+    demoImage: string;
+    backgroundImage: string;
+    completedProductImage: string;
+  },
+) => {
+  const { data } = await http.patch<OrderRow>(
+    `/orders/${id}/progress-images`,
     payload,
   );
   return data;

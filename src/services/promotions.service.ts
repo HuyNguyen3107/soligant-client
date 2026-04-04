@@ -1,5 +1,8 @@
 import { http } from "../lib/http";
-import type { PromotionRow } from "../pages/Dashboard/types";
+import type {
+  PromotionRewardType,
+  PromotionRow,
+} from "../pages/Dashboard/types";
 
 export interface PromotionGiftPayload {
   groupId: string;
@@ -12,9 +15,10 @@ export interface PromotionPayload {
   description: string;
   conditionType: "lego_quantity" | "set_quantity";
   conditionMinQuantity: number;
+  conditionMaxQuantity?: number | null;
   applicableProductType: "lego" | "bear";
   applicableProductIds?: string[];
-  rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardTypes: PromotionRewardType[];
   rewardGiftSelectionMode?: "all" | "choose_one";
   rewardGiftQuantityMode?: "fixed" | "multiply_by_condition";
   rewardGifts?: PromotionGiftPayload[];

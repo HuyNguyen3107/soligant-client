@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { FiCheckCircle, FiCopy, FiList, FiSearch, FiShoppingBag } from "react-icons/fi";
+import {
+  FiCheckCircle,
+  FiCopy,
+  FiList,
+  FiSearch,
+  FiShoppingBag,
+} from "react-icons/fi";
 import {
   ImageWithFallback,
   PageBreadcrumb,
@@ -13,6 +19,7 @@ import {
   isCustomerOrderFieldValueEmpty,
 } from "../../lib/customer-order-fields";
 import { getErrorMessage } from "../../lib/error";
+import { getStaticAssetUrl } from "../../lib/http";
 import { getPublicOrderByCode } from "../../services/orders.service";
 import type { OrderRow, OrderStatus } from "../Dashboard/types";
 import "./CollectionOrderPlaced.css";
@@ -22,20 +29,53 @@ interface OrderPlacedLocationState {
 }
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: "Chờ xác nhận",
-  confirmed: "Đã xác nhận",
-  processing: "Đang xử lý",
+  received: "Tiếp nhận đơn",
+  consulting: "Tư vấn",
+  waiting_demo: "Chờ demo",
+  waiting_demo_confirm: "Chờ confirm demo",
+  waiting_payment: "Chờ chuyển khoản",
+  paid: "Đã thanh toán",
+  designing: "Đang thiết kế",
+  waiting_design_approval: "Chờ duyệt thiết kế",
+  producing: "Đang sản xuất",
+  shipped: "Đã gửi vận chuyển",
+  delivering: "Đang giao",
   completed: "Hoàn tất",
+  complaint: "Khiếu nại",
+  handling_complaint: "Đang xử lý khiếu nại",
+  complaint_closed: "Đóng khiếu nại",
+  closed: "Kết thúc",
   cancelled: "Đã hủy",
 };
 
 const STATUS_CLASSNAMES: Record<OrderStatus, string> = {
-  pending: "is-pending",
-  confirmed: "is-confirmed",
-  processing: "is-processing",
+  received: "is-received",
+  consulting: "is-consulting",
+  waiting_demo: "is-waiting-demo",
+  waiting_demo_confirm: "is-waiting-demo-confirm",
+  waiting_payment: "is-waiting-payment",
+  paid: "is-paid",
+  designing: "is-designing",
+  waiting_design_approval: "is-waiting-design-approval",
+  producing: "is-producing",
+  shipped: "is-shipped",
+  delivering: "is-delivering",
   completed: "is-completed",
+  complaint: "is-complaint",
+  handling_complaint: "is-handling-complaint",
+  complaint_closed: "is-complaint-closed",
+  closed: "is-closed",
   cancelled: "is-cancelled",
 };
+
+const ORDER_PROGRESS_IMAGE_LABELS = [
+  { key: "demoImage" as const, label: "Ảnh demo" },
+  { key: "backgroundImage" as const, label: "Ảnh background" },
+  {
+    key: "completedProductImage" as const,
+    label: "Ảnh sản phẩm hoàn thiện",
+  },
+];
 
 const formatMoney = (value: number) =>
   `${new Intl.NumberFormat("vi-VN").format(Math.max(0, Math.floor(value)))} đ`;
@@ -50,10 +90,7 @@ const formatDateTime = (iso: string) =>
   });
 
 const normalizeOrderCode = (value: string) =>
-  value
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, "");
+  value.trim().toUpperCase().replace(/\s+/g, "");
 
 const CollectionOrderPlaced = () => {
   const { orderCode: orderCodeParam } = useParams<{ orderCode: string }>();
@@ -134,7 +171,10 @@ const CollectionOrderPlaced = () => {
           {!normalizedOrderCode ? (
             <div className="cop-card cop-card--empty">
               <h1>Mã đơn hàng không hợp lệ</h1>
-              <p>Vui lòng truy cập lại từ trang đặt hàng hoặc chuyển đến trang tra cứu đơn.</p>
+              <p>
+                Vui lòng truy cập lại từ trang đặt hàng hoặc chuyển đến trang
+                tra cứu đơn.
+              </p>
               <div className="cop-actions">
                 <Link to="/tra-cuu-don-hang" className="cop-btn cop-btn--ghost">
                   <FiSearch size={16} /> Tra cứu đơn hàng
@@ -151,7 +191,12 @@ const CollectionOrderPlaced = () => {
           ) : isError || !order ? (
             <div className="cop-card cop-card--empty">
               <h1>Không tìm thấy đơn hàng</h1>
-              <p>{getErrorMessage(error, "Đơn hàng có thể chưa sẵn sàng hoặc mã đơn không tồn tại.")}</p>
+              <p>
+                {getErrorMessage(
+                  error,
+                  "Đơn hàng có thể chưa sẵn sàng hoặc mã đơn không tồn tại.",
+                )}
+              </p>
               <div className="cop-actions">
                 <Link
                   to={`/tra-cuu-don-hang?ma-don=${encodeURIComponent(normalizedOrderCode)}`}
@@ -172,9 +217,12 @@ const CollectionOrderPlaced = () => {
                 </span>
                 <div>
                   <p className="cop-hero__eyebrow">Đặt hàng thành công</p>
-                  <h1 className="cop-hero__title">Đơn hàng của bạn đã được ghi nhận</h1>
+                  <h1 className="cop-hero__title">
+                    Đơn hàng của bạn đã được ghi nhận
+                  </h1>
                   <p className="cop-hero__desc">
-                    Đội ngũ Soligant sẽ liên hệ xác nhận trong thời gian sớm nhất.
+                    Đội ngũ Soligant sẽ liên hệ xác nhận trong thời gian sớm
+                    nhất.
                   </p>
                 </div>
               </div>
@@ -188,20 +236,25 @@ const CollectionOrderPlaced = () => {
                   onClick={handleCopyOrderCode}
                   disabled={!navigator?.clipboard}
                 >
-                  <FiCopy size={14} /> {isCopied ? "Đã sao chép" : "Sao chép mã"}
+                  <FiCopy size={14} />{" "}
+                  {isCopied ? "Đã sao chép" : "Sao chép mã"}
                 </button>
               </div>
 
               <div className="cop-note-box">
                 <p>
-                  Lưu ý: Vui lòng lưu lại mã đơn hàng <strong>{order.orderCode}</strong> để tra cứu trạng thái đơn hàng sau này.
+                  Lưu ý: Vui lòng lưu lại mã đơn hàng{" "}
+                  <strong>{order.orderCode}</strong> để tra cứu trạng thái đơn
+                  hàng sau này.
                 </p>
               </div>
 
               <div className="cop-grid">
                 <div className="cop-field">
                   <span>Trạng thái</span>
-                  <strong className={`cop-status ${STATUS_CLASSNAMES[order.status]}`}>
+                  <strong
+                    className={`cop-status ${STATUS_CLASSNAMES[order.status]}`}
+                  >
                     {STATUS_LABELS[order.status]}
                   </strong>
                 </div>
@@ -215,9 +268,48 @@ const CollectionOrderPlaced = () => {
                 </div>
                 <div className="cop-field">
                   <span>Tổng thanh toán</span>
-                  <strong>{formatMoney(order.pricingSummary.finalTotal)}</strong>
+                  <strong>
+                    {formatMoney(order.pricingSummary.finalTotal)}
+                  </strong>
                 </div>
               </div>
+
+              {ORDER_PROGRESS_IMAGE_LABELS.some(({ key }) =>
+                Boolean(order.progressImages?.[key]?.trim()),
+              ) && (
+                <div className="cop-progress-images">
+                  <h2>Hình ảnh cập nhật từ shop</h2>
+                  <div className="cop-progress-images__grid">
+                    {ORDER_PROGRESS_IMAGE_LABELS.map(({ key, label }) => {
+                      const rawUrl = order.progressImages?.[key]?.trim() ?? "";
+                      const imageUrl = getStaticAssetUrl(rawUrl) ?? rawUrl;
+
+                      if (!imageUrl) {
+                        return null;
+                      }
+
+                      return (
+                        <figure className="cop-progress-images__item" key={key}>
+                          <a
+                            href={imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="cop-image-link"
+                            title="Bấm để xem ảnh gốc"
+                          >
+                            <ImageWithFallback
+                              src={imageUrl}
+                              alt={label}
+                              fallback={<strong>Ảnh không còn khả dụng</strong>}
+                            />
+                          </a>
+                          <figcaption>{label}</figcaption>
+                        </figure>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {order.note && (
                 <div className="cop-customer-note">
@@ -238,24 +330,46 @@ const CollectionOrderPlaced = () => {
                       )
                       .sort((left, right) => left.sortOrder - right.sortOrder)
                       .map((entry) => (
-                        <div key={entry.key} className="cop-customer-info__item">
+                        <div
+                          key={entry.key}
+                          className="cop-customer-info__item"
+                        >
                           <span>{entry.label}</span>
                           {entry.fieldType === "image_upload" ? (
-                            typeof entry.value === "string" && entry.value.trim() ? (
-                              <ImageWithFallback
-                                src={entry.value}
-                                alt={entry.label}
-                                fallback={<strong>Ảnh không còn khả dụng</strong>}
-                              />
+                            typeof entry.value === "string" &&
+                            entry.value.trim() ? (
+                              <a
+                                href={
+                                  getStaticAssetUrl(entry.value) ?? entry.value
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="cop-image-link"
+                                title="Bấm để xem ảnh gốc"
+                              >
+                                <ImageWithFallback
+                                  src={entry.value}
+                                  alt={entry.label}
+                                  fallback={
+                                    <strong>Ảnh không còn khả dụng</strong>
+                                  }
+                                />
+                              </a>
                             ) : (
                               <strong>Chưa tải ảnh</strong>
                             )
                           ) : entry.fieldType === "long_text" ? (
                             <RichTextContent
-                              value={typeof entry.value === "string" ? entry.value : ""}
+                              value={
+                                typeof entry.value === "string"
+                                  ? entry.value
+                                  : ""
+                              }
                             />
                           ) : (
-                            <strong>{formatCustomerOrderFieldValue(entry)}</strong>
+                            <strong>
+                              {formatCustomerOrderFieldValue(entry)}
+                            </strong>
                           )}
                         </div>
                       ))}

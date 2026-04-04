@@ -400,8 +400,8 @@ const BearCustomizationsTab = () => {
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Ảnh không được vượt quá 2MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ảnh không được vượt quá 5MB.");
       resetInput();
       return;
     }
@@ -445,14 +445,18 @@ const BearCustomizationsTab = () => {
       return;
     }
 
+    if (!optionForm.allowImageUpload && !optionForm.colorCode.trim()) {
+      toast.error("Vui lòng chọn mã màu khi tắt chế độ dùng ảnh.");
+      return;
+    }
+
     if (
-      !optionForm.allowImageUpload &&
-      !optionForm.colorCode.trim() &&
+      optionForm.allowImageUpload &&
       !optionForm.image.trim() &&
       !pendingImageFile
     ) {
       toast.error(
-        "Vui lòng thiết lập Ảnh, hoặc Màu sắc, hoặc bật 'Cho phép khách tự tải ảnh lên'.",
+        "Bạn đã bật chế độ ảnh, vui lòng tải lên ảnh cho lựa chọn này.",
       );
       return;
     }
@@ -471,11 +475,8 @@ const BearCustomizationsTab = () => {
     let finalColorCode = optionForm.colorCode.trim().toUpperCase();
 
     if (optionForm.allowImageUpload) {
-      finalImage = "";
-      finalColorCode = "";
-    } else {
       try {
-        if (pendingImageFile && !optionForm.allowImageUpload) {
+        if (pendingImageFile) {
           const formData = new FormData();
           formData.append("file", pendingImageFile);
 
@@ -491,14 +492,15 @@ const BearCustomizationsTab = () => {
           if (!finalImage) {
             throw new Error("Tải ảnh thất bại.");
           }
-          finalColorCode = "";
-        } else if (finalColorCode) {
-          finalImage = "";
         }
+
+        finalColorCode = "";
       } catch (error) {
         toast.error(getErrorMessage(error, "Lỗi khi xử lý hình ảnh sản phẩm."));
         return;
       }
+    } else {
+      finalImage = "";
     }
 
     try {

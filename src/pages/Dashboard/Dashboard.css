@@ -3646,6 +3646,10 @@
   max-width: 920px;
 }
 
+.order-detail-modal .modal-body {
+  min-width: 0;
+}
+
 .order-detail-top {
   display: flex;
   align-items: flex-start;
@@ -3675,6 +3679,44 @@
   white-space: nowrap;
 }
 
+.order-detail-priority-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.order-detail-priority-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  padding: 11px 12px;
+  display: grid;
+  gap: 3px;
+}
+
+.order-detail-priority-card p {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.order-detail-priority-card strong {
+  font-size: 15px;
+  color: #111827;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.order-detail-priority-card span {
+  font-size: 12px;
+  color: #6b7280;
+  overflow-wrap: anywhere;
+}
+
+.order-detail-priority-card--wide {
+  grid-column: 1 / -1;
+}
+
 .order-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3698,6 +3740,8 @@
 .order-detail-field strong {
   font-size: 14px;
   color: #111827;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .order-detail-section {
@@ -3820,6 +3864,10 @@
 }
 
 @media (max-width: 760px) {
+  .order-detail-priority-grid {
+    grid-template-columns: 1fr;
+  }
+
   .order-detail-shipping-edit-row {
     align-items: stretch;
   }
@@ -3851,6 +3899,160 @@
   white-space: pre-wrap;
 }
 
+.order-progress-images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.order-progress-image-card {
+  border: 1px solid #dfe5ee;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+}
+
+.order-progress-image-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.order-progress-image-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.order-progress-image-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.order-progress-image-badge.is-filled {
+  background: #e9f7ef;
+  color: #166534;
+}
+
+.order-progress-image-badge.is-empty {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.order-progress-image-preview-wrap {
+  border: 1px dashed #d1dae7;
+  border-radius: 10px;
+  background: #f8fafc;
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+}
+
+.order-progress-image-preview {
+  width: 100%;
+  max-height: 240px;
+  min-height: 140px;
+  border-radius: 8px;
+  border: 1px solid #d9e0ea;
+  object-fit: contain;
+  background: #ffffff;
+}
+
+.order-progress-image-preview-link {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  cursor: zoom-in;
+}
+
+.order-progress-image-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.order-progress-image-url-input {
+  border: 1px solid #cfd8e3;
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 13px;
+  color: #1f2937;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.order-progress-image-url-input:focus {
+  border-color: #93a3b8;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18);
+}
+
+.order-progress-image-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.order-progress-image-file-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.order-progress-image-upload-btn,
+.order-progress-image-clear-btn {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.order-progress-image-clear-btn {
+  color: #9f1239;
+  border-color: #f2c7d3;
+  background: #fff8fb;
+}
+
+.order-progress-image-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .order-progress-image-actions {
+    justify-content: stretch;
+  }
+
+  .order-progress-image-actions .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.order-detail-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
+}
+
 .order-detail-items {
   display: grid;
   gap: 10px;
@@ -3875,6 +4077,9 @@
 .order-detail-item-head strong {
   font-size: 14px;
   color: #111827;
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .order-detail-item-head span {
@@ -3890,9 +4095,23 @@
   gap: 6px 10px;
 }
 
-.order-detail-item-meta span {
-  font-size: 12px;
-  color: #475569;
+.order-detail-item-meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-detail-item-meta-field span {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.order-detail-item-meta-field strong {
+  font-size: 13px;
+  color: #111827;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .order-detail-item-addon {
@@ -3982,65 +4201,199 @@
 .order-detail-item-chip em {
   font-style: normal;
   color: #6b7280;
-
-  /* ── Per-slot Lego breakdown ── */
-  .order-detail-lego-slots {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 8px;
-  }
-
-  .order-detail-lego-slot {
-    background: #f0f9ff;
-    border: 1px solid #bae6fd;
-    border-radius: 8px;
-    padding: 8px 10px;
-    display: grid;
-    gap: 5px;
-  }
-
-  .order-detail-lego-slot-label {
-    margin: 0;
-    font-size: 11px;
-    font-weight: 700;
-    color: #0369a1;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  .order-detail-lego-slot-rows {
-    display: grid;
-    gap: 4px;
-  }
-
-  .order-detail-lego-slot-row {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-  }
-
-  .order-detail-lego-color {
-    flex-shrink: 0;
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    display: inline-block;
-  }
-
-  .order-detail-lego-group {
-    color: #475569;
-    white-space: nowrap;
-  }
-
-  .order-detail-lego-option {
-    color: #0c4a6e;
-    font-weight: 700;
-    word-break: break-word;
-  }
-
   font-size: 11px;
+}
+
+/* ── Per-slot Lego/Bear breakdown ── */
+.order-detail-lego-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.order-detail-lego-slot {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 5px;
+}
+
+.order-detail-lego-slot-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369a1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.order-detail-lego-slot-rows {
+  display: grid;
+  gap: 4px;
+}
+
+.order-detail-lego-slot-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: start;
+  gap: 5px;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.order-detail-lego-color {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  display: inline-block;
+}
+
+.order-detail-lego-group {
+  color: #475569;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.order-detail-lego-option {
+  display: block;
+  min-width: 0;
+  color: #0c4a6e;
+  font-weight: 700;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* ── Bear slot breakdown (dedicated layout) ── */
+.order-detail-bear-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.order-detail-bear-slot {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.order-detail-bear-slot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.order-detail-bear-slot-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111827;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.order-detail-bear-slot-count {
+  font-size: 12px;
+  color: #4b5563;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.order-detail-bear-slot-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.order-detail-bear-group-block {
+  display: grid;
+  gap: 8px;
+}
+
+.order-detail-bear-group-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.order-detail-bear-group-options {
+  display: grid;
+  gap: 8px;
+}
+
+.order-detail-bear-option-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 11px;
+  min-width: 0;
+}
+
+.order-detail-bear-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+}
+
+.order-detail-bear-option {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.order-detail-color-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.order-detail-color-code {
+  font-size: 12px;
+  line-height: 1;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.order-detail-option-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  grid-column: 2;
+}
+
+.order-detail-bear-option-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-detail-option-image {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  object-fit: contain;
+  background: #fff;
+  flex-shrink: 0;
 }
 
 .order-detail-item-bg-fields {
@@ -4050,7 +4403,7 @@
 
 .order-detail-item-bg-field {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
   gap: 6px;
   align-items: start;
   font-size: 12px;
@@ -4066,15 +4419,18 @@
 .order-detail-item-bg-field-value {
   color: #111827;
   word-break: break-word;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
 .order-detail-item-bg-field-img {
-  max-width: 180px;
-  max-height: 180px;
+  max-width: 240px;
+  max-height: 240px;
+  width: 100%;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
-  object-fit: cover;
+  object-fit: contain;
+  background: #f8fafc;
 }
 
 .order-detail-item-link {
@@ -4099,14 +4455,17 @@
 
 .order-detail-item-addon-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
   font-size: 13px;
 }
 
 .order-detail-item-addon-head strong {
   color: #78350f;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .order-detail-item-addon-head span {
@@ -5056,6 +5415,12 @@
   background: #162131;
 }
 
+.db-root.dark .order-detail-empty {
+  color: #64748b;
+  background: #162131;
+  border-color: #334155;
+}
+
 .db-root.dark .order-detail-pricing-row {
   border-top-color: #334155;
   color: #cbd5e1;
@@ -5106,8 +5471,13 @@
 }
 
 .db-root.dark .order-detail-note,
-.db-root.dark .order-detail-item-meta span {
-  color: #cbd5e1;
+.db-root.dark .order-detail-item-meta span,
+.db-root.dark .order-detail-item-meta-field span {
+  color: #94a3b8;
+}
+
+.db-root.dark .order-detail-item-meta-field strong {
+  color: #f1f5f9;
 }
 
 .db-root.dark .order-detail-item-head span,
@@ -5157,25 +5527,24 @@
 }
 
 .db-root.dark .order-detail-item-chip em {
-
-  .db-root.dark .order-detail-lego-slot {
-    background: #0c2133;
-    border-color: #0e4f72;
-  }
-
-  .db-root.dark .order-detail-lego-slot-label {
-    color: #38bdf8;
-  }
-
-  .db-root.dark .order-detail-lego-group {
-    color: #94a3b8;
-  }
-
-  .db-root.dark .order-detail-lego-option {
-    color: #bae6fd;
-  }
-
   color: #6b7280;
+}
+
+.db-root.dark .order-detail-lego-slot {
+  background: #0c2133;
+  border-color: #0e4f72;
+}
+
+.db-root.dark .order-detail-lego-slot-label {
+  color: #38bdf8;
+}
+
+.db-root.dark .order-detail-lego-group {
+  color: #94a3b8;
+}
+
+.db-root.dark .order-detail-lego-option {
+  color: #bae6fd;
 }
 
 .db-root.dark .order-detail-item-bg-field-label {
@@ -5389,6 +5758,28 @@
 
   .order-detail-item-bg-field {
     grid-template-columns: 1fr;
+  }
+
+  .order-detail-bear-slots {
+    grid-template-columns: 1fr;
+  }
+
+  .order-detail-bear-slot-head {
+    flex-wrap: wrap;
+  }
+
+  .order-detail-bear-option-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .order-detail-bear-option-meta {
+    justify-content: flex-start;
+  }
+
+  .order-detail-option-image {
+    width: 52px;
+    height: 52px;
   }
 
   .order-detail-item-bg-field-img {
@@ -6023,14 +6414,52 @@
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   color: #334155;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .lc-summary {
   color: #64748b;
   font-size: 0.82rem;
   margin: 0;
+}
+
+.ao-option-name {
+  display: grid;
+  gap: 2px;
+}
+
+.ao-option-name__title {
+  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.ao-option-name__desc {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.ao-option-name__desc .rt-content,
+.ao-option-name__desc .text-muted {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.ao-option-name__desc .rt-content * {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.ao-option-name__desc .rt-content h1,
+.ao-option-name__desc .rt-content h2,
+.ao-option-name__desc .rt-content h3,
+.ao-option-name__desc .rt-content h4,
+.ao-option-name__desc .rt-content h5,
+.ao-option-name__desc .rt-content h6 {
+  margin: 0 0 0.55em;
+  font-weight: 600;
 }
 
 .db-root.dark .lc-stat-card {
@@ -6055,6 +6484,10 @@
 
 .db-root.dark .lc-summary {
   color: #94a3b8;
+}
+
+.db-root.dark .ao-option-name__title {
+  color: #f1f5f9;
 }
 
 .lcu-root {
@@ -6107,8 +6540,23 @@
 .lcu-group-card__helper {
   margin: 8px 0 0;
   color: #64748b;
-  font-size: 0.83rem;
+  font-size: 0.82rem;
   line-height: 1.6;
+}
+
+.lcu-group-card__helper * {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.lcu-group-card__helper h1,
+.lcu-group-card__helper h2,
+.lcu-group-card__helper h3,
+.lcu-group-card__helper h4,
+.lcu-group-card__helper h5,
+.lcu-group-card__helper h6 {
+  margin: 0 0 0.55em;
+  font-weight: 600;
 }
 
 .lcu-group-card__foot {
@@ -6312,6 +6760,10 @@
   .lcu-header-actions .btn-primary {
     width: 100%;
     justify-content: center;
+  }
+
+  .order-progress-images-grid {
+    grid-template-columns: 1fr;
   }
 
   .lcu-group-card__header {

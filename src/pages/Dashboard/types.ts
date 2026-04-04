@@ -114,8 +114,8 @@ export interface TabMeta {
 
 // ─── COLLECTIONS TAB TYPES ────────────────────────────────────────────────────
 export interface ThumbnailTransform {
-  x: number;     // pan offset as fraction of container width (-1 to 1)
-  y: number;     // pan offset as fraction of container height (-1 to 1)
+  x: number; // pan offset as fraction of container width (-1 to 1)
+  y: number; // pan offset as fraction of container height (-1 to 1)
   scale: number; // extra zoom factor (1 to 4)
   aspect: number; // natural image width/height ratio
 }
@@ -434,15 +434,22 @@ export interface PromotionGift {
 export type PromotionGiftQuantityMode = "fixed" | "multiply_by_condition";
 export type PromotionGiftSelectionMode = "all" | "choose_one";
 
+export type PromotionRewardType =
+  | "gift"
+  | "discount_fixed"
+  | "discount_percent"
+  | "freeship";
+
 export interface PromotionRow {
   id: string;
   name: string;
   description: string;
   conditionType: "lego_quantity" | "set_quantity";
   conditionMinQuantity: number;
+  conditionMaxQuantity: number | null;
   applicableProductType: "lego" | "bear";
   applicableProductIds: string[];
-  rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardTypes: PromotionRewardType[];
   rewardGiftSelectionMode: PromotionGiftSelectionMode;
   rewardGiftQuantityMode: PromotionGiftQuantityMode;
   rewardGifts: PromotionGift[];
@@ -465,9 +472,10 @@ export interface PromotionFormState {
   description: string;
   conditionType: "lego_quantity" | "set_quantity";
   conditionMinQuantity: string;
+  conditionMaxQuantity: string;
   applicableProductType: "lego" | "bear";
   applicableProductIds: string[];
-  rewardType: "gift" | "discount_fixed" | "discount_percent";
+  rewardTypes: PromotionRewardType[];
   rewardGiftSelectionMode: PromotionGiftSelectionMode;
   rewardGiftQuantityMode: PromotionGiftQuantityMode;
   rewardGifts: PromotionGiftForm[];
@@ -523,11 +531,52 @@ export interface AddonOptionFormState {
 
 // ─── ORDERS TAB TYPES ───────────────────────────────────────────────────────
 export type OrderStatus =
-  | "pending"
-  | "confirmed"
-  | "processing"
+  | "received"
+  | "consulting"
+  | "waiting_demo"
+  | "waiting_demo_confirm"
+  | "waiting_payment"
+  | "paid"
+  | "designing"
+  | "waiting_design_approval"
+  | "producing"
+  | "shipped"
+  | "delivering"
   | "completed"
+  | "complaint"
+  | "handling_complaint"
+  | "complaint_closed"
+  | "closed"
   | "cancelled";
+
+export type OrderProductType = "lego" | "bear";
+
+export const ALL_ORDER_STATUSES: OrderStatus[] = [
+  "received",
+  "consulting",
+  "waiting_demo",
+  "waiting_demo_confirm",
+  "waiting_payment",
+  "paid",
+  "designing",
+  "waiting_design_approval",
+  "producing",
+  "shipped",
+  "delivering",
+  "completed",
+  "complaint",
+  "handling_complaint",
+  "complaint_closed",
+  "closed",
+  "cancelled",
+];
+
+export const BEAR_EXCLUDED_STATUSES: OrderStatus[] = [
+  "waiting_demo",
+  "waiting_demo_confirm",
+  "designing",
+  "waiting_design_approval",
+];
 
 export type OrderShippingPayer = "customer" | "shop";
 
@@ -573,17 +622,32 @@ export interface OrderItemRow {
   payload: Record<string, unknown>;
 }
 
+export interface OrderAppliedGift {
+  optionId: string;
+  quantity: number;
+}
+
+export interface OrderProgressImages {
+  demoImage: string;
+  backgroundImage: string;
+  completedProductImage: string;
+}
+
 export interface OrderRow {
   id: string;
   orderCode: string;
   dateKey: string;
   variantSymbol: string;
   status: OrderStatus;
+  productType: OrderProductType;
+  assignedTo: string;
   shippingPayer: OrderShippingPayer;
   itemsCount: number;
   pricingSummary: OrderPricingSummary;
   items: OrderItemRow[];
   customerInfoEntries: OrderCustomerInfoEntry[];
+  appliedGifts: OrderAppliedGift[];
+  progressImages: OrderProgressImages;
   note: string;
   createdAt: string;
   updatedAt: string;

@@ -147,24 +147,84 @@
     white-space: nowrap;
 }
 
-.colu-status.is-pending {
+.colu-status.is-received {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.colu-status.is-consulting {
     background: #fef3c7;
     color: #92400e;
 }
 
-.colu-status.is-confirmed {
+.colu-status.is-waiting-demo {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.colu-status.is-waiting-demo-confirm {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.colu-status.is-waiting-payment {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.colu-status.is-paid {
     background: #dbeafe;
     color: #1d4ed8;
 }
 
-.colu-status.is-processing {
+.colu-status.is-designing {
     background: #ede9fe;
     color: #6d28d9;
+}
+
+.colu-status.is-waiting-design-approval {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.colu-status.is-producing {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.colu-status.is-shipped {
+    background: #cffafe;
+    color: #0e7490;
+}
+
+.colu-status.is-delivering {
+    background: #ccfbf1;
+    color: #0f766e;
 }
 
 .colu-status.is-completed {
     background: #dcfce7;
     color: #166534;
+}
+
+.colu-status.is-complaint {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.colu-status.is-handling-complaint {
+    background: #fecaca;
+    color: #b91c1c;
+}
+
+.colu-status.is-complaint-closed {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.colu-status.is-closed {
+    background: #f3f4f6;
+    color: #374151;
 }
 
 .colu-status.is-cancelled {
@@ -241,6 +301,55 @@
     padding: 10px;
 }
 
+.colu-progress-images {
+    margin-top: 12px;
+}
+
+.colu-progress-images__title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.colu-progress-images__grid {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.colu-progress-images__item {
+    margin: 0;
+    border: 1px solid #e5eaf2;
+    border-radius: 10px;
+    background: #fff;
+    padding: 8px;
+    display: grid;
+    gap: 6px;
+}
+
+.colu-progress-images__item img {
+    width: 100%;
+    max-height: 220px;
+    min-height: 140px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    object-fit: contain;
+    background: #f8fafc;
+}
+
+.colu-image-link {
+    display: block;
+    text-decoration: none;
+    cursor: zoom-in;
+}
+
+.colu-progress-images__item figcaption {
+    font-size: 12px;
+    color: #475569;
+}
+
 .colu-note__title {
     margin: 0;
     font-size: 13px;
@@ -303,10 +412,11 @@
 
 .colu-customer-info__item img {
     width: 100%;
-    max-height: 180px;
+    max-height: 420px;
     object-fit: cover;
     border-radius: 10px;
-    border: 1px solid #e2e8f0;
+    object-fit: contain;
+    background: #f8fafc;
 }
 
 .colu-actions {
@@ -352,6 +462,10 @@
     }
 
     .colu-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .colu-progress-images__grid {
         grid-template-columns: 1fr;
     }
 

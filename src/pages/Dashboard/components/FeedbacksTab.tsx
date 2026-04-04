@@ -4,8 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import {
   FiAlertTriangle,
-  FiCheckCircle,
-  FiClock,
   FiEdit2,
   FiEye,
   FiEyeOff,
@@ -33,7 +31,7 @@ import {
   uploadFeedbackImage,
 } from "../../../services/feedbacks.service";
 import { useAuthStore } from "../../../store/auth.store";
-import type { FeedbackFormState, FeedbackRow, FeedbackStatus } from "../types";
+import type { FeedbackFormState, FeedbackRow } from "../types";
 
 const EMPTY_FORM: FeedbackFormState = {
   name: "",
@@ -45,27 +43,6 @@ const EMPTY_FORM: FeedbackFormState = {
   status: "new",
   isPublic: false,
   adminNote: "",
-};
-
-const STATUS_META: Record<
-  FeedbackStatus,
-  { label: string; bg: string; color: string }
-> = {
-  new: {
-    label: "Mới",
-    bg: "#fef3c7",
-    color: "#92400e",
-  },
-  processing: {
-    label: "Đang xử lý",
-    bg: "#dbeafe",
-    color: "#1d4ed8",
-  },
-  resolved: {
-    label: "Hoàn tất",
-    bg: "#dcfce7",
-    color: "#166534",
-  },
 };
 
 const formatDateTime = (iso: string) =>
@@ -87,9 +64,6 @@ const FeedbacksTab = () => {
   const canDelete = hasPermission(currentUser, "feedbacks.delete");
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<FeedbackStatus | "all">(
-    "all",
-  );
   const [visibilityFilter, setVisibilityFilter] = useState<
     "all" | "public" | "private"
   >("all");
@@ -353,25 +327,20 @@ const FeedbacksTab = () => {
         feedback.message.toLowerCase().includes(keyword) ||
         feedback.phone.toLowerCase().includes(keyword);
 
-      const matchesStatus =
-        statusFilter === "all" || feedback.status === statusFilter;
-
       const matchesVisibility =
         visibilityFilter === "all" ||
         (visibilityFilter === "public" && feedback.isPublic) ||
         (visibilityFilter === "private" && !feedback.isPublic);
 
-      return matchesKeyword && matchesStatus && matchesVisibility;
+      return matchesKeyword && matchesVisibility;
     });
-  }, [feedbacks, search, statusFilter, visibilityFilter]);
+  }, [feedbacks, search, visibilityFilter]);
 
   const stats = useMemo(
     () => ({
       total: feedbacks.length,
-      newCount: feedbacks.filter((item) => item.status === "new").length,
-      resolvedCount: feedbacks.filter((item) => item.status === "resolved")
-        .length,
       publicCount: feedbacks.filter((item) => item.isPublic).length,
+      privateCount: feedbacks.filter((item) => !item.isPublic).length,
     }),
     [feedbacks],
   );
@@ -417,29 +386,20 @@ const FeedbacksTab = () => {
         </div>
         <div className="lc-stat-card">
           <span className="lc-stat-card__icon">
-            <FiClock size={15} />
-          </span>
-          <div>
-            <strong>{stats.newCount}</strong>
-            <span>Feedback mới</span>
-          </div>
-        </div>
-        <div className="lc-stat-card">
-          <span className="lc-stat-card__icon">
-            <FiCheckCircle size={15} />
-          </span>
-          <div>
-            <strong>{stats.resolvedCount}</strong>
-            <span>Đã hoàn tất</span>
-          </div>
-        </div>
-        <div className="lc-stat-card">
-          <span className="lc-stat-card__icon">
             <FiEye size={15} />
           </span>
           <div>
             <strong>{stats.publicCount}</strong>
             <span>Đang public</span>
+          </div>
+        </div>
+        <div className="lc-stat-card">
+          <span className="lc-stat-card__icon">
+            <FiEyeOff size={15} />
+          </span>
+          <div>
+            <strong>{stats.privateCount}</strong>
+            <span>Nội bộ</span>
           </div>
         </div>
       </section>
@@ -459,20 +419,6 @@ const FeedbacksTab = () => {
             </button>
           )}
         </div>
-
-        <select
-          className="form-input"
-          value={statusFilter}
-          onChange={(event) =>
-            setStatusFilter(event.target.value as FeedbackStatus | "all")
-          }
-          style={{ maxWidth: 180 }}
-        >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="new">Mới</option>
-          <option value="processing">Đang xử lý</option>
-          <option value="resolved">Hoàn tất</option>
-        </select>
 
         <select
           className="form-input"
@@ -514,8 +460,7 @@ const FeedbacksTab = () => {
             <thead>
               <tr>
                 <th>Khách hàng</th>
-                <th>Chủ đề / Nội dung</th>
-                <th>Trạng thái</th>
+                <th>Nội dung</th>
                 <th>Hiển thị</th>
                 <th>Ngày gửi</th>
                 <th>Ảnh</th>
@@ -524,7 +469,6 @@ const FeedbacksTab = () => {
             </thead>
             <tbody>
               {filteredFeedbacks.map((feedback) => {
-                const statusMeta = STATUS_META[feedback.status];
                 return (
                   <tr key={feedback.id}>
                     <td>
@@ -543,7 +487,6 @@ const FeedbacksTab = () => {
                     </td>
                     <td>
                       <div style={{ display: "grid", gap: 4 }}>
-                        <span className="lc-name-chip">{feedback.subject}</span>
                         <p
                           className="text-muted"
                           style={{
@@ -558,38 +501,6 @@ const FeedbacksTab = () => {
                           {feedback.message}
                         </p>
                       </div>
-                    </td>
-                    <td>
-                      {canEdit ? (
-                        <select
-                          className="form-input"
-                          value={feedback.status}
-                          onChange={(event) =>
-                            handleQuickUpdate(
-                              feedback,
-                              {
-                                status: event.target.value as FeedbackStatus,
-                              },
-                              "Đã cập nhật trạng thái feedback.",
-                            )
-                          }
-                          style={{ minWidth: 140, padding: "6px 10px" }}
-                        >
-                          <option value="new">Mới</option>
-                          <option value="processing">Đang xử lý</option>
-                          <option value="resolved">Hoàn tất</option>
-                        </select>
-                      ) : (
-                        <span
-                          className="lc-name-chip"
-                          style={{
-                            background: statusMeta.bg,
-                            color: statusMeta.color,
-                          }}
-                        >
-                          {statusMeta.label}
-                        </span>
-                      )}
                     </td>
                     <td>
                       {canEdit ? (
