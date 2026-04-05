@@ -435,4 +435,34 @@
     .cao-option-card__selected {
         justify-self: flex-start;
     }
+
+    .cao-options__title {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cao-page {
+        padding: calc(var(--header-height) + 16px) 0 40px;
+    }
+
+    .cao-options {
+        padding: 14px 12px;
+    }
+
+    .cao-sidebar {
+        padding: 14px;
+    }
+
+    .cao-option-card {
+        padding: 12px;
+    }
+
+    .cao-option-card__title-row h3 {
+        font-size: 15px;
+    }
+
+    .cao-summary__cta {
+        min-height: 44px;
+    }
 }

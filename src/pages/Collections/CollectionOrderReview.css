@@ -798,3 +798,29 @@
         align-items: flex-start;
     }
 }
+
+@media (max-width: 480px) {
+    .cor-page {
+        padding: calc(var(--header-height) + 16px) 0 40px;
+    }
+
+    .cor-items {
+        padding: 14px 12px;
+    }
+
+    .cor-summary {
+        padding: 16px 14px;
+    }
+
+    .cor-summary__cta {
+        min-height: 44px;
+    }
+
+    .cor-card {
+        padding: 14px 12px;
+    }
+
+    .cor-card__thumb {
+        height: 140px;
+    }
+}

@@ -1,3 +1,5 @@
+import DOMPurify from "dompurify";
+
 const HTML_TAG_REGEX = /<\/?[a-z][\s\S]*>/i;
 
 const escapeHtml = (value: string) =>
@@ -13,18 +15,49 @@ export const isLikelyHtml = (value: string) => HTML_TAG_REGEX.test(value);
 export const sanitizeRichTextHtml = (value: string) => {
   if (!value) return "";
 
-  let sanitized = value;
-
-  sanitized = sanitized.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
-  sanitized = sanitized.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "");
-  sanitized = sanitized.replace(/<(iframe|object|embed|meta|link)[^>]*>/gi, "");
-  sanitized = sanitized.replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
-  sanitized = sanitized.replace(
-    /\s(href|src)=("|')\s*javascript:[^"']*("|')/gi,
-    "",
-  );
-
-  return sanitized.trim();
+  return DOMPurify.sanitize(value, {
+    ALLOWED_TAGS: [
+      "p",
+      "br",
+      "b",
+      "i",
+      "u",
+      "strong",
+      "em",
+      "a",
+      "ul",
+      "ol",
+      "li",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "blockquote",
+      "span",
+      "div",
+      "img",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+    ],
+    ALLOWED_ATTR: [
+      "href",
+      "target",
+      "rel",
+      "src",
+      "alt",
+      "class",
+      "style",
+      "width",
+      "height",
+    ],
+    ALLOW_DATA_ATTR: false,
+  }).trim();
 };
 
 export const toRichTextHtml = (value?: string | null) => {

@@ -451,3 +451,30 @@
         width: 100%;
     }
 }
+
+@media (max-width: 480px) {
+    .cop-page {
+        padding: calc(var(--header-height) + 16px) 0 40px;
+    }
+
+    .cop-card {
+        padding: 14px 12px;
+        border-radius: 14px;
+    }
+
+    .cop-hero__title {
+        font-size: 20px;
+    }
+
+    .cop-order-code strong {
+        font-size: 20px;
+    }
+
+    .cop-btn {
+        min-height: 44px;
+    }
+
+    .cop-section__title {
+        font-size: 15px;
+    }
+}

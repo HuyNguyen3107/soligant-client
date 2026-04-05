@@ -286,3 +286,33 @@
         width: 100%;
     }
 }
+
+@media (max-width: 480px) {
+    .ccif-page {
+        padding: calc(var(--header-height) + 16px) 0 40px;
+    }
+
+    .ccif-form-wrap {
+        padding: 14px 12px;
+    }
+
+    .ccif-sidebar {
+        padding: 14px;
+    }
+
+    .ccif-sidebar__title {
+        font-size: 15px;
+    }
+
+    .ccif-form-wrap__header h1 {
+        font-size: 20px;
+    }
+
+    .ccif-field {
+        padding: 10px;
+    }
+
+    .ccif-btn {
+        min-height: 44px;
+    }
+}

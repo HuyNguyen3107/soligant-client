@@ -47,6 +47,8 @@ const ImageWithFallback = ({
       {...imageProps}
       src={normalizedSrc}
       alt={alt}
+      loading="lazy"
+      decoding="async"
       onError={handleError}
     />
   );

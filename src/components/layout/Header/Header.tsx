@@ -60,6 +60,7 @@ const navLinks: NavigationLink[] = [
   { label: "Trang chủ", href: "/", end: true },
   { label: "Bộ sưu tập", href: "/bo-suu-tap" },
   { label: "Về chúng tôi", href: "/ve-chung-toi" },
+  { label: "Chính sách", href: "/chinh-sach" },
   { label: "Liên hệ", href: "/lien-he" },
   { label: "Tra cứu đơn", href: "/tra-cuu-don-hang" },
   { label: "Đơn của tôi", href: "/lich-su-don-hang" },

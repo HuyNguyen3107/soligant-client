@@ -478,3 +478,30 @@
         justify-content: center;
     }
 }
+
+@media (max-width: 480px) {
+    .colu-page {
+        padding: calc(var(--header-height) + 16px) 0 40px;
+    }
+
+    .colu-card {
+        padding: 14px 12px;
+        border-radius: 14px;
+    }
+
+    .colu-header__title {
+        font-size: 20px;
+    }
+
+    .colu-header__desc {
+        font-size: 13px;
+    }
+
+    .colu-result__code {
+        font-size: 15px;
+    }
+
+    .colu-btn {
+        min-height: 44px;
+    }
+}

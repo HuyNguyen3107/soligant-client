@@ -786,6 +786,27 @@
     }
 }
 
+@media (max-width: 480px) {
+    .cbc-editor,
+    .cbc-slot-section,
+    .cbc-panel,
+    .cbc-summary {
+        padding: 12px;
+    }
+
+    .cbc-slot-list {
+        grid-template-columns: 1fr;
+    }
+
+    .cbc-summary__cta {
+        min-height: 44px;
+    }
+
+    .cbc-btn-back {
+        min-height: 44px;
+    }
+}
+
 /* ── Range slider for lego count selection ── */
 .cbc-summary__bear-count-selector {
     display: flex;

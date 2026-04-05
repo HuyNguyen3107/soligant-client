@@ -786,6 +786,27 @@
     }
 }
 
+@media (max-width: 480px) {
+    .cpc-editor,
+    .cpc-slot-section,
+    .cpc-panel,
+    .cpc-summary {
+        padding: 12px;
+    }
+
+    .cpc-slot-list {
+        grid-template-columns: 1fr;
+    }
+
+    .cpc-summary__cta {
+        min-height: 44px;
+    }
+
+    .cpc-btn-back {
+        min-height: 44px;
+    }
+}
+
 /* ── Range slider for lego count selection ── */
 .cpc-summary__lego-count-selector {
     display: flex;

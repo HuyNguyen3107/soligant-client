@@ -378,6 +378,16 @@
     text-decoration: underline;
 }
 
+@media (max-width: 768px) {
+    .myo-header__title {
+        font-size: 24px;
+    }
+
+    .myo-card {
+        padding: 16px;
+    }
+}
+
 @media (max-width: 600px) {
     .myo-header {
         flex-direction: column;
@@ -394,5 +404,47 @@
 
     .myo-empty__actions {
         flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .myo-page {
+        padding: calc(var(--header-height) + 16px) 0 40px;
+    }
+
+    .myo-header__title {
+        font-size: 20px;
+    }
+
+    .myo-card {
+        padding: 14px 12px;
+        border-radius: 12px;
+    }
+
+    .myo-card__code {
+        font-size: 13px;
+    }
+
+    .myo-card__meta {
+        font-size: 12px;
+        gap: 10px;
+    }
+
+    .myo-card__remove {
+        width: 36px;
+        height: 36px;
+    }
+
+    .myo-btn {
+        min-height: 44px;
+        font-size: 13px;
+    }
+
+    .myo-empty {
+        padding: 36px 20px;
+    }
+
+    .myo-empty h2 {
+        font-size: 18px;
     }
 }
