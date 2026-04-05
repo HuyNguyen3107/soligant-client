@@ -3754,6 +3754,14 @@
   overflow-wrap: anywhere;
 }
 
+.order-detail-priority-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .order-detail-priority-card span {
   font-size: 12px;
   color: #6b7280;
@@ -3944,6 +3952,70 @@
   color: #334155;
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+.order-detail-rich-text,
+.order-detail-rich-text p,
+.order-detail-rich-text ul,
+.order-detail-rich-text ol,
+.order-detail-rich-text li,
+.order-detail-rich-text span,
+.order-detail-rich-text strong,
+.order-detail-rich-text em,
+.order-detail-rich-text b,
+.order-detail-rich-text i,
+.order-detail-rich-text u,
+.order-detail-rich-text a,
+.order-detail-rich-text h1,
+.order-detail-rich-text h2,
+.order-detail-rich-text h3,
+.order-detail-rich-text h4,
+.order-detail-rich-text h5,
+.order-detail-rich-text h6,
+.order-detail-rich-text blockquote {
+  font-size: inherit;
+  color: inherit;
+  line-height: inherit;
+}
+
+.order-detail-rich-text p,
+.order-detail-rich-text ul,
+.order-detail-rich-text ol,
+.order-detail-rich-text h1,
+.order-detail-rich-text h2,
+.order-detail-rich-text h3,
+.order-detail-rich-text h4,
+.order-detail-rich-text h5,
+.order-detail-rich-text h6,
+.order-detail-rich-text blockquote {
+  margin: 0 0 0.45em;
+}
+
+.order-detail-rich-text p:last-child,
+.order-detail-rich-text ul:last-child,
+.order-detail-rich-text ol:last-child,
+.order-detail-rich-text h1:last-child,
+.order-detail-rich-text h2:last-child,
+.order-detail-rich-text h3:last-child,
+.order-detail-rich-text h4:last-child,
+.order-detail-rich-text h5:last-child,
+.order-detail-rich-text h6:last-child,
+.order-detail-rich-text blockquote:last-child {
+  margin-bottom: 0;
+}
+
+.order-detail-rich-text ul,
+.order-detail-rich-text ol {
+  padding-left: 1.2em;
+}
+
+.order-detail-rich-text h1,
+.order-detail-rich-text h2,
+.order-detail-rich-text h3,
+.order-detail-rich-text h4,
+.order-detail-rich-text h5,
+.order-detail-rich-text h6 {
+  font-weight: 700;
 }
 
 .order-progress-images-grid {

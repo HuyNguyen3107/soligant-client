@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { FiClipboard, FiEye, FiRefreshCw, FiX } from "react-icons/fi";
@@ -101,6 +102,8 @@ const PROGRESS_IMAGE_LABELS: Record<ProgressImageKey, string> = {
 const looksLikeObjectId = (value: string) =>
   /^[a-f\d]{24}$/i.test(value.trim());
 
+const FALLBACK_REMOVED_OPTION_LABEL = "Tùy chọn đã xóa";
+
 const resolveDisplayValue = (
   value: string | undefined,
   dictionary: Map<string, string>,
@@ -108,6 +111,25 @@ const resolveDisplayValue = (
   const normalized = typeof value === "string" ? value.trim() : "";
   if (!normalized) return "-";
   return dictionary.get(normalized) ?? normalized;
+};
+
+const resolveCustomizationLabel = (
+  value: string | undefined,
+  dictionary: Map<string, string>,
+) => {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (!normalized) return "-";
+
+  const mapped = dictionary.get(normalized);
+  if (mapped && mapped.trim()) {
+    return mapped.trim();
+  }
+
+  if (looksLikeObjectId(normalized)) {
+    return FALLBACK_REMOVED_OPTION_LABEL;
+  }
+
+  return normalized;
 };
 
 const getPayloadLegoSummary = (
@@ -249,6 +271,31 @@ const normalizeOrderFieldValue = (value: unknown) => {
       .join(", ");
   }
   return "";
+};
+
+const looksLikeHtml = (value: string) => /<\/?[a-z][^>]*>/i.test(value);
+
+const renderTextContent = (
+  value: string | undefined,
+  className: string,
+  emptyText = "-",
+): ReactNode => {
+  const normalized = typeof value === "string" ? value.trim() : "";
+
+  if (!normalized) {
+    return <span className={className}>{emptyText}</span>;
+  }
+
+  if (looksLikeHtml(normalized)) {
+    return (
+      <RichTextContent
+        value={normalized}
+        className={`${className} order-detail-rich-text`}
+      />
+    );
+  }
+
+  return <span className={className}>{normalized}</span>;
 };
 
 const extractCustomerOverview = (entries: OrderRow["customerInfoEntries"]) => {
@@ -1157,7 +1204,12 @@ const OrdersTab = () => {
                 {customerOverview.address && (
                   <article className="order-detail-priority-card order-detail-priority-card--wide">
                     <p>Địa chỉ giao hàng</p>
-                    <strong>{customerOverview.address}</strong>
+                    <div className="order-detail-priority-value">
+                      {renderTextContent(
+                        customerOverview.address,
+                        "order-detail-priority-value__content",
+                      )}
+                    </div>
                   </article>
                 )}
               </section>
@@ -1438,7 +1490,12 @@ const OrdersTab = () => {
                   Ghi chú khách hàng
                 </h4>
                 {detailOrder.note ? (
-                  <p className="order-detail-note">{detailOrder.note}</p>
+                  <div className="order-detail-note">
+                    {renderTextContent(
+                      detailOrder.note,
+                      "order-detail-note__content",
+                    )}
+                  </div>
                 ) : (
                   <p className="order-detail-empty">
                     Khách hàng không để lại ghi chú
@@ -1492,12 +1549,14 @@ const OrdersTab = () => {
                                   ? entry.value
                                   : ""
                               }
-                              className="order-detail-item-bg-field-value"
+                              className="order-detail-item-bg-field-value order-detail-rich-text"
                             />
                           ) : (
-                            <span className="order-detail-item-bg-field-value">
-                              {formatCustomerOrderFieldValue(entry)}
-                            </span>
+                            renderTextContent(
+                              formatCustomerOrderFieldValue(entry),
+                              "order-detail-item-bg-field-value",
+                              "Chưa có dữ liệu",
+                            )
                           )}
                         </div>
                       ))}
@@ -1578,7 +1637,10 @@ const OrdersTab = () => {
                       resolveDisplayValue(value, customizationGroupNameById);
 
                     const resolveCustomizationOption = (value?: string) =>
-                      resolveDisplayValue(value, customizationOptionNameById);
+                      resolveCustomizationLabel(
+                        value,
+                        customizationOptionNameById,
+                      );
 
                     const resolveCustomizationPresentation = (
                       selection: PayloadLegoSlotSelection,
@@ -1767,9 +1829,10 @@ const OrdersTab = () => {
                                     <span className="order-detail-item-bg-field-label">
                                       {entry.label}
                                     </span>
-                                    <span className="order-detail-item-bg-field-value">
-                                      {entry.value}
-                                    </span>
+                                    {renderTextContent(
+                                      entry.value,
+                                      "order-detail-item-bg-field-value",
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -1784,9 +1847,10 @@ const OrdersTab = () => {
                                     <div className="order-detail-item-addon-head">
                                       <strong>Ưu đãi áp dụng</strong>
                                     </div>
-                                    <span className="order-detail-item-bg-field-value">
-                                      {summary}
-                                    </span>
+                                    {renderTextContent(
+                                      summary,
+                                      "order-detail-item-bg-field-value",
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -2057,9 +2121,10 @@ const OrdersTab = () => {
                                         }
                                       />
                                     ) : (
-                                      <span className="order-detail-item-bg-field-value">
-                                        {displayValue}
-                                      </span>
+                                      renderTextContent(
+                                        displayValue,
+                                        "order-detail-item-bg-field-value",
+                                      )
                                     )}
                                   </div>
                                 );
@@ -2132,9 +2197,10 @@ const OrdersTab = () => {
                                                   {cf.value}
                                                 </a>
                                               ) : (
-                                                <span className="order-detail-item-bg-field-value">
-                                                  {cf.value}
-                                                </span>
+                                                renderTextContent(
+                                                  cf.value,
+                                                  "order-detail-item-bg-field-value",
+                                                )
                                               )}
                                             </div>
                                           ),
