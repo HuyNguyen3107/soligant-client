@@ -1,19 +1,30 @@
-import type { DonutSegment } from "../../types";
+interface DonutSegmentValue {
+  label: string;
+  value: number;
+  pct: number;
+  color: string;
+}
 
-const DonutChart = () => {
-  const segments: DonutSegment[] = [
-    { label: "Trực tiếp", value: 35, color: "#731618" },
-    { label: "Tìm kiếm", value: 28, color: "#3b82f6" },
-    { label: "Giới thiệu", value: 22, color: "#f59e0b" },
-    { label: "Mạng xã hội", value: 15, color: "#a855f7" },
-  ];
+interface DonutChartProps {
+  segments: DonutSegmentValue[];
+  total: number;
+  centerLabel: string;
+  centerSubLabel: string;
+}
+
+const DonutChart = ({
+  segments,
+  total,
+  centerLabel,
+  centerSubLabel,
+}: DonutChartProps) => {
   const r = 52,
     cx = 70,
     cy = 70;
   const circ = 2 * Math.PI * r;
   let offset = 0;
   const arcs = segments.map((seg) => {
-    const dash = (seg.value / 100) * circ;
+    const dash = (seg.pct / 100) * circ;
     const el = (
       <circle
         key={seg.label}
@@ -35,6 +46,8 @@ const DonutChart = () => {
     return el;
   });
 
+  const hasData = total > 0 && segments.length > 0;
+
   return (
     <div className="donut-wrapper">
       <svg width="140" height="140" viewBox="0 0 140 140">
@@ -46,7 +59,7 @@ const DonutChart = () => {
           stroke="#e2e8f0"
           strokeWidth="16"
         />
-        {arcs}
+        {hasData ? arcs : null}
         <text
           x={cx}
           y={cy - 4}
@@ -55,7 +68,7 @@ const DonutChart = () => {
           fontWeight="700"
           fill="#1e293b"
         >
-          284K
+          {centerLabel}
         </text>
         <text
           x={cx}
@@ -64,17 +77,21 @@ const DonutChart = () => {
           fontSize="9"
           fill="#64748b"
         >
-          Lượt truy cập
+          {centerSubLabel}
         </text>
       </svg>
       <div className="donut-legend">
-        {segments.map((seg) => (
-          <div key={seg.label} className="donut-legend-item">
-            <span className="donut-dot" style={{ background: seg.color }} />
-            <span className="donut-legend-label">{seg.label}</span>
-            <span className="donut-legend-value">{seg.value}%</span>
-          </div>
-        ))}
+        {!hasData ? (
+          <div className="donut-empty">Chưa có dữ liệu đơn hàng.</div>
+        ) : (
+          segments.map((seg) => (
+            <div key={seg.label} className="donut-legend-item">
+              <span className="donut-dot" style={{ background: seg.color }} />
+              <span className="donut-legend-label">{seg.label}</span>
+              <span className="donut-legend-value">{seg.pct.toFixed(1)}%</span>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { FiArrowLeft, FiArrowRight, FiArrowUpRight } from "react-icons/fi";
@@ -75,6 +75,10 @@ const Home = () => {
   const perPage = 2;
   const maxSlide = Math.max(0, reviews.length - perPage);
   const trackRef = useRef<HTMLDivElement>(null);
+  const [previewImage, setPreviewImage] = useState<{
+    src: string;
+    alt: string;
+  } | null>(null);
 
   // Contact
   const [name, setName] = useState("");
@@ -89,6 +93,25 @@ const Home = () => {
     setPhone("");
     setTimeout(() => setSent(false), 4000);
   };
+
+  useEffect(() => {
+    if (!previewImage) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPreviewImage(null);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [previewImage]);
 
   return (
     <>
@@ -286,6 +309,9 @@ const Home = () => {
               >
                 {reviews.map((fb) => {
                   const displayName = fb.name.trim() || "Khách hàng";
+                  const feedbackImageUrl = fb.image
+                    ? getStaticAssetUrl(fb.image)
+                    : "";
                   return (
                     <article key={fb.id} className="hp-review">
                       <div className="hp-review__top">
@@ -293,24 +319,36 @@ const Home = () => {
                         <span className="hp-review__quote">"</span>
                       </div>
                       <p className="hp-review__msg">{fb.message}</p>
+                      {feedbackImageUrl && (
+                        <button
+                          type="button"
+                          className="hp-review__proof"
+                          onClick={() =>
+                            setPreviewImage({
+                              src: feedbackImageUrl,
+                              alt: `Ảnh minh chứng từ ${displayName}`,
+                            })
+                          }
+                          aria-label={`Xem ảnh minh chứng của ${displayName}`}
+                        >
+                          <ImageWithFallback
+                            src={feedbackImageUrl}
+                            alt={`Ảnh minh chứng từ ${displayName}`}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                          <span className="hp-review__proofHint">
+                            Bấm để xem rõ ảnh
+                          </span>
+                        </button>
+                      )}
                       <div className="hp-review__author">
-                        {fb.image ? (
-                          <div className="hp-review__avatar">
-                            <ImageWithFallback
-                              src={getStaticAssetUrl(fb.image)}
-                              alt={displayName}
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="hp-review__avatar hp-review__avatar--init">
-                            {displayName.charAt(0).toUpperCase()}
-                          </div>
-                        )}
+                        <div className="hp-review__avatar hp-review__avatar--init">
+                          {displayName.charAt(0).toUpperCase()}
+                        </div>
                         <div>
                           <p className="hp-review__name">{displayName}</p>
                           <p className="hp-review__date">
@@ -326,6 +364,39 @@ const Home = () => {
           )}
         </div>
       </section>
+
+      {previewImage && (
+        <div
+          className="hp-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Xem ảnh minh chứng feedback"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            type="button"
+            className="hp-lightbox__close"
+            onClick={() => setPreviewImage(null)}
+            aria-label="Đóng ảnh"
+          >
+            ×
+          </button>
+          <div
+            className="hp-lightbox__frame"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ImageWithFallback
+              src={previewImage.src}
+              alt={previewImage.alt}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ═══ STORY ═══ */}
       <section className="hp-section hp-story">

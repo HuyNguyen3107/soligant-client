@@ -675,6 +675,31 @@
   gap: 24px;
 }
 
+.dashboard-alert {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.84rem;
+  color: #334155;
+}
+
+.dashboard-alert strong {
+  color: #0f172a;
+}
+
+.dashboard-alert--error {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #991b1b;
+}
+
+.dashboard-alert--warn {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
 /* ── STAT GRID ── */
 .stat-grid {
   display: grid;
@@ -813,6 +838,15 @@
 
 .line-chart-wrap {
   width: 100%;
+  position: relative;
+}
+
+.line-chart__loading {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 0.73rem;
+  color: #94a3b8;
 }
 
 /* ── RIGHT COLUMN ── */
@@ -880,6 +914,11 @@
   color: #1e293b;
 }
 
+.donut-empty {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
 /* ── GOALS ── */
 .goals-list {
   display: flex;
@@ -906,6 +945,14 @@
 .goal-item__pct {
   font-weight: 600;
   color: #1e293b;
+}
+
+.goal-item__pct.up {
+  color: #166534;
+}
+
+.goal-item__pct.down {
+  color: #b91c1c;
 }
 
 .goal-bar {
