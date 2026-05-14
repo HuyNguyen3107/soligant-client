@@ -157,8 +157,10 @@ const CollectionsTab = () => {
 
   const authHeaders = () => ({
     "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
   });
+
+  const authFetch = (url: string, init: RequestInit = {}) =>
+    fetch(url, { credentials: "include", ...init });
 
   const handleAuthFailure = (res: Response) => {
     if (res.status !== 401 && res.status !== 403) return false;
@@ -171,7 +173,7 @@ const CollectionsTab = () => {
   const loadCollections = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/collections`, {
+      const res = await authFetch(`${API_URL}/collections`, {
         headers: authHeaders(),
       });
       if (handleAuthFailure(res)) return;
@@ -244,11 +246,8 @@ const CollectionsTab = () => {
   const deleteServerUpload = (url: string) => {
     const match = url.match(/\/uploads\/([^/?#]+)$/);
     if (!match) return;
-    fetch(`${API_URL}/upload/image/${match[1]}`, {
+    authFetch(`${API_URL}/upload/image/${match[1]}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
     })
       .then((res) => {
         handleAuthFailure(res);
@@ -285,11 +284,8 @@ const CollectionsTab = () => {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch(`${API_URL}/upload/image`, {
+      const res = await authFetch(`${API_URL}/upload/image`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
         body: fd,
       });
       if (handleAuthFailure(res)) return;
@@ -401,7 +397,7 @@ const CollectionsTab = () => {
     }
 
     try {
-      const res = await fetch(`${API_URL}/collections/${c._id}`, {
+      const res = await authFetch(`${API_URL}/collections/${c._id}`, {
         method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify({ isActive: !c.isActive }),
@@ -428,7 +424,7 @@ const CollectionsTab = () => {
     }
 
     try {
-      const res = await fetch(`${API_URL}/collections/${c._id}`, {
+      const res = await authFetch(`${API_URL}/collections/${c._id}`, {
         method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify({ isFeatured: !c.isFeatured }),
@@ -457,7 +453,7 @@ const CollectionsTab = () => {
 
     setDeleting(true);
     try {
-      const res = await fetch(`${API_URL}/collections/${confirmId}`, {
+      const res = await authFetch(`${API_URL}/collections/${confirmId}`, {
         method: "DELETE",
         headers: authHeaders(),
       });

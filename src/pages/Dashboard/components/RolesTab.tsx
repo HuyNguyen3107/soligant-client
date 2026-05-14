@@ -52,8 +52,10 @@ const RolesTab = () => {
 
   const authHeaders = () => ({
     "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
   });
+
+  const authFetch = (url: string, init: RequestInit = {}) =>
+    fetch(url, { credentials: "include", ...init });
 
   const handleAuthFailure = (res: Response) => {
     if (res.status !== 401 && res.status !== 403) return false;
@@ -66,7 +68,7 @@ const RolesTab = () => {
   const loadRoles = async () => {
     setLoadingRoles(true);
     try {
-      const res = await fetch(`${API_URL}/roles`, { headers: authHeaders() });
+      const res = await authFetch(`${API_URL}/roles`, { headers: authHeaders() });
       if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       setRoles(await res.json());
@@ -86,7 +88,7 @@ const RolesTab = () => {
 
     setLoadingPerms(true);
     try {
-      const res = await fetch(`${API_URL}/permissions`, {
+      const res = await authFetch(`${API_URL}/permissions`, {
         headers: authHeaders(),
       });
       if (handleAuthFailure(res)) return;
@@ -244,7 +246,7 @@ const RolesTab = () => {
 
     setDeleting(true);
     try {
-      const res = await fetch(`${API_URL}/roles/${id}`, {
+      const res = await authFetch(`${API_URL}/roles/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });

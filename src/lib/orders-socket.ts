@@ -31,11 +31,31 @@ export type OrdersSocket = Socket<
   Record<string, never>
 >;
 
+// The browser attaches the auth cookie automatically when `withCredentials`
+// is true, so callers no longer have to forward a token.
 export const createOrdersSocket = (): OrdersSocket => {
   return io(`${SERVER_ORIGIN}/orders`, {
-    transports: ["websocket"],
+    transports: ["websocket", "polling"],
     withCredentials: true,
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 8000,
+    timeout: 10000,
   }) as OrdersSocket;
+};
+
+export const NEW_ORDER_BROWSER_EVENT = "soligant:order-created";
+
+export const broadcastNewOrderToTab = (
+  payload: OrderCreatedSocketPayload,
+) => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent<OrderCreatedSocketPayload>(NEW_ORDER_BROWSER_EVENT, {
+      detail: payload,
+    }),
+  );
 };
 
 const isStoredOrderNotification = (

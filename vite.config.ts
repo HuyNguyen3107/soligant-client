@@ -5,17 +5,36 @@ import react from "@vitejs/plugin-react-swc";
 export default defineConfig({
   plugins: [react()],
   build: {
+    target: "es2020",
     rollupOptions: {
       output: {
-        manualChunks: {
-          "react-vendor": ["react", "react-dom", "react-router-dom"],
-          "query": ["@tanstack/react-query"],
-          "ui-vendor": ["react-icons", "react-toastify", "react-helmet-async"],
+        manualChunks: (id) => {
+          if (!id.includes("node_modules")) return undefined;
+          if (
+            id.includes("/react-router") ||
+            id.includes("/react-dom") ||
+            id.match(/[\\/]react[\\/]/)
+          ) {
+            return "react-vendor";
+          }
+          if (id.includes("@tanstack/react-query")) return "query-vendor";
+          if (id.includes("socket.io-client")) return "socket-vendor";
+          if (id.includes("dompurify")) return "sanitize-vendor";
+          if (id.includes("axios")) return "axios-vendor";
+          if (
+            id.includes("react-icons") ||
+            id.includes("react-toastify") ||
+            id.includes("react-helmet-async")
+          ) {
+            return "ui-vendor";
+          }
+          if (id.includes("zustand")) return "state-vendor";
+          return "vendor";
         },
       },
     },
-    chunkSizeWarningLimit: 500,
     cssCodeSplit: true,
     sourcemap: false,
+    reportCompressedSize: false,
   },
 });

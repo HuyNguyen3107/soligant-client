@@ -16,27 +16,20 @@ import { hasAnyPermission } from "../../../lib/permissions";
 import { getCustomizedCartItemSubtotal } from "../../../lib/custom-cart";
 import {
   appendStoredOrderNotification,
+  broadcastNewOrderToTab,
   createOrdersSocket,
   type OrderCreatedSocketPayload,
   writeStoredOrderNotifications,
 } from "../../../lib/orders-socket";
 import { useCustomCartStore } from "../../../store/custom-cart.store";
+import { useAuthStore } from "../../../store/auth.store";
+import { logout as logoutApi } from "../../../services/auth.service";
 import "./Header.css";
 
 interface NavigationLink {
   label: string;
   href: string;
   end?: boolean;
-}
-
-interface StoredUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  permissions?: string[];
-  isSuperAdmin?: boolean;
-  avatar?: string;
 }
 
 const DASHBOARD_PERMISSIONS = [
@@ -69,7 +62,8 @@ const navLinks: NavigationLink[] = [
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState<StoredUser | null>(null);
+  const user = useAuthStore((state) => state.user);
+  const clearSession = useAuthStore((state) => state.clearSession);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -91,23 +85,6 @@ const Header = () => {
   const selectedItemIds = storedSelectedItemIds.filter((itemId) =>
     cartItems.some((item) => item.id === itemId),
   );
-
-  const readUser = () => {
-    try {
-      const token = localStorage.getItem("accessToken");
-      const stored = localStorage.getItem("user");
-      if (token && stored) setUser(JSON.parse(stored));
-      else setUser(null);
-    } catch {
-      setUser(null);
-    }
-  };
-
-  useEffect(() => {
-    readUser();
-    window.addEventListener("storage", readUser);
-    return () => window.removeEventListener("storage", readUser);
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -143,11 +120,9 @@ const Header = () => {
   const canViewOrders = hasAnyPermission(user, ["orders.view"]);
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+    logoutApi();
+    clearSession();
     writeStoredOrderNotifications([]);
-    setUser(null);
     setDropdownOpen(false);
     setMobileNavOpen(false);
     navigate("/");
@@ -162,6 +137,7 @@ const Header = () => {
 
     const onOrderCreated = (payload: OrderCreatedSocketPayload) => {
       appendStoredOrderNotification(payload);
+      broadcastNewOrderToTab(payload);
     };
 
     socket.on("orders:new", onOrderCreated);

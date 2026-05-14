@@ -7,13 +7,22 @@ export interface LoginPayload {
 }
 
 export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
   user: AuthUser;
 }
 
 export async function login(payload: LoginPayload) {
   const { data } = await http.post<LoginResponse>("/auth/login", payload);
+  return data;
+}
+
+export async function logout() {
+  // Backend clears the httpOnly auth cookies. Ignore errors so logout always
+  // proceeds locally even when the network call fails.
+  await http.post("/auth/logout").catch(() => undefined);
+}
+
+export async function getCurrentUser() {
+  const { data } = await http.get<AuthUser>("/auth/me");
   return data;
 }
 

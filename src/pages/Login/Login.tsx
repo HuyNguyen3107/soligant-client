@@ -20,11 +20,7 @@ const Login = () => {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data) => {
-      setSession({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        user: data.user,
-      });
+      setSession({ user: data.user });
       navigate("/dashboard");
     },
     onError: (error) => {

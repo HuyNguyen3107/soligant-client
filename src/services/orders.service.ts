@@ -100,6 +100,26 @@ export const getOrders = async () => {
   return data;
 };
 
+export interface PaginatedOrders {
+  items: OrderRow[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export const getOrdersPaginated = async (
+  params: { page?: number; limit?: number } = {},
+): Promise<PaginatedOrders> => {
+  const { data } = await http.get<PaginatedOrders>("/orders/paginated", {
+    params: {
+      page: params.page ?? 1,
+      limit: params.limit ?? 20,
+    },
+  });
+  return data;
+};
+
 export const updateOrderStatus = async (
   id: string,
   status: OrderStatus,

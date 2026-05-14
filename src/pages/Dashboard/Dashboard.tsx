@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { isAxiosError } from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import {
   FiChevronLeft,
   FiLogOut,
@@ -13,7 +13,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import "react-toastify/dist/ReactToastify.css";
-import { SEO } from "../../components/common";
+import { ErrorBoundary, SEO } from "../../components/common";
 import {
   ProfileModal,
   DashboardTab,
@@ -38,9 +38,12 @@ import { sidebarSections, TAB_META } from "./config";
 import { useAuthStore } from "../../store/auth.store";
 import { hasPermission } from "../../lib/permissions";
 import { http } from "../../lib/http";
+import { logout as logoutApi } from "../../services/auth.service";
 import {
   appendStoredOrderNotification,
+  broadcastNewOrderToTab,
   createOrdersSocket,
+  NEW_ORDER_BROWSER_EVENT,
   ORDER_NOTIFICATIONS_STORAGE_KEY,
   readStoredOrderNotifications,
   type OrderCreatedSocketPayload,
@@ -88,7 +91,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const user = useAuthStore((state) => state.user);
-  const accessToken = useAuthStore((state) => state.accessToken);
   const clearSession = useAuthStore((state) => state.clearSession);
   const setUser = useAuthStore((state) => state.setUser);
   const isHydrated = useAuthStore((state) => state.isHydrated);
@@ -177,10 +179,6 @@ const Dashboard = () => {
   // ── Refresh user permissions from server once on mount ─────────────────────
   useEffect(() => {
     if (!isHydrated) return;
-    if (!accessToken || !user) {
-      setMeLoaded(true);
-      return;
-    }
     if (meFetched.current) return;
     meFetched.current = true;
 
@@ -190,7 +188,7 @@ const Dashboard = () => {
       .catch((error: unknown) => {
         const status = isAxiosError(error) ? error.response?.status : undefined;
 
-        // Fallback: force logout if server rejects current session.
+        // Force logout if the server rejects the current session.
         if (status === 401 || status === 403 || status === 404) {
           clearSession();
           navigate("/login", { replace: true });
@@ -210,7 +208,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (!isHydrated || !meLoaded) return;
 
-    if (!accessToken || !user) {
+    if (!user) {
       navigate("/login");
       return;
     }
@@ -222,7 +220,6 @@ const Dashboard = () => {
 
     setLoading(false);
   }, [
-    accessToken,
     activeTab,
     availableTabs,
     isHydrated,
@@ -234,6 +231,7 @@ const Dashboard = () => {
   const handleLogout = () => {
     setOrderNotifications([]);
     writeStoredOrderNotifications([]);
+    logoutApi();
     clearSession();
     navigate("/login");
   };
@@ -272,26 +270,76 @@ const Dashboard = () => {
     return () => document.removeEventListener("mousedown", handleDocumentClick);
   }, [isNotificationOpen]);
 
+  const handleIncomingOrder = useRef<
+    (payload: OrderCreatedSocketPayload, options?: { fromSelf?: boolean }) => void
+  >(() => {});
+
   useEffect(() => {
-    if (!isHydrated || !meLoaded || !accessToken || !user || !canViewOrders) {
+    handleIncomingOrder.current = (payload, options) => {
+      const nextNotifications = appendStoredOrderNotification(payload);
+      setOrderNotifications(nextNotifications);
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+
+      if (!options?.fromSelf) {
+        toast.success(
+          `Đơn mới ${payload.orderCode} · ${payload.itemsCount} sản phẩm · ${formatNotificationMoney(payload.finalTotal)}`,
+          {
+            position: "top-right",
+            autoClose: 6000,
+            onClick: () => {
+              if (canViewOrders && availableTabs.includes("orders")) {
+                setActiveTab("orders");
+              }
+            },
+          },
+        );
+      }
+    };
+  });
+
+  useEffect(() => {
+    if (!isHydrated || !meLoaded || !user || !canViewOrders) {
       return;
     }
 
     const socket = createOrdersSocket();
 
     const onOrderCreated = (payload: OrderCreatedSocketPayload) => {
-      const nextNotifications = appendStoredOrderNotification(payload);
-      setOrderNotifications(nextNotifications);
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      handleIncomingOrder.current(payload);
+      // Broadcast to other listeners in the same tab (e.g. Header on storefront)
+      broadcastNewOrderToTab(payload);
+    };
+
+    const onConnectError = (error: Error) => {
+      // Surface the issue so admins can react instead of failing silently.
+      // Keep it brief and non-blocking — socket.io will keep retrying.
+      // eslint-disable-next-line no-console
+      console.warn("[orders socket] connect_error:", error.message);
     };
 
     socket.on("orders:new", onOrderCreated);
+    socket.on("connect_error", onConnectError);
 
     return () => {
       socket.off("orders:new", onOrderCreated);
+      socket.off("connect_error", onConnectError);
       socket.disconnect();
     };
-  }, [accessToken, canViewOrders, isHydrated, meLoaded, queryClient, user]);
+  }, [canViewOrders, isHydrated, meLoaded, queryClient, user]);
+
+  // Listen for in-tab rebroadcasts (e.g. when Header on storefront receives the
+  // event first, then user navigates to dashboard within the same tab).
+  useEffect(() => {
+    const onBrowserEvent = (event: Event) => {
+      const detail = (event as CustomEvent<OrderCreatedSocketPayload>).detail;
+      if (!detail || !detail.orderCode) return;
+      handleIncomingOrder.current(detail, { fromSelf: true });
+    };
+
+    window.addEventListener(NEW_ORDER_BROWSER_EVENT, onBrowserEvent);
+    return () =>
+      window.removeEventListener(NEW_ORDER_BROWSER_EVENT, onBrowserEvent);
+  }, []);
 
   useEffect(() => {
     if (activeTab === "orders") {
@@ -627,7 +675,9 @@ const Dashboard = () => {
               </p>
             </div>
           ) : availableTabs.includes(activeTab) ? (
-            tabMap[activeTab]
+            <ErrorBoundary label={activeLabel} resetKey={activeTab}>
+              {tabMap[activeTab]}
+            </ErrorBoundary>
           ) : null}
         </main>
       </div>

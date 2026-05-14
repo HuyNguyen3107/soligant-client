@@ -56,8 +56,10 @@ const UsersTab = () => {
 
   const authHeaders = () => ({
     "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
   });
+
+  const authFetch = (url: string, init: RequestInit = {}) =>
+    fetch(url, { credentials: "include", ...init });
 
   const handleAuthFailure = (res: Response) => {
     if (res.status !== 401 && res.status !== 403) return false;
@@ -73,7 +75,7 @@ const UsersTab = () => {
     }
     setLoadingUsers(true);
     try {
-      const res = await fetch(`${API_URL}/users`, { headers: authHeaders() });
+      const res = await authFetch(`${API_URL}/users`, { headers: authHeaders() });
       if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       setUsers(await res.json());
@@ -91,7 +93,7 @@ const UsersTab = () => {
     }
 
     try {
-      const res = await fetch(`${API_URL}/roles`, { headers: authHeaders() });
+      const res = await authFetch(`${API_URL}/roles`, { headers: authHeaders() });
       if (handleAuthFailure(res)) return;
       if (!res.ok) throw new Error();
       setAvailableRoles(await res.json());
@@ -187,7 +189,7 @@ const UsersTab = () => {
         if (form.phone.trim()) body.phone = form.phone.trim();
         if (form.address.trim()) body.address = form.address.trim();
         if (form.customRoleId) body.customRoleId = form.customRoleId;
-        const res = await fetch(`${API_URL}/users`, {
+        const res = await authFetch(`${API_URL}/users`, {
           method: "POST",
           headers: authHeaders(),
           body: JSON.stringify(body),
@@ -205,7 +207,7 @@ const UsersTab = () => {
         if (form.phone.trim()) body.phone = form.phone.trim();
         if (form.address.trim()) body.address = form.address.trim();
         body.customRoleId = form.customRoleId; // empty string = remove role
-        const res = await fetch(`${API_URL}/users/${editId}`, {
+        const res = await authFetch(`${API_URL}/users/${editId}`, {
           method: "PATCH",
           headers: authHeaders(),
           body: JSON.stringify(body),
@@ -236,7 +238,7 @@ const UsersTab = () => {
 
     setDeleting(true);
     try {
-      const res = await fetch(`${API_URL}/users/${id}`, {
+      const res = await authFetch(`${API_URL}/users/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });

@@ -60,9 +60,7 @@ const ProfileModal = ({ user, onClose, onSaved, dark }: ProfileModalProps) => {
     if (!match) return;
     fetch(`${API_URL}/upload/image/${match[1]}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
+      credentials: "include",
     }).catch(() => {}); // im lặng nếu lỗi
   };
 
@@ -82,9 +80,7 @@ const ProfileModal = ({ user, onClose, onSaved, dark }: ProfileModalProps) => {
       fd.append("file", file);
       const res = await fetch(`${API_URL}/upload/image`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
+        credentials: "include",
         body: fd,
       });
       if (!res.ok) {
@@ -139,7 +135,6 @@ const ProfileModal = ({ user, onClose, onSaved, dark }: ProfileModalProps) => {
     }
     setSaving(true);
     try {
-      const token = localStorage.getItem("accessToken");
       const body: Record<string, unknown> = { name: form.name.trim() };
       if (form.phone.trim()) body.phone = form.phone.trim();
       if (form.address.trim()) body.address = form.address.trim();
@@ -147,9 +142,9 @@ const ProfileModal = ({ user, onClose, onSaved, dark }: ProfileModalProps) => {
 
       const res = await fetch(`${API_URL}/users/${user.id}`, {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(body),
       });
@@ -205,12 +200,11 @@ const ProfileModal = ({ user, onClose, onSaved, dark }: ProfileModalProps) => {
     }
     setPwSaving(true);
     try {
-      const token = localStorage.getItem("accessToken");
       const res = await fetch(`${API_URL}/users/${user.id}/change-password`, {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           currentPassword: pwForm.current,

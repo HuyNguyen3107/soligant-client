@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosHeaders } from "axios";
+import axios, { AxiosError } from "axios";
 import { useAuthStore } from "../store/auth.store";
 
 export const API_BASE_URL =
@@ -21,26 +21,14 @@ export const getStaticAssetUrl = (input: string | null | undefined) => {
   return `${SERVER_ORIGIN}/${normalizedInput.replace(/^\/+/, "")}`;
 };
 
+// Tokens live in httpOnly cookies set by the API. The browser attaches them
+// automatically when `withCredentials` is true, so we never touch them from JS.
 export const http = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
-});
-
-http.interceptors.request.use((config) => {
-  const accessTokenFromStore = useAuthStore.getState().accessToken;
-  const accessTokenFromLegacyStorage =
-    typeof window !== "undefined" ? window.localStorage.getItem("accessToken") : null;
-  const token = accessTokenFromStore ?? accessTokenFromLegacyStorage;
-
-  if (token) {
-    const headers = AxiosHeaders.from(config.headers);
-    headers.set("Authorization", `Bearer ${token}`);
-    config.headers = headers;
-  }
-
-  return config;
 });
 
 http.interceptors.response.use(
@@ -48,7 +36,10 @@ http.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       const requestUrl = String(error.config?.url ?? "");
-      if (!requestUrl.includes("/auth/login")) {
+      if (
+        !requestUrl.includes("/auth/login") &&
+        !requestUrl.includes("/auth/me")
+      ) {
         useAuthStore.getState().clearSession();
       }
     }

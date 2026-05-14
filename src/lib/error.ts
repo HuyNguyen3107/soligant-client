@@ -4,7 +4,38 @@ interface ApiErrorPayload {
   message?: string | string[];
   error?: string;
   statusCode?: number;
+  fieldErrors?: Record<string, string[]>;
 }
+
+/**
+ * Extract per-field validation errors from an API error response. Returns
+ * an empty object if the response doesn't carry structured field errors.
+ *
+ * Usage in a form:
+ *   const fieldErrors = getFieldErrors(error);
+ *   <input aria-invalid={Boolean(fieldErrors.email)} />
+ *   {fieldErrors.email && <p role="alert">{fieldErrors.email[0]}</p>}
+ */
+export const getFieldErrors = (
+  error: unknown,
+): Record<string, string[]> => {
+  if (!isAxiosError<ApiErrorPayload>(error)) {
+    return {};
+  }
+
+  const raw = error.response?.data?.fieldErrors;
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+
+  const result: Record<string, string[]> = {};
+  for (const [field, messages] of Object.entries(raw)) {
+    if (Array.isArray(messages) && messages.length > 0) {
+      result[field] = messages.map((m) => String(m));
+    }
+  }
+  return result;
+};
 
 const TECHNICAL_MESSAGE_PATTERNS = [
   /request entity too large/i,

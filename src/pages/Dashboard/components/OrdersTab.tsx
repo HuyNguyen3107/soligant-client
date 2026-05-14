@@ -302,28 +302,34 @@ const extractCustomerOverview = (entries: OrderRow["customerInfoEntries"]) => {
   let name = "";
   let phone = "";
   let address = "";
+  let email = "";
 
   entries.forEach((entry) => {
     const label = (entry.label ?? "").toLowerCase();
     const value = normalizeOrderFieldValue(entry.value);
     if (!value) return;
 
-    if (!name && /(họ\s*tên|tên|full\s*name|name)/i.test(label)) {
-      name = value;
+    if (!email && /(e[\-\s]?mail)/i.test(label)) {
+      email = value;
       return;
     }
 
-    if (!phone && /(sđt|điện\s*thoại|phone|tel|zalo)/i.test(label)) {
+    if (!phone && /(sđt|số\s*điện\s*thoại|điện\s*thoại|phone|tel|zalo)/i.test(label)) {
       phone = value;
       return;
     }
 
     if (!address && /(địa\s*chỉ|address|nơi\s*nhận|giao\s*hàng)/i.test(label)) {
       address = value;
+      return;
+    }
+
+    if (!name && /(họ\s*(và\s*)?tên|họ\s*tên|full\s*name|^name$|^tên$)/i.test(label)) {
+      name = value;
     }
   });
 
-  return { name, phone, address };
+  return { name, phone, address, email };
 };
 
 const getPayloadAddonOptions = (
@@ -704,8 +710,27 @@ const OrdersTab = () => {
     () =>
       detailOrder
         ? extractCustomerOverview(detailOrder.customerInfoEntries ?? [])
-        : { name: "", phone: "", address: "" },
+        : { name: "", phone: "", address: "", email: "" },
     [detailOrder],
+  );
+
+  const sortedCustomerInfoEntries = useMemo(() => {
+    if (!detailOrder) return [];
+    return (detailOrder.customerInfoEntries ?? [])
+      .filter(
+        (entry) =>
+          entry.required ||
+          !isCustomerOrderFieldValueEmpty(entry, entry.value),
+      )
+      .sort((left, right) => left.sortOrder - right.sortOrder);
+  }, [detailOrder]);
+
+  const filledCustomerInfoCount = useMemo(
+    () =>
+      sortedCustomerInfoEntries.filter(
+        (entry) => !isCustomerOrderFieldValueEmpty(entry, entry.value),
+      ).length,
+    [sortedCustomerInfoEntries],
   );
 
   const overviewItemsPreview = detailOrder
@@ -1158,9 +1183,39 @@ const OrdersTab = () => {
 
             <div className="modal-body">
               <section className="order-detail-top">
-                <div>
+                <div className="order-detail-top__left">
                   <p className="order-detail-label">Mã đơn hàng</p>
                   <h4 className="order-detail-code">{detailOrder.orderCode}</h4>
+                  <p className="order-detail-top__meta">
+                    <span>
+                      Ký hiệu: <strong>{detailOrder.variantSymbol}</strong>
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      Loại:{" "}
+                      <strong>
+                        {detailOrder.productType === "bear"
+                          ? "Gấu"
+                          : "Lego / Khung tranh"}
+                      </strong>
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      Tạo lúc:{" "}
+                      <strong>{formatDateTime(detailOrder.createdAt)}</strong>
+                    </span>
+                    {detailOrder.updatedAt !== detailOrder.createdAt && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>
+                          Cập nhật:{" "}
+                          <strong>
+                            {formatDateTime(detailOrder.updatedAt)}
+                          </strong>
+                        </span>
+                      </>
+                    )}
+                  </p>
                 </div>
                 <span
                   className="order-detail-status"
@@ -1178,28 +1233,39 @@ const OrdersTab = () => {
                   <p>Khách hàng</p>
                   <strong>{customerOverview.name || "Chưa có"}</strong>
                   <span>{customerOverview.phone || "Chưa có SĐT"}</span>
+                  {customerOverview.email && (
+                    <span title={customerOverview.email}>
+                      {customerOverview.email}
+                    </span>
+                  )}
                 </article>
                 <article className="order-detail-priority-card">
                   <p>Người nhận xử lý</p>
                   <strong>{detailAssigneeName}</strong>
                   <span>
-                    {SHIPPING_PAYER_LABELS[detailOrder.shippingPayer] ??
-                      detailOrder.shippingPayer}
+                    {detailOrder.assignedTo
+                      ? "Đang xử lý"
+                      : "Chưa có người tiếp nhận"}
                   </span>
                 </article>
                 <article className="order-detail-priority-card">
                   <p>Tổng thanh toán</p>
                   <strong>{formatMoney(computedDetailTotal)}</strong>
-                  <span>{detailOrder.itemsCount} sản phẩm</span>
+                  <span>
+                    {detailOrder.itemsCount} sản phẩm · {overviewItemsPreview}
+                  </span>
                 </article>
                 <article className="order-detail-priority-card">
-                  <p>Loại đơn hàng</p>
+                  <p>Phương án phí vận chuyển</p>
                   <strong>
-                    {detailOrder.productType === "bear"
-                      ? "Gấu"
-                      : "Lego / Khung tranh"}
+                    {SHIPPING_PAYER_LABELS[detailOrder.shippingPayer] ??
+                      detailOrder.shippingPayer}
                   </strong>
-                  <span>{overviewItemsPreview}</span>
+                  <span>
+                    {shippingFeeNum > 0
+                      ? `${formatMoney(shippingFeeNum)}${detailOrder.pricingSummary.shippingName ? ` · ${detailOrder.pricingSummary.shippingName}` : ""}`
+                      : "Chưa có phí ship"}
+                  </span>
                 </article>
                 {customerOverview.address && (
                   <article className="order-detail-priority-card order-detail-priority-card--wide">
@@ -1212,49 +1278,6 @@ const OrdersTab = () => {
                     </div>
                   </article>
                 )}
-              </section>
-
-              <section className="order-detail-grid">
-                <div className="order-detail-field">
-                  <span>Thời gian tạo</span>
-                  <strong>{formatDateTime(detailOrder.createdAt)}</strong>
-                </div>
-                <div className="order-detail-field">
-                  <span>Cập nhật lần cuối</span>
-                  <strong>{formatDateTime(detailOrder.updatedAt)}</strong>
-                </div>
-                <div className="order-detail-field">
-                  <span>Số sản phẩm</span>
-                  <strong>{detailOrder.itemsCount}</strong>
-                </div>
-                <div className="order-detail-field">
-                  <span>Ký hiệu mã</span>
-                  <strong>{detailOrder.variantSymbol}</strong>
-                </div>
-                <div className="order-detail-field">
-                  <span>Loại sản phẩm</span>
-                  <strong>
-                    {detailOrder.productType === "bear"
-                      ? "Gấu"
-                      : "Lego / Khung tranh"}
-                  </strong>
-                </div>
-                <div className="order-detail-field">
-                  <span>Người nhận đơn</span>
-                  <strong>
-                    {systemUsers.find((u) => u._id === detailOrder.assignedTo)
-                      ?.name ||
-                      detailOrder.assignedTo ||
-                      "Chưa có"}
-                  </strong>
-                </div>
-                <div className="order-detail-field">
-                  <span>Người trả phí ship</span>
-                  <strong>
-                    {SHIPPING_PAYER_LABELS[detailOrder.shippingPayer] ??
-                      detailOrder.shippingPayer}
-                  </strong>
-                </div>
               </section>
 
               <section className="order-detail-section">
@@ -1504,98 +1527,196 @@ const OrdersTab = () => {
               </section>
 
               <section className="order-detail-section">
-                <h4 className="order-detail-section-title">
-                  Thông tin khách hàng
-                </h4>
-                {(detailOrder.customerInfoEntries ?? []).length > 0 ? (
-                  <div className="order-detail-item-bg-fields">
-                    {(detailOrder.customerInfoEntries ?? [])
-                      .filter(
-                        (entry) =>
-                          entry.required ||
-                          !isCustomerOrderFieldValueEmpty(entry, entry.value),
-                      )
-                      .sort((left, right) => left.sortOrder - right.sortOrder)
-                      .map((entry) => (
+                <div className="order-detail-section-head">
+                  <h4 className="order-detail-section-title">
+                    Thông tin khách hàng
+                  </h4>
+                  {sortedCustomerInfoEntries.length > 0 && (
+                    <span className="order-detail-section-count">
+                      {filledCustomerInfoCount}/
+                      {sortedCustomerInfoEntries.length} trường đã điền
+                    </span>
+                  )}
+                </div>
+                {sortedCustomerInfoEntries.length > 0 ? (
+                  <div className="order-detail-customer-info-grid">
+                    {sortedCustomerInfoEntries.map((entry) => {
+                      const isEmpty = isCustomerOrderFieldValueEmpty(
+                        entry,
+                        entry.value,
+                      );
+                      const isWideField =
+                        entry.fieldType === "image_upload" ||
+                        entry.fieldType === "long_text";
+
+                      return (
                         <div
                           key={entry.key}
-                          className="order-detail-item-bg-field"
+                          className={`order-detail-customer-info-card${
+                            isWideField
+                              ? " order-detail-customer-info-card--wide"
+                              : ""
+                          }${isEmpty ? " order-detail-customer-info-card--empty" : ""}`}
                         >
-                          <span className="order-detail-item-bg-field-label">
+                          <p className="order-detail-customer-info-label">
                             {entry.label}
-                          </span>
+                            {entry.required && (
+                              <span
+                                className="order-detail-customer-info-required"
+                                title="Trường bắt buộc"
+                              >
+                                *
+                              </span>
+                            )}
+                          </p>
+
                           {entry.fieldType === "image_upload" ? (
                             typeof entry.value === "string" &&
                             entry.value.trim() ? (
-                              <ImageWithFallback
-                                src={getStaticAssetUrl(entry.value) ?? ""}
-                                alt={entry.label}
-                                className="order-detail-item-bg-field-img"
-                                fallback={
-                                  <span className="order-detail-item-bg-field-value">
-                                    Ảnh không còn khả dụng
-                                  </span>
+                              <a
+                                href={
+                                  getStaticAssetUrl(entry.value) ?? entry.value
                                 }
-                              />
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="order-detail-customer-info-image-link"
+                                title="Bấm để xem ảnh gốc"
+                              >
+                                <ImageWithFallback
+                                  src={getStaticAssetUrl(entry.value) ?? ""}
+                                  alt={entry.label}
+                                  className="order-detail-item-bg-field-img"
+                                  fallback={
+                                    <span className="order-detail-customer-info-value-empty">
+                                      Ảnh không còn khả dụng
+                                    </span>
+                                  }
+                                />
+                              </a>
                             ) : (
-                              <span className="order-detail-item-bg-field-value">
-                                Chưa tải ảnh
+                              <span className="order-detail-customer-info-value-empty">
+                                {entry.required
+                                  ? "Khách chưa tải ảnh (bắt buộc)"
+                                  : "Chưa tải ảnh"}
                               </span>
                             )
                           ) : entry.fieldType === "long_text" ? (
-                            <RichTextContent
-                              value={
-                                typeof entry.value === "string"
-                                  ? entry.value
-                                  : ""
-                              }
-                              className="order-detail-item-bg-field-value order-detail-rich-text"
-                            />
+                            isEmpty ? (
+                              <span className="order-detail-customer-info-value-empty">
+                                {entry.required
+                                  ? "Khách chưa điền (bắt buộc)"
+                                  : "Chưa có nội dung"}
+                              </span>
+                            ) : (
+                              <RichTextContent
+                                value={
+                                  typeof entry.value === "string"
+                                    ? entry.value
+                                    : ""
+                                }
+                                className="order-detail-customer-info-value order-detail-rich-text"
+                              />
+                            )
+                          ) : isEmpty ? (
+                            <span className="order-detail-customer-info-value-empty">
+                              {entry.required
+                                ? "Khách chưa điền (bắt buộc)"
+                                : "Chưa có dữ liệu"}
+                            </span>
                           ) : (
                             renderTextContent(
                               formatCustomerOrderFieldValue(entry),
-                              "order-detail-item-bg-field-value",
+                              "order-detail-customer-info-value",
                               "Chưa có dữ liệu",
                             )
                           )}
                         </div>
-                      ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="order-detail-empty">
-                    Chưa có thông tin khách hàng
+                    Khách hàng chưa cung cấp thông tin liên hệ
                   </p>
                 )}
               </section>
 
               {(detailOrder.appliedGifts ?? []).length > 0 && (
                 <section className="order-detail-section">
-                  <h4 className="order-detail-section-title">
-                    Quà tặng khuyến mãi
-                  </h4>
+                  <div className="order-detail-section-head">
+                    <h4 className="order-detail-section-title">
+                      Quà tặng khuyến mãi
+                    </h4>
+                    <span className="order-detail-section-count">
+                      {detailOrder.appliedGifts.reduce(
+                        (sum, gift) => sum + (gift.quantity ?? 0),
+                        0,
+                      )}{" "}
+                      quà · {detailOrder.appliedGifts.length} loại
+                    </span>
+                  </div>
                   <div className="order-detail-item-addon-list">
-                    {detailOrder.appliedGifts.map((gift, i) => (
-                      <div key={i} className="order-detail-item-addon-option">
-                        <div className="order-detail-item-addon-head">
-                          <strong>
-                            Quà tặng:{" "}
-                            {resolveDisplayValue(
-                              gift.optionId,
-                              customizationOptionNameById,
-                            )}
-                          </strong>
-                          <span>×{gift.quantity}</span>
+                    {detailOrder.appliedGifts.map((gift, i) => {
+                      const optionMeta = customizationOptionMetaById.get(
+                        gift.optionId,
+                      );
+                      const optionImageUrl = getStaticAssetUrl(
+                        optionMeta?.image ?? "",
+                      );
+                      return (
+                        <div key={i} className="order-detail-item-addon-option">
+                          <div className="order-detail-item-addon-head">
+                            <strong>
+                              Quà tặng:{" "}
+                              {resolveCustomizationLabel(
+                                gift.optionId,
+                                customizationOptionNameById,
+                              )}
+                            </strong>
+                            <span>×{gift.quantity}</span>
+                          </div>
+                          {(optionImageUrl || optionMeta?.colorCode) && (
+                            <div className="order-detail-bear-option-meta">
+                              {optionMeta?.colorCode && (
+                                <span className="order-detail-color-meta">
+                                  <span
+                                    className="order-detail-bear-color"
+                                    style={{ background: optionMeta.colorCode }}
+                                    title={optionMeta.colorCode}
+                                  />
+                                  <span className="order-detail-color-code">
+                                    {optionMeta.colorCode}
+                                  </span>
+                                </span>
+                              )}
+                              {optionImageUrl && (
+                                <ImageWithFallback
+                                  src={optionImageUrl}
+                                  alt={
+                                    optionMeta?.name ?? "Quà tặng khuyến mãi"
+                                  }
+                                  className="order-detail-option-image"
+                                  fallback={null}
+                                />
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               )}
 
               <section className="order-detail-section">
-                <h4 className="order-detail-section-title">
-                  Sản phẩm trong đơn
-                </h4>
+                <div className="order-detail-section-head">
+                  <h4 className="order-detail-section-title">
+                    Sản phẩm trong đơn
+                  </h4>
+                  <span className="order-detail-section-count">
+                    {detailOrder.items.length} sản phẩm
+                  </span>
+                </div>
 
                 <div className="order-detail-items">
                   {detailOrder.items.map((item, index) => {
@@ -1858,22 +1979,26 @@ const OrdersTab = () => {
                           </div>
                         )}
 
-                        {/* ── Per-item pricing (only when there are addons) ── */}
-                        {item.additionalOptionsPrice > 0 && (
-                          <div className="order-detail-item-pricing">
-                            <span>
-                              Tùy chỉnh:{" "}
-                              {formatMoney(item.customizationSubtotal)}
-                            </span>
-                            <span>
-                              Mua thêm: +
-                              {formatMoney(item.additionalOptionsPrice)}
-                            </span>
+                        {/* ── Per-item pricing breakdown ── */}
+                        <div className="order-detail-item-pricing">
+                          <span>
+                            Giá sản phẩm:{" "}
                             <strong>
-                              Tổng sản phẩm: {formatMoney(item.subtotal)}
+                              {formatMoney(item.customizationSubtotal)}
                             </strong>
-                          </div>
-                        )}
+                          </span>
+                          {item.additionalOptionsPrice > 0 && (
+                            <span>
+                              Mua thêm:{" "}
+                              <strong>
+                                +{formatMoney(item.additionalOptionsPrice)}
+                              </strong>
+                            </span>
+                          )}
+                          <strong className="order-detail-item-pricing-total">
+                            Tổng sản phẩm: {formatMoney(item.subtotal)}
+                          </strong>
+                        </div>
 
                         {/* ── Customization configuration (Lego or Bear) ── */}
                         {isBear ? (
