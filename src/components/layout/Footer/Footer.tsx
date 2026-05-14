@@ -91,7 +91,7 @@ const Footer = () => {
       <div className="footer__bottom">
         <div className="container footer__bottom-inner">
           <p className="footer__copyright">
-            © {currentYear} Soligant. Tất cả quyền được bảo lưu.
+            © {currentYear} Soligant. All rights reserved.
           </p>
           <Link to="/tra-cuu-don-hang" className="footer__bottom-link">
             Tra cứu đơn hàng
